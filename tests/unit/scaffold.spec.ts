@@ -18,6 +18,10 @@ import { test, expect, describe } from 'vitest';
 import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
+import {
+	REQUIRED_SCRIPTS,
+	REQUIRED_SCAFFOLD_PATHS
+} from '../support/fixtures/scaffold-context';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -73,18 +77,8 @@ describe('Story 1.1 — Scaffold Acceptance Tests (ATDD Red Phase)', () => {
 		const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { scripts?: Record<string, string> };
 		const scripts = pkg.scripts ?? {};
 
-		// AC-1: All required scripts must be present
-		const requiredScripts = [
-			'dev',
-			'build',
-			'preview',
-			'check',
-			'lint',
-			'format',
-			'test',
-			'test:e2e'
-		];
-		for (const script of requiredScripts) {
+		// AC-1: All required scripts must be present (source of truth: scaffold-context.ts)
+		for (const script of REQUIRED_SCRIPTS) {
 			expect(scripts, `Missing script: "${script}"`).toHaveProperty(script);
 		}
 	});
@@ -213,29 +207,8 @@ describe('Story 1.1 — Scaffold Acceptance Tests (ATDD Red Phase)', () => {
 	test.skip('[P1] 1.1-UNIT-001c — required scaffold files and directories exist', () => {
 		// THIS TEST WILL FAIL — project not yet scaffolded.
 		// Verifies AC-1 directory structure per story dev notes.
-		const required = [
-			'package.json',
-			'bun.lock',
-			// NOTE: sv CLI v0.16.1+ uses vite.config.ts as the primary SvelteKit config (no svelte.config.js)
-			'vite.config.ts',
-			'tsconfig.json',
-			'drizzle.config.ts',
-			'components.json',
-			'eslint.config.js',
-			'.prettierrc',
-			'project.inlang/settings.json',
-			'messages/en.json',
-			'messages/th.json',
-			'.env.example',
-			'src/app.html',
-			'src/app.css',
-			'src/app.d.ts',
-			'src/hooks.server.ts',
-			'src/routes/+page.svelte',
-			'src/routes/+layout.svelte'
-		];
-
-		for (const rel of required) {
+		// Source of truth: REQUIRED_SCAFFOLD_PATHS in scaffold-context.ts
+		for (const rel of REQUIRED_SCAFFOLD_PATHS) {
 			const full = path.join(PROJECT_ROOT, rel);
 			expect(existsSync(full), `Required file missing: ${rel}`).toBe(true);
 		}

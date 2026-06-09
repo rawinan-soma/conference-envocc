@@ -22,7 +22,7 @@ import { test, expect } from '@playwright/test';
 // ---------------------------------------------------------------------------
 // P1 — AC-6: Playwright scaffold test passes (dev server smoke)
 // Given: scaffolded project with `bun run dev` running,
-// When:  Playwright navigates to http://localhost:5173,
+// When:  Playwright navigates to the baseURL configured in playwright.config.ts,
 // Then:  the page loads (HTTP 200, no crash)
 // ---------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ test.describe('Story 1.1 — Scaffold E2E Smoke Tests (ATDD Red Phase)', () => {
 	}) => {
 		// THIS TEST WILL FAIL — dev server not running / project not scaffolded yet.
 		// Remove test.skip() once sv create + bun install + bun run dev are complete.
-		const response = await page.goto('http://localhost:5173');
+		const response = await page.goto('/');
 
 		// Expect 200 — the scaffold default page must respond successfully
 		expect(response?.status()).toBe(200);
@@ -53,7 +53,7 @@ test.describe('Story 1.1 — Scaffold E2E Smoke Tests (ATDD Red Phase)', () => {
 			}
 		});
 
-		await page.goto('http://localhost:5173');
+		await page.goto('/');
 
 		// A freshly scaffolded SvelteKit project should produce zero console errors
 		expect(consoleErrors, `Console errors found: ${consoleErrors.join(', ')}`).toHaveLength(0);
@@ -67,7 +67,7 @@ test.describe('Story 1.1 — Scaffold E2E Smoke Tests (ATDD Red Phase)', () => {
 	test.skip('[P1] 1.1-E2E-003 — scaffold page has html[lang] attribute set', async ({ page }) => {
 		// THIS TEST WILL FAIL — project not scaffolded yet.
 		// Paraglide sets lang attribute based on active locale.
-		await page.goto('http://localhost:5173');
+		await page.goto('/');
 
 		const lang = await page.getAttribute('html', 'lang');
 
