@@ -31,3 +31,6 @@ node_modules/
 /.agents/
 /.claude/
 /.opencode/
+
+# BMad personal config (user name / language)
+_bmad/config.user.yaml

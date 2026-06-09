@@ -1,0 +1,8 @@
+document_output_language: English
+output_folder: '{project-root}/_bmad-output'
+bad:
+  name: BMad Autonomous Development
+  description: Orchestrates parallel BMad story implementation pipelines — automatically
+    runs bmad-create-story, bmad-dev-story, bmad-code-review, and commit/PR in batches,
+    driven by the sprint backlog and dependency graph
+  version: 1.2.0
