@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Analytics — ENVOCC Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   KEY SCREEN — ADMIN · ANALYTICS (surface 5)
+   Governs: EXPERIENCE Flow 3 step 2 (CLIMAX) · DESIGN §4 heatmap-cell (u0–u5 ramp), admin-sidebar
+            FR-070 raw booking count per room per month · CSV export · bulk calendar
+            UXD: NO hover tooltips in MVP · desktop-first dense data
+   English placeholder (UXD-004).
+   ========================================================================= */
+:root{
+  --g900:#1B4332;--g700:#2D6A4F;--g500:#40916C;--g200:#95D5B2;--g100:#D8F3DC;
+  --copper:#B5651D;--copper-light:#E8A96A;--copper-bg:#FDF3E7;
+  --cream:#FAFAF7;--cream-100:#F0EDE6;--cream-200:#E8E3DA;--border:#E0DBD3;--white:#FFFFFF;
+  --ink:#1C1C1C;--ink-2:#5A5A5A;--ink-3:#9A9A9A;--danger:#B3261E;--danger-bg:#FBEAE9;
+  --radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-pill:20px;
+  --shadow:0 2px 8px rgba(27,67,50,.08);--shadow-md:0 6px 20px rgba(27,67,50,.12);--shadow-modal:0 20px 60px rgba(0,0,0,.2);
+  --serif:"Noto Serif Thai",Georgia,"Times New Roman",serif;
+  --sans:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* heatmap ramp u0..u5 */
+  --u0:#E8E3DA;--u1:#C7E9D0;--u2:#95D5B2;--u3:#52B788;--u4:#2D6A4F;--u5:#1B4332;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.frame{max-width:1180px;margin:28px auto;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-modal);border:1px solid var(--border);background:#fff;}
+.chrome{background:#ECE7DF;display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--border);}
+.chrome .d{width:11px;height:11px;border-radius:50%;}
+.chrome .u{flex:1;margin-left:12px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--ink-3);}
+.shell{display:grid;grid-template-columns:228px 1fr;min-height:620px;}
+.side{background:var(--g900);color:#fff;padding:24px 14px;}
+.side .brand{font-family:var(--serif);font-weight:700;font-size:17px;padding:0 12px 18px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:16px;}
+.side .brand small{display:block;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--g200);letter-spacing:.1em;text-transform:uppercase;margin-top:3px;}
+.navsec{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:0 12px;margin:18px 0 10px;}
+.nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--radius);font-size:14px;font-weight:500;color:rgba(255,255,255,.78);margin-bottom:3px;text-decoration:none;}
+.nav:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav.active{background:rgba(255,255,255,.15);color:#fff;font-weight:600;}
+.nav .dot{width:7px;height:7px;border-radius:50%;background:var(--copper-light);}
+.nav.active .dot{background:var(--g200);}
+.main{background:var(--cream);padding:30px 34px 44px;}
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;}
+.pagehead h1{font-family:var(--serif);font-weight:600;font-size:26px;margin:0;}
+.pagehead p{margin:4px 0 0;color:var(--ink-2);font-size:13.5px;}
+.btn{font-family:var(--sans);font-weight:600;font-size:13px;border-radius:var(--radius);border:1.5px solid transparent;cursor:pointer;}
+.btn-primary{background:var(--g900);color:#fff;padding:11px 20px;}
+.btn-primary:hover{background:var(--g700);}
+.btn-out{background:#fff;color:var(--ink-2);border-color:var(--border);padding:11px 18px;}
+.statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:26px;}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;box-shadow:var(--shadow);}
+.kpi .n{font-family:var(--serif);font-weight:700;font-size:32px;color:var(--g700);line-height:1;}
+.kpi .l{font-size:12.5px;color:var(--ink-3);margin-top:6px;}
+.panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:24px 26px;margin-bottom:22px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.panel-head h2{font-family:var(--serif);font-weight:600;font-size:18px;margin:0;}
+.panel-head .sub{font-size:12.5px;color:var(--ink-3);}
+/* heatmap */
+.heat{border-collapse:separate;border-spacing:4px;}
+.heat th{font-size:12px;font-weight:600;color:var(--ink-2);padding:4px 6px;text-align:center;}
+.heat th.rh{text-align:right;font-family:var(--serif);font-weight:600;font-size:13.5px;color:var(--ink);padding-right:14px;white-space:nowrap;}
+.cell{width:50px;height:42px;border-radius:var(--radius-sm);text-align:center;vertical-align:middle;font-size:12px;font-weight:600;color:#fff;}
+.u0{background:var(--u0);color:var(--ink-3);}
+.u1{background:var(--u1);color:var(--g700);}
+.u2{background:var(--u2);color:var(--g900);}
+.u3{background:var(--u3);color:#fff;}
+.u4{background:var(--u4);color:#fff;}
+.u5{background:var(--u5);color:#fff;}
+.scale{display:flex;align-items:center;gap:0;margin-top:18px;}
+.scale .lab{font-size:12px;color:var(--ink-2);font-weight:600;margin:0 12px;}
+.scale .sw{width:34px;height:18px;}
+/* bulk calendar mini */
+.bulkgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.bday{aspect-ratio:1.3/1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;font-size:11px;color:var(--ink-3);background:#fff;position:relative;}
+.bday .num{font-weight:600;color:var(--ink-2);}
+.bday .ct{position:absolute;left:8px;bottom:6px;font-size:10px;font-weight:700;color:var(--g700);background:var(--g100);border-radius:var(--radius-pill);padding:1px 7px;}
+.dowhead{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:center;padding-bottom:6px;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="chrome">
+    <span class="d" style="background:#ED6A5E"></span><span class="d" style="background:#F4BF4F"></span><span class="d" style="background:#61C554"></span>
+    <span class="u">booking.envocc.go.th/admin/analytics</span>
+  </div>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand">ENVOCC<small>Admin</small></div>
+      <div class="navsec">Manage</div>
+      <a class="nav"><span class="dot"></span>Rooms</a>
+      <a class="nav active"><span class="dot"></span>Analytics</a>
+      <a class="nav"><span class="dot"></span>Settings</a>
+      <div class="navsec">View</div>
+      <a class="nav"><span class="dot"></span>All bookings</a>
+    </aside>
+
+    <main class="main">
+      <div class="pagehead">
+        <div><h1>Utilization</h1><p>Bookings per room per month. Read it at a glance, then export the raw numbers.</p></div>
+        <button class="btn btn-primary">⬇ Export CSV</button>
+      </div>
+
+      <div class="statrow">
+        <div class="kpi"><div class="n">214</div><div class="l">Bookings this year</div></div>
+        <div class="kpi"><div class="n">Room A</div><div class="l">Busiest room</div></div>
+        <div class="kpi"><div class="n">March</div><div class="l">Peak month</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Utilization heatmap</h2><span class="sub">Raw booking count · room × month · 2026</span></div>
+        <table class="heat">
+          <thead>
+            <tr><th class="rh"></th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th></tr>
+          </thead>
+          <tbody>
+            <tr><th class="rh">Meeting Room A</th>
+              <td class="cell u2">8</td><td class="cell u3">12</td><td class="cell u5">21</td><td class="cell u4">17</td><td class="cell u3">11</td><td class="cell u2">7</td><td class="cell u1">4</td><td class="cell u2">6</td><td class="cell u3">10</td><td class="cell u4">15</td><td class="cell u3">12</td><td class="cell u1">3</td></tr>
+            <tr><th class="rh">Meeting Room B</th>
+              <td class="cell u1">3</td><td class="cell u2">6</td><td class="cell u3">10</td><td class="cell u2">7</td><td class="cell u2">5</td><td class="cell u1">2</td><td class="cell u0">0</td><td class="cell u1">3</td><td class="cell u2">6</td><td class="cell u3">9</td><td class="cell u2">5</td><td class="cell u0">1</td></tr>
+            <tr><th class="rh">Auditorium</th>
+              <td class="cell u0">1</td><td class="cell u1">3</td><td class="cell u2">7</td><td class="cell u3">9</td><td class="cell u2">6</td><td class="cell u1">4</td><td class="cell u1">2</td><td class="cell u0">1</td><td class="cell u2">5</td><td class="cell u3">8</td><td class="cell u2">6</td><td class="cell u1">2</td></tr>
+            <tr><th class="rh">Training Room C</th>
+              <td class="cell u0">0</td><td class="cell u1">2</td><td class="cell u1">4</td><td class="cell u2">5</td><td class="cell u1">3</td><td class="cell u0">1</td><td class="cell u0">0</td><td class="cell u0">0</td><td class="cell u1">2</td><td class="cell u1">3</td><td class="cell u0">1</td><td class="cell u0">0</td></tr>
+          </tbody>
+        </table>
+        <div class="scale">
+          <span class="lab">Fewer</span>
+          <span class="sw u0"></span><span class="sw u1"></span><span class="sw u2"></span><span class="sw u3"></span><span class="sw u4"></span><span class="sw u5"></span>
+          <span class="lab">More bookings</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Bulk calendar — March 2026</h2><span class="sub">All rooms · bookings per day</span></div>
+        <div class="bulkgrid">
+          <div class="dowhead">Mon</div><div class="dowhead">Tue</div><div class="dowhead">Wed</div><div class="dowhead">Thu</div><div class="dowhead">Fri</div><div class="dowhead">Sat</div><div class="dowhead">Sun</div>
+          <div class="bday"><span class="num">9</span><span class="ct">3</span></div>
+          <div class="bday"><span class="num">10</span><span class="ct">5</span></div>
+          <div class="bday"><span class="num">11</span><span class="ct">2</span></div>
+          <div class="bday"><span class="num">12</span><span class="ct">4</span></div>
+          <div class="bday"><span class="num">13</span><span class="ct">6</span></div>
+          <div class="bday"><span class="num" style="color:var(--ink-3)">14</span></div>
+          <div class="bday"><span class="num" style="color:var(--ink-3)">15</span></div>
+          <div class="bday"><span class="num">16</span><span class="ct">7</span></div>
+          <div class="bday"><span class="num">17</span><span class="ct">3</span></div>
+          <div class="bday"><span class="num">18</span><span class="ct">5</span></div>
+          <div class="bday"><span class="num">19</span><span class="ct">2</span></div>
+          <div class="bday"><span class="num">20</span><span class="ct">4</span></div>
+          <div class="bday"><span class="num" style="color:var(--ink-3)">21</span></div>
+          <div class="bday"><span class="num" style="color:var(--ink-3)">22</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Booking — ConfRoom</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --g900: #1B4332; --g700: #2D6A4F; --g500: #40916C; --g200: #95D5B2; --g100: #D8F3DC;
+      --copper: #B5651D; --copper-light: #E8A96A; --copper-bg: #FDF3E7;
+      --cream: #FAFAF7; --cream-100: #F0EDE6; --cream-200: #E8E3DA;
+      --white: #FFFFFF; --ink: #1C1C1C; --ink-2: #5A5A5A; --ink-3: #9A9A9A;
+      --border: #E0DBD3; --radius: 10px; --radius-lg: 16px;
+      --shadow: 0 2px 8px rgba(27,67,50,0.08); --shadow-md: 0 6px 20px rgba(27,67,50,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+
+    nav {
+      background: var(--g900); color: white; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between; height: 60px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand-icon { width: 32px; height: 32px; background: var(--copper); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .nav-brand-name { font-family: 'DM Serif Display', serif; font-size: 20px; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link { padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.75); text-decoration: none; transition: all 0.2s; }
+    .nav-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-right { display: flex; align-items: center; }
+    .avatar { width: 30px; height: 30px; background: var(--copper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+    .breadcrumb { padding: 16px 32px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+    .breadcrumb a { color: var(--g700); text-decoration: none; font-weight: 500; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb-sep { color: var(--ink-3); }
+
+    .main { padding: 0 32px 60px; max-width: 1100px; margin: 0 auto; }
+
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--g900); margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--ink-2); margin-bottom: 32px; }
+
+    .layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+
+    /* FORM CARD */
+    .form-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+    .form-section { padding: 28px; border-bottom: 1px solid var(--cream-200); }
+    .form-section:last-child { border-bottom: none; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--g900); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .section-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--copper); border-radius: 2px; }
+
+    .field-group { margin-bottom: 20px; }
+    .field-group:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+    input[type="text"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
+      font-family: 'Outfit', sans-serif; font-size: 14px; color: var(--ink);
+      background: white; transition: all 0.2s; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--g500); box-shadow: 0 0 0 3px var(--g100); }
+    textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ROOM INFO BANNER */
+    .room-banner {
+      background: var(--g900); color: white; border-radius: var(--radius); padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+    }
+    .room-banner-name { font-family: 'DM Serif Display', serif; font-size: 18px; }
+    .room-banner-detail { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .room-banner-cap { text-align: right; }
+    .room-banner-cap-num { font-size: 22px; font-family: 'DM Serif Display', serif; color: var(--copper-light); }
+    .room-banner-cap-label { font-size: 11px; color: rgba(255,255,255,0.6); }
+
+    /* LUNCH SET */
+    .lunch-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .lunch-option { border: 2px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .lunch-option:hover { border-color: var(--g500); background: var(--g100); }
+    .lunch-option.selected { border-color: var(--copper); background: var(--copper-bg); }
+    .lunch-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .lunch-option-icon { font-size: 20px; margin-bottom: 6px; }
+    .lunch-option-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .lunch-option-desc { font-size: 11px; color: var(--ink-3); margin-top: 3px; line-height: 1.4; }
+    .lunch-option.selected .lunch-option-name { color: var(--copper); }
+
+    /* REGISTRATION TOGGLE */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .toggle-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .toggle-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+    .toggle {
+      position: relative; width: 48px; height: 26px;
+      background: var(--border); border-radius: 13px; cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle.on { background: var(--g700); }
+    .toggle-knob {
+      position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+      background: white; border-radius: 50%; transition: transform 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle.on .toggle-knob { transform: translateX(22px); }
+    .registration-fields { display: none; }
+    .registration-fields.visible { display: block; }
+    .reg-field-group { background: var(--cream-100); border-radius: var(--radius); padding: 16px; }
+
+    /* SUBMIT */
+    .form-actions { padding: 24px 28px; background: var(--cream); display: flex; gap: 12px; align-items: center; }
+    .btn-primary {
+      background: var(--g900); color: white; border: none; padding: 13px 28px; border-radius: var(--radius);
+      font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .btn-primary:hover { background: var(--g700); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(27,67,50,0.25); }
+    .btn-secondary {
+      background: white; color: var(--ink-2); border: 1.5px solid var(--border); padding: 13px 20px;
+      border-radius: var(--radius); font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+    }
+    .btn-secondary:hover { border-color: var(--ink-2); color: var(--ink); }
+
+    /* SIDEBAR */
+    .sidebar-card {
+      background: white; border: 1px solid var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow); overflow: hidden; position: sticky; top: 80px;
+    }
+    .sidebar-header { background: var(--g900); padding: 20px; }
+    .sidebar-header-title { font-family: 'DM Serif Display', serif; font-size: 18px; color: white; }
+    .sidebar-header-sub { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+    .sidebar-body { padding: 20px; }
+    .sidebar-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--cream-200); }
+    .sidebar-row:last-child { border-bottom: none; }
+    .sidebar-row-icon { font-size: 18px; margin-top: 1px; }
+    .sidebar-row-label { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+    .sidebar-row-value { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 1px; }
+    .feature-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+    .feature-tag { font-size: 11px; padding: 3px 9px; border-radius: 20px; background: var(--g100); color: var(--g700); font-weight: 500; }
+    .sidebar-tip { background: var(--copper-bg); border: 1px solid var(--copper-light); border-radius: var(--radius); padding: 12px; margin-top: 16px; }
+    .sidebar-tip-title { font-size: 12px; font-weight: 700; color: var(--copper); margin-bottom: 4px; }
+    .sidebar-tip-text { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+
+    /* PROTO NAV */
+    .proto-nav {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--g900); color: white; border-radius: 50px; padding: 10px 20px;
+      display: flex; align-items: center; gap: 8px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 999;
+    }
+    .proto-nav-label { color: rgba(255,255,255,0.5); font-size: 11px; margin-right: 4px; }
+    .proto-nav a { color: rgba(255,255,255,0.7); text-decoration: none; padding: 4px 10px; border-radius: 20px; font-weight: 500; transition: all 0.2s; font-size: 12px; }
+    .proto-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+    .proto-nav a.current { background: var(--copper); color: white; }
+    .proto-nav-divider { color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; }
+      .nav-links { display: none; }
+      .breadcrumb { padding: 12px 16px; }
+      .main { padding: 0 16px 100px; }
+      .page-title { font-size: 24px; }
+      .layout { grid-template-columns: 1fr; }
+      .sidebar-card { position: static; }
+      .row-2 { grid-template-columns: 1fr; gap: 0; }
+      .lunch-options { grid-template-columns: 1fr; }
+      .form-section { padding: 20px 16px; }
+      .form-actions { padding: 16px; flex-wrap: wrap; }
+      .btn-primary, .btn-secondary { width: 100%; text-align: center; }
+      .room-banner { flex-direction: column; gap: 8px; }
+      .room-banner-cap { text-align: left; }
+      .proto-nav { gap: 4px; padding: 8px 12px; width: calc(100% - 32px); justify-content: center; flex-wrap: wrap; }
+      .proto-nav a { padding: 4px 7px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-icon">🏢</div>
+    <span class="nav-brand-name">ConfRoom</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Room Availability</a>
+    <a href="dashboard.html" class="nav-link">My Bookings</a>
+  </div>
+  <div class="nav-right"><div class="avatar">RS</div></div>
+</nav>
+
+<div class="breadcrumb">
+  <a href="index.html">Room Availability</a>
+  <span class="breadcrumb-sep">›</span>
+  <span>New Booking — Horizon Suite</span>
+</div>
+
+<div class="main">
+  <div class="page-title">New Booking</div>
+  <div class="page-sub">Fill in the details below to confirm your room reservation.</div>
+
+  <div class="layout">
+    <div>
+      <div class="form-card">
+
+        <!-- EVENT DETAILS -->
+        <div class="form-section">
+          <div class="section-title">Event Details</div>
+          <div class="room-banner">
+            <div>
+              <div class="room-banner-name">Horizon Suite</div>
+              <div class="room-banner-detail">Tuesday, 10 June 2026 · 10:00 – 12:00</div>
+            </div>
+            <div class="room-banner-cap">
+              <div class="room-banner-cap-num">20</div>
+              <div class="room-banner-cap-label">max capacity</div>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Event Name *</label>
+            <input type="text" placeholder="e.g. Q3 Strategy Workshop" value="">
+          </div>
+          <div class="row-2">
+            <div class="field-group">
+              <label>Date *</label>
+              <input type="date" value="2026-06-10">
+            </div>
+            <div class="field-group">
+              <label>Expected Attendees</label>
+              <input type="number" placeholder="0" min="1" max="20" value="">
+              <div class="field-hint">Room capacity: 20 pax</div>
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field-group">
+              <label>Start Time *</label>
+              <input type="time" value="10:00">
+            </div>
+            <div class="field-group">
+              <label>End Time *</label>
+              <input type="time" value="12:00">
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Notes / Special Requirements</label>
+            <textarea placeholder="e.g. Please set up chairs in U-shape, require HDMI adapter..."></textarea>
+          </div>
+        </div>
+
+        <!-- LUNCH SET -->
+        <div class="form-section">
+          <div class="section-title">Lunch Set</div>
+          <div class="lunch-options">
+            <label class="lunch-option selected" onclick="selectLunch(this)">
+              <input type="radio" name="lunch" value="none" checked>
+              <div class="lunch-option-icon">🚫</div>
+              <div class="lunch-option-name">No Lunch</div>
+              <div class="lunch-option-desc">Meeting only, no catering needed</div>
+            </label>
+            <label class="lunch-option" onclick="selectLunch(this)">
+              <input type="radio" name="lunch" value="set-a">
+              <div class="lunch-option-icon">☕</div>
+              <div class="lunch-option-name">Set A — Light</div>
+              <div class="lunch-option-desc">Coffee, tea, pastries & fruit</div>
+            </label>
+            <label class="lunch-option" onclick="selectLunch(this)">
+              <input type="radio" name="lunch" value="set-b">
+              <div class="lunch-option-icon">🍱</div>
+              <div class="lunch-option-name">Set B — Full</div>
+              <div class="lunch-option-desc">Full lunch buffet, hot & cold options</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- REGISTRATION -->
+        <div class="form-section">
+          <div class="section-title">Attendee Registration</div>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">Enable Registration</div>
+              <div class="toggle-sub">Allow attendees to register via a shareable link</div>
+            </div>
+            <div class="toggle on" id="regToggle" onclick="toggleReg()">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+          <div class="registration-fields visible" id="regFields">
+            <div class="reg-field-group">
+              <div class="row-2" style="margin-bottom:14px;">
+                <div class="field-group" style="margin:0;">
+                  <label>Registration Capacity</label>
+                  <input type="number" placeholder="Max registrants" value="20" min="1" max="20">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label>Registration Deadline</label>
+                  <input type="date" value="2026-06-09">
+                </div>
+              </div>
+              <div class="field-hint" style="font-size:13px;color:var(--ink-2);">
+                📎 A unique registration link will be generated after booking confirmation. Share it with your attendees.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="form-actions">
+          <button class="btn-primary" onclick="submitBooking()">✓ Confirm Booking</button>
+          <a href="index.html" class="btn-secondary">Cancel</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar-card">
+      <div class="sidebar-header">
+        <div class="sidebar-header-title">Horizon Suite</div>
+        <div class="sidebar-header-sub">Floor 3 · East Wing</div>
+      </div>
+      <div class="sidebar-body">
+        <div class="sidebar-row">
+          <div class="sidebar-row-icon">👥</div>
+          <div>
+            <div class="sidebar-row-label">Capacity</div>
+            <div class="sidebar-row-value">Up to 20 people</div>
+          </div>
+        </div>
+        <div class="sidebar-row">
+          <div class="sidebar-row-icon">📍</div>
+          <div>
+            <div class="sidebar-row-label">Location</div>
+            <div class="sidebar-row-value">3rd Floor, East Wing<br>Room 301</div>
+          </div>
+        </div>
+        <div class="sidebar-row">
+          <div class="sidebar-row-icon">🔧</div>
+          <div>
+            <div class="sidebar-row-label">Features</div>
+            <div class="feature-tags">
+              <span class="feature-tag">Projector</span>
+              <span class="feature-tag">Video Conf</span>
+              <span class="feature-tag">Whiteboard</span>
+              <span class="feature-tag">Air Con</span>
+              <span class="feature-tag">HDMI</span>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-row">
+          <div class="sidebar-row-icon">📅</div>
+          <div>
+            <div class="sidebar-row-label">Selected Slot</div>
+            <div class="sidebar-row-value">Tue 10 Jun 2026<br>10:00 – 12:00</div>
+          </div>
+        </div>
+        <div class="sidebar-tip">
+          <div class="sidebar-tip-title">💡 After Booking</div>
+          <div class="sidebar-tip-text">A confirmation email will be sent to you via the organization mail server. Your registration link will appear in your dashboard.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div id="successModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:460px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="font-size:48px;margin-bottom:16px;">✅</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:24px;color:var(--g900);margin-bottom:8px;">Booking Confirmed!</div>
+    <div style="font-size:14px;color:var(--ink-2);margin-bottom:24px;line-height:1.6;">
+      <strong>Horizon Suite</strong> is booked for<br>Tuesday, 10 June · 10:00–12:00<br><br>
+      A confirmation email has been sent to your inbox.
+    </div>
+    <div style="background:var(--cream-100);border-radius:10px;padding:14px;margin-bottom:24px;">
+      <div style="font-size:12px;color:var(--ink-3);margin-bottom:6px;">📎 Registration Link</div>
+      <div style="font-size:13px;font-weight:600;color:var(--g700);word-break:break-all;">confroom.org/register/ev-2026-0610-hs</div>
+    </div>
+    <a href="dashboard.html" style="display:inline-block;background:var(--g900);color:white;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">Go to My Bookings →</a>
+  </div>
+</div>
+
+<div class="proto-nav">
+  <span class="proto-nav-label">🧪 Prototype</span>
+  <a href="index.html">1 · Calendar</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="booking-form.html" class="current">2 · Booking Form</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="dashboard.html">3 · My Bookings</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="registration.html">4 · Registration</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="admin.html">5 · Admin</a>
+</div>
+
+<script>
+  function selectLunch(el) {
+    document.querySelectorAll('.lunch-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  let regOn = true;
+  function toggleReg() {
+    regOn = !regOn;
+    const t = document.getElementById('regToggle');
+    const f = document.getElementById('regFields');
+    t.classList.toggle('on', regOn);
+    f.classList.toggle('visible', regOn);
+  }
+  function submitBooking() {
+    const modal = document.getElementById('successModal');
+    modal.style.display = 'flex';
+  }
+</script>
+</body>
+</html>

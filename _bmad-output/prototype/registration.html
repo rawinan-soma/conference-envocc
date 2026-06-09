@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Registration — Strategic Planning Session</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --g900: #1B4332; --g700: #2D6A4F; --g500: #40916C; --g200: #95D5B2; --g100: #D8F3DC;
+      --copper: #B5651D; --copper-light: #E8A96A; --copper-bg: #FDF3E7;
+      --cream: #FAFAF7; --cream-100: #F0EDE6; --cream-200: #E8E3DA;
+      --white: #FFFFFF; --ink: #1C1C1C; --ink-2: #5A5A5A; --ink-3: #9A9A9A;
+      --border: #E0DBD3; --radius: 10px; --radius-lg: 16px;
+      --shadow: 0 2px 8px rgba(27,67,50,0.08); --shadow-md: 0 6px 20px rgba(27,67,50,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+
+    /* ORGANIZATION HEADER */
+    .org-header {
+      background: var(--g900); padding: 16px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .org-logo { display: flex; align-items: center; gap: 12px; }
+    .org-logo-mark {
+      width: 38px; height: 38px; background: white; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .org-name { color: white; }
+    .org-name-main { font-family: 'DM Serif Display', serif; font-size: 18px; }
+    .org-name-sub { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+    .org-header-right { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+    /* HERO BAND */
+    .hero {
+      background: linear-gradient(135deg, var(--g700) 0%, var(--g900) 100%);
+      padding: 48px 32px; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 200px; height: 200px; background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -60px; left: 20%;
+      width: 300px; height: 300px; background: rgba(255,255,255,0.03);
+      border-radius: 50%;
+    }
+    .hero-inner { max-width: 640px; margin: 0 auto; position: relative; z-index: 1; }
+    .hero-eyebrow { font-size: 12px; font-weight: 600; color: var(--copper-light); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .hero-title { font-family: 'DM Serif Display', serif; font-size: 36px; color: white; line-height: 1.2; margin-bottom: 20px; }
+    .hero-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-chip {
+      display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.9); padding: 7px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 500; backdrop-filter: blur(4px);
+    }
+
+    /* MAIN CONTENT */
+    .main { max-width: 640px; margin: 0 auto; padding: 40px 32px 100px; }
+
+    /* CAPACITY BAR */
+    .capacity-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 28px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 16px; }
+    .cap-info { flex: 1; }
+    .cap-label { font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+    .cap-bar { height: 6px; background: var(--cream-200); border-radius: 3px; overflow: hidden; }
+    .cap-fill { height: 100%; background: var(--g500); border-radius: 3px; }
+    .cap-count { font-size: 13px; font-weight: 600; color: var(--g700); white-space: nowrap; }
+    .cap-spots { font-size: 12px; color: var(--ink-3); margin-top: 2px; text-align: right; }
+
+    /* FORM */
+    .form-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); overflow: hidden; }
+    .form-header { background: var(--cream-100); padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .form-header-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+    .form-header-sub { font-size: 13px; color: var(--ink-3); margin-top: 3px; }
+    .form-body { padding: 28px 24px; }
+    .field-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+    input[type="text"] {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
+      font-family: 'Outfit', sans-serif; font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--g500); box-shadow: 0 0 0 3px var(--g100); }
+    .field-hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .privacy-note { display: flex; gap: 10px; background: var(--cream-100); border-radius: var(--radius); padding: 14px; margin-top: 8px; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+    .privacy-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    .btn-register {
+      width: 100%; padding: 15px; background: var(--g900); color: white; border: none;
+      border-radius: var(--radius); font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600;
+      cursor: pointer; margin-top: 24px; transition: all 0.2s; letter-spacing: 0.01em;
+    }
+    .btn-register:hover { background: var(--g700); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(27,67,50,0.3); }
+
+    /* SUCCESS STATE */
+    .success-state { display: none; text-align: center; padding: 48px 24px; }
+    .success-state.visible { display: block; }
+    .success-icon { font-size: 56px; margin-bottom: 20px; }
+    .success-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--g900); margin-bottom: 8px; }
+    .success-sub { font-size: 15px; color: var(--ink-2); line-height: 1.6; margin-bottom: 28px; }
+    .confirmation-box { background: var(--g100); border: 1px solid var(--g200); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
+    .confirmation-label { font-size: 11px; font-weight: 700; color: var(--g700); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .confirmation-code { font-size: 22px; font-family: 'DM Serif Display', serif; color: var(--g900); }
+    .success-email-note { font-size: 13px; color: var(--ink-3); }
+    .cancel-link { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--ink-3); text-decoration: underline; cursor: pointer; }
+    .cancel-link:hover { color: var(--ink-2); }
+
+    /* PROTO NAV */
+    .proto-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--g900); color: white; border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; gap: 8px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 999; }
+    .proto-nav-label { color: rgba(255,255,255,0.5); font-size: 11px; margin-right: 4px; }
+    .proto-nav a { color: rgba(255,255,255,0.7); text-decoration: none; padding: 4px 10px; border-radius: 20px; font-weight: 500; transition: all 0.2s; font-size: 12px; }
+    .proto-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+    .proto-nav a.current { background: var(--copper); color: white; }
+    .proto-nav-divider { color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 768px) {
+      .org-header { padding: 12px 16px; }
+      .org-name-sub { display: none; }
+      .hero { padding: 32px 20px; }
+      .hero-title { font-size: 26px; }
+      .hero-chips { gap: 8px; }
+      .hero-chip { font-size: 12px; padding: 5px 12px; }
+      .main { padding: 24px 16px 100px; }
+      .capacity-card { gap: 12px; }
+      .form-header { padding: 16px; }
+      .form-body { padding: 20px 16px; }
+      .row-2 { grid-template-columns: 1fr; }
+      .btn-register { font-size: 15px; padding: 13px; }
+      .success-state { padding: 32px 16px; }
+      .success-title { font-size: 24px; }
+      .proto-nav { gap: 4px; padding: 8px 12px; width: calc(100% - 32px); justify-content: center; flex-wrap: wrap; }
+      .proto-nav a { padding: 4px 7px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="org-header">
+  <div class="org-logo">
+    <div class="org-logo-mark">🌿</div>
+    <div class="org-name">
+      <div class="org-name-main">ENVOCC</div>
+      <div class="org-name-sub">National Institute for Occupational & Environmental Health</div>
+    </div>
+  </div>
+  <div class="org-header-right">Powered by ConfRoom</div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">You're invited to register</div>
+    <div class="hero-title">Strategic Planning Session</div>
+    <div class="hero-chips">
+      <div class="hero-chip">📅 Thursday, 12 June 2026</div>
+      <div class="hero-chip">🕘 09:00 – 11:00</div>
+      <div class="hero-chip">📍 Horizon Suite, Floor 3</div>
+      <div class="hero-chip">👤 Organized by Rawinan S.</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="capacity-card">
+    <div class="cap-info">
+      <div class="cap-label">Registration capacity</div>
+      <div class="cap-bar"><div class="cap-fill" style="width: 60%"></div></div>
+    </div>
+    <div>
+      <div class="cap-count">12 / 20</div>
+      <div class="cap-spots">8 spots left</div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div id="formView">
+      <div class="form-header">
+        <div class="form-header-title">Register your attendance</div>
+        <div class="form-header-sub">Takes less than a minute. A confirmation will be sent to you by email.</div>
+      </div>
+      <div class="form-body">
+        <div class="row-2">
+          <div class="field-group">
+            <label>First Name *</label>
+            <input type="text" id="firstName" placeholder="e.g. Sarah">
+          </div>
+          <div class="field-group">
+            <label>Last Name *</label>
+            <input type="text" id="lastName" placeholder="e.g. Chen">
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Organization *</label>
+          <input type="text" id="orgName" placeholder="e.g. Ministry of Public Health">
+          <div class="field-hint">Enter your department or organization name</div>
+        </div>
+        <div class="field-group">
+          <label>Email Address *</label>
+          <input type="text" id="emailAddr" placeholder="e.g. s.chen@moph.go.th">
+          <div class="field-hint">A confirmation email will be sent here</div>
+        </div>
+        <div class="privacy-note">
+          <span class="privacy-icon">🔒</span>
+          <span>Your information is used only for event coordination. It will not be shared with third parties. Registration is for ENVOCC-organized events only.</span>
+        </div>
+        <button class="btn-register" onclick="submitReg()">Register Now →</button>
+      </div>
+    </div>
+
+    <div class="success-state" id="successView">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">You're registered!</div>
+      <div class="success-sub">
+        Welcome, <strong id="regNameDisplay">Sarah Chen</strong>.<br>
+        We look forward to seeing you at the Strategic Planning Session.
+      </div>
+      <div class="confirmation-box">
+        <div class="confirmation-label">Confirmation Number</div>
+        <div class="confirmation-code">ENVOCC-2026-0612-0013</div>
+      </div>
+      <div class="success-email-note">📧 A confirmation has been sent to your email address.</div>
+      <br>
+      <div style="background:var(--cream-100);border-radius:var(--radius);padding:16px;text-align:left;margin-top:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Event Reminder</div>
+        <div style="font-size:13px;color:var(--ink-2);line-height:1.7;">
+          📅 Thursday, 12 June 2026<br>
+          🕘 09:00 – 11:00<br>
+          📍 Horizon Suite, 3rd Floor East Wing<br>
+        </div>
+      </div>
+      <div class="cancel-link" onclick="cancelReg()">Need to cancel your registration?</div>
+    </div>
+  </div>
+</div>
+
+<div class="proto-nav">
+  <span class="proto-nav-label">🧪 Prototype</span>
+  <a href="index.html">1 · Calendar</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="booking-form.html">2 · Booking Form</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="dashboard.html">3 · My Bookings</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="registration.html" class="current">4 · Registration</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="admin.html">5 · Admin</a>
+</div>
+
+<script>
+  function submitReg() {
+    const first = document.getElementById('firstName').value || 'Attendee';
+    const last = document.getElementById('lastName').value || '';
+    document.getElementById('regNameDisplay').textContent = first + ' ' + last;
+    document.getElementById('formView').style.display = 'none';
+    const sv = document.getElementById('successView');
+    sv.classList.add('visible');
+  }
+  function cancelReg() {
+    if(confirm('Are you sure you want to cancel your registration?')) {
+      alert('Your registration has been cancelled. A confirmation has been sent to your email.');
+      document.getElementById('formView').style.display = 'block';
+      document.getElementById('successView').classList.remove('visible');
+    }
+  }
+</script>
+</body>
+</html>

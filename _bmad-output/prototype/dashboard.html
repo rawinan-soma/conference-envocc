@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings — ConfRoom</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --g900: #1B4332; --g700: #2D6A4F; --g500: #40916C; --g200: #95D5B2; --g100: #D8F3DC;
+      --copper: #B5651D; --copper-light: #E8A96A; --copper-bg: #FDF3E7;
+      --cream: #FAFAF7; --cream-100: #F0EDE6; --cream-200: #E8E3DA;
+      --white: #FFFFFF; --ink: #1C1C1C; --ink-2: #5A5A5A; --ink-3: #9A9A9A;
+      --border: #E0DBD3; --radius: 10px; --radius-lg: 16px;
+      --shadow: 0 2px 8px rgba(27,67,50,0.08); --shadow-md: 0 6px 20px rgba(27,67,50,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+
+    nav {
+      background: var(--g900); color: white; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between; height: 60px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand-icon { width: 32px; height: 32px; background: var(--copper); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .nav-brand-name { font-family: 'DM Serif Display', serif; font-size: 20px; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link { padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.75); text-decoration: none; transition: all 0.2s; }
+    .nav-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-link.active { background: rgba(255,255,255,0.15); color: white; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 30px; height: 30px; background: var(--copper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+    .nav-cta { background: var(--copper); color: white; border: none; padding: 7px 16px; border-radius: 7px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .nav-cta:hover { background: var(--copper-light); color: var(--ink); }
+
+    .main { padding: 32px; max-width: 1000px; margin: 0 auto; padding-bottom: 80px; }
+
+    /* HEADER */
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--g900); }
+    .page-sub { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.07em; }
+    .stat-value { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--g900); margin: 6px 0 2px; }
+    .stat-sub { font-size: 12px; color: var(--g500); font-weight: 500; }
+    .stat.highlight { background: var(--g900); border-color: var(--g900); }
+    .stat.highlight .stat-label { color: rgba(255,255,255,0.6); }
+    .stat.highlight .stat-value { color: white; }
+    .stat.highlight .stat-sub { color: var(--g200); }
+
+    /* TABS */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+    .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab.active { color: var(--g900); border-bottom-color: var(--g900); font-weight: 600; }
+    .tab:hover { color: var(--ink); }
+
+    /* BOOKING CARDS */
+    .bookings { display: flex; flex-direction: column; gap: 16px; }
+    .booking-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; transition: box-shadow 0.2s; }
+    .booking-card:hover { box-shadow: var(--shadow-md); }
+
+    .card-top { display: grid; grid-template-columns: 6px 1fr auto; }
+    .card-accent { background: var(--g700); }
+    .card-accent.copper { background: var(--copper); }
+    .card-body { padding: 20px 22px; }
+    .card-actions-col { padding: 20px; display: flex; flex-direction: column; gap: 8px; justify-content: center; border-left: 1px solid var(--cream-200); min-width: 180px; }
+
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+    .card-event-name { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--g900); }
+    .card-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .status-upcoming { background: var(--g100); color: var(--g700); }
+    .status-today { background: var(--copper-bg); color: var(--copper); }
+
+    .card-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+    .meta-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+    .meta-icon { font-size: 15px; }
+
+    .card-footer { display: flex; gap: 10px; align-items: center; padding-top: 14px; border-top: 1px solid var(--cream-200); }
+    .badge { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+    .badge-reg { background: var(--g100); color: var(--g700); }
+    .badge-lunch { background: var(--copper-bg); color: var(--copper); }
+    .badge-noreg { background: var(--cream-200); color: var(--ink-3); }
+
+    .progress-bar { flex: 1; height: 4px; background: var(--cream-200); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--g500); border-radius: 2px; transition: width 0.3s; }
+    .progress-label { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+    .action-btn {
+      display: block; width: 100%; padding: 9px 14px; border-radius: 7px; font-family: 'Outfit', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer; text-align: center; text-decoration: none;
+      transition: all 0.2s; border: none;
+    }
+    .btn-outline { background: white; color: var(--ink-2); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: var(--g500); color: var(--g700); background: var(--g100); }
+    .btn-filled { background: var(--g900); color: white; }
+    .btn-filled:hover { background: var(--g700); }
+    .btn-copper { background: var(--copper-bg); color: var(--copper); border: 1.5px solid var(--copper-light); }
+    .btn-copper:hover { background: var(--copper); color: white; }
+
+    /* REGISTRANT MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: var(--radius-lg); width: 540px; max-height: 80vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { background: var(--g900); padding: 22px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: white; }
+    .modal-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+    .modal-close:hover { background: rgba(255,255,255,0.1); color: white; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; max-height: calc(80vh - 70px); }
+    .registrant-table { width: 100%; border-collapse: collapse; }
+    .registrant-table th { text-align: left; font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 12px; border-bottom: 2px solid var(--border); }
+    .registrant-table td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--cream-200); }
+    .registrant-table tr:last-child td { border-bottom: none; }
+    .reg-name { font-weight: 600; color: var(--ink); }
+    .reg-org { color: var(--ink-3); font-size: 12px; }
+
+    /* PROTO NAV */
+    .proto-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--g900); color: white; border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; gap: 8px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 999; }
+    .proto-nav-label { color: rgba(255,255,255,0.5); font-size: 11px; margin-right: 4px; }
+    .proto-nav a { color: rgba(255,255,255,0.7); text-decoration: none; padding: 4px 10px; border-radius: 20px; font-weight: 500; transition: all 0.2s; font-size: 12px; }
+    .proto-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+    .proto-nav a.current { background: var(--copper); color: white; }
+    .proto-nav-divider { color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; }
+      .nav-links { display: none; }
+      .main { padding: 16px 16px 100px; }
+      .page-title { font-size: 24px; }
+      .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-value { font-size: 26px; }
+      .stat.highlight .stat-value { font-size: 18px; margin-top: 6px; }
+      .tabs { overflow-x: auto; white-space: nowrap; }
+      .card-top { grid-template-columns: 6px 1fr; }
+      .card-actions-col {
+        grid-column: 2; border-left: none; border-top: 1px solid var(--cream-200);
+        padding: 12px 16px; flex-direction: row; flex-wrap: wrap; min-width: unset;
+      }
+      .action-btn { width: auto; flex: 1; min-width: 120px; font-size: 12px; padding: 8px 10px; }
+      .card-body { padding: 16px; }
+      .card-event-name { font-size: 17px; }
+      .card-meta { gap: 10px; }
+      .card-footer { flex-wrap: wrap; gap: 6px; }
+      .progress-bar { display: none; }
+      .proto-nav { gap: 4px; padding: 8px 12px; width: calc(100% - 32px); justify-content: center; flex-wrap: wrap; }
+      .proto-nav a { padding: 4px 7px; font-size: 11px; }
+      .modal { width: 95vw; }
+      .modal-body { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-icon">🏢</div>
+    <span class="nav-brand-name">ConfRoom</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Room Availability</a>
+    <a href="dashboard.html" class="nav-link active">My Bookings</a>
+  </div>
+  <div class="nav-right">
+    <a href="index.html" class="nav-cta">+ New Booking</a>
+    <div class="avatar">RS</div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title">My Bookings</div>
+    <div class="page-sub">Manage your upcoming events, registrations, and catering.</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Upcoming</div>
+      <div class="stat-value">3</div>
+      <div class="stat-sub">events this month</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Registrants</div>
+      <div class="stat-value">47</div>
+      <div class="stat-sub">across all events</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Lunch Orders</div>
+      <div class="stat-value">2</div>
+      <div class="stat-sub">sets confirmed</div>
+    </div>
+    <div class="stat highlight">
+      <div class="stat-label">Next Event</div>
+      <div class="stat-value" style="font-size:22px;margin-top:4px;">Thu 12 Jun</div>
+      <div class="stat-sub">Strategic Planning · 09:00</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">Upcoming (3)</div>
+    <div class="tab">Past</div>
+    <div class="tab">Cancelled</div>
+  </div>
+
+  <div class="bookings">
+
+    <!-- BOOKING 1 -->
+    <div class="booking-card">
+      <div class="card-top">
+        <div class="card-accent copper"></div>
+        <div class="card-body">
+          <div class="card-header">
+            <div class="card-event-name">Strategic Planning Session</div>
+            <div class="card-status status-upcoming">Upcoming</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="meta-icon">📅</span> Thursday, 12 June 2026</div>
+            <div class="meta-item"><span class="meta-icon">🕘</span> 09:00 – 11:00</div>
+            <div class="meta-item"><span class="meta-icon">📍</span> Horizon Suite</div>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-reg">👥 12 / 20 registered</span>
+            <span class="badge badge-lunch">🍱 Set B — Full Lunch</span>
+            <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+            <div class="progress-label">60% full</div>
+          </div>
+        </div>
+        <div class="card-actions-col">
+          <button class="action-btn btn-outline" onclick="openModal()">👥 View Registrants</button>
+          <button class="action-btn btn-outline" onclick="copyLink()">📎 Copy Reg. Link</button>
+          <button class="action-btn btn-copper">⬇ Sign-in Sheet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKING 2 -->
+    <div class="booking-card">
+      <div class="card-top">
+        <div class="card-accent"></div>
+        <div class="card-body">
+          <div class="card-header">
+            <div class="card-event-name">Team Quarterly Review</div>
+            <div class="card-status status-upcoming">Upcoming</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="meta-icon">📅</span> Friday, 13 June 2026</div>
+            <div class="meta-item"><span class="meta-icon">🕑</span> 14:00 – 16:00</div>
+            <div class="meta-item"><span class="meta-icon">📍</span> Executive Boardroom</div>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-reg">👥 8 / 15 registered</span>
+            <span class="badge badge-noreg">No Lunch</span>
+            <div class="progress-bar"><div class="progress-fill" style="width:53%"></div></div>
+            <div class="progress-label">53% full</div>
+          </div>
+        </div>
+        <div class="card-actions-col">
+          <button class="action-btn btn-outline" onclick="openModal()">👥 View Registrants</button>
+          <button class="action-btn btn-outline" onclick="copyLink()">📎 Copy Reg. Link</button>
+          <button class="action-btn btn-copper">⬇ Sign-in Sheet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKING 3 -->
+    <div class="booking-card">
+      <div class="card-top">
+        <div class="card-accent"></div>
+        <div class="card-body">
+          <div class="card-header">
+            <div class="card-event-name">Town Hall Q2 — Cedar Hall</div>
+            <div class="card-status status-upcoming">Upcoming</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="meta-icon">📅</span> Friday, 13 June 2026</div>
+            <div class="meta-item"><span class="meta-icon">🕑</span> 14:00 – 16:00</div>
+            <div class="meta-item"><span class="meta-icon">📍</span> Cedar Hall</div>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-reg">👥 27 / 50 registered</span>
+            <span class="badge badge-lunch">☕ Set A — Light</span>
+            <div class="progress-bar"><div class="progress-fill" style="width:54%"></div></div>
+            <div class="progress-label">54% full</div>
+          </div>
+        </div>
+        <div class="card-actions-col">
+          <button class="action-btn btn-outline" onclick="openModal()">👥 View Registrants</button>
+          <button class="action-btn btn-outline" onclick="copyLink()">📎 Copy Reg. Link</button>
+          <button class="action-btn btn-copper">⬇ Sign-in Sheet</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- REGISTRANT MODAL -->
+<div class="modal-overlay" id="regModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Registrants — Strategic Planning Session</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--ink-2);">12 of 20 spots filled</div>
+        <button style="background:var(--copper-bg);color:var(--copper);border:1.5px solid var(--copper-light);padding:7px 14px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">⬇ Export CSV</button>
+      </div>
+      <table class="registrant-table">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Organization</th><th>Registered</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td><div class="reg-name">Sarah Chen</div></td><td><div class="reg-org">Ministry of Health</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 1</td></tr>
+          <tr><td>2</td><td><div class="reg-name">James Wutthipat</div></td><td><div class="reg-org">ENVOCC Division</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 2</td></tr>
+          <tr><td>3</td><td><div class="reg-name">Priya Sharma</div></td><td><div class="reg-org">WHO Thailand</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 2</td></tr>
+          <tr><td>4</td><td><div class="reg-name">Thomas Müller</div></td><td><div class="reg-org">ILO Bangkok</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 3</td></tr>
+          <tr><td>5</td><td><div class="reg-name">Kanya Siriwong</div></td><td><div class="reg-org">NIOSH Thailand</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 3</td></tr>
+          <tr><td>6</td><td><div class="reg-name">Ahmed Al-Rashid</div></td><td><div class="reg-org">ILO Bangkok</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 4</td></tr>
+          <tr><td>7</td><td><div class="reg-name">Lin Mei</div></td><td><div class="reg-org">SEARO</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 4</td></tr>
+          <tr><td>8</td><td><div class="reg-name">Robert Tanaka</div></td><td><div class="reg-org">JETRO Thailand</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 4</td></tr>
+          <tr><td>9</td><td><div class="reg-name">Nattapon Jirawat</div></td><td><div class="reg-org">ENVOCC Division</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 5</td></tr>
+          <tr><td>10</td><td><div class="reg-name">Maria Santos</div></td><td><div class="reg-org">PAHO</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 5</td></tr>
+          <tr><td>11</td><td><div class="reg-name">David Park</div></td><td><div class="reg-org">KOICA Thailand</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 5</td></tr>
+          <tr><td>12</td><td><div class="reg-name">Supakorn Boonme</div></td><td><div class="reg-org">ENVOCC Division</div></td><td style="color:var(--ink-3);font-size:12px;">Jun 6</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="copyToast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--g900);color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-weight:500;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,0.2);">📎 Link copied to clipboard!</div>
+
+<div class="proto-nav">
+  <span class="proto-nav-label">🧪 Prototype</span>
+  <a href="index.html">1 · Calendar</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="booking-form.html">2 · Booking Form</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="dashboard.html" class="current">3 · My Bookings</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="registration.html">4 · Registration</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="admin.html">5 · Admin</a>
+</div>
+
+<script>
+  function openModal() { document.getElementById('regModal').classList.add('open'); }
+  function closeModal() { document.getElementById('regModal').classList.remove('open'); }
+  document.getElementById('regModal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
+  function copyLink() {
+    const t = document.getElementById('copyToast');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2000);
+  }
+</script>
+</body>
+</html>

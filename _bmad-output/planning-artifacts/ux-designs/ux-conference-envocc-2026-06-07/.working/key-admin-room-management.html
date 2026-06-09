@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Room Management — ENVOCC Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   KEY SCREEN — ADMIN · ROOM MANAGEMENT (surface 4)
+   Governs: EXPERIENCE Flow 3 step 1 · DESIGN §4 admin-sidebar, status-badge, modal
+            UXD-019/FR-063/DEC-022: deactivating a room WITH future bookings opens a
+            confirmation modal listing affected bookings + "auto-cancelled and notified" warning.
+   Load-bearing overlay rendered: destructive-confirm modal (DESIGN §4 modal, green header band)
+   English placeholder (UXD-004).
+   ========================================================================= */
+:root{
+  --g900:#1B4332;--g700:#2D6A4F;--g500:#40916C;--g200:#95D5B2;--g100:#D8F3DC;
+  --copper:#B5651D;--copper-light:#E8A96A;--copper-bg:#FDF3E7;
+  --cream:#FAFAF7;--cream-100:#F0EDE6;--cream-200:#E8E3DA;--border:#E0DBD3;--white:#FFFFFF;
+  --ink:#1C1C1C;--ink-2:#5A5A5A;--ink-3:#9A9A9A;--danger:#B3261E;--danger-bg:#FBEAE9;
+  --radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-pill:20px;
+  --shadow:0 2px 8px rgba(27,67,50,.08);--shadow-md:0 6px 20px rgba(27,67,50,.12);--shadow-modal:0 20px 60px rgba(0,0,0,.2);
+  --serif:"Noto Serif Thai",Georgia,"Times New Roman",serif;
+  --sans:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.frame{max-width:1180px;margin:28px auto;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-modal);border:1px solid var(--border);background:#fff;position:relative;}
+.chrome{background:#ECE7DF;display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--border);}
+.chrome .d{width:11px;height:11px;border-radius:50%;}
+.chrome .u{flex:1;margin-left:12px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--ink-3);}
+.shell{display:grid;grid-template-columns:228px 1fr;min-height:620px;}
+/* admin sidebar */
+.side{background:var(--g900);color:#fff;padding:24px 14px;}
+.side .brand{font-family:var(--serif);font-weight:700;font-size:17px;padding:0 12px 18px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:16px;}
+.side .brand small{display:block;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--g200);letter-spacing:.1em;text-transform:uppercase;margin-top:3px;}
+.navsec{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:0 12px;margin:18px 0 10px;}
+.nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--radius);font-size:14px;font-weight:500;color:rgba(255,255,255,.78);margin-bottom:3px;text-decoration:none;}
+.nav:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav.active{background:rgba(255,255,255,.15);color:#fff;font-weight:600;}
+.nav .dot{width:7px;height:7px;border-radius:50%;background:var(--copper-light);}
+.nav.active .dot{background:var(--g200);}
+.main{background:var(--cream);padding:30px 34px 44px;}
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;}
+.pagehead h1{font-family:var(--serif);font-weight:600;font-size:26px;margin:0;}
+.pagehead p{margin:4px 0 0;color:var(--ink-2);font-size:13.5px;}
+.btn{font-family:var(--sans);font-weight:600;font-size:13px;border-radius:var(--radius);border:1.5px solid transparent;cursor:pointer;}
+.btn-primary{background:var(--g900);color:#fff;padding:11px 20px;}
+.btn-primary:hover{background:var(--g700);}
+.btn-out{background:#fff;color:var(--ink-2);border-color:var(--border);padding:8px 14px;}
+.btn-danger{background:#fff;color:var(--danger);border-color:#e7c4c1;padding:8px 14px;}
+.btn-danger-solid{background:var(--danger);color:#fff;padding:11px 20px;}
+/* table */
+.table{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);}
+.tr{display:grid;grid-template-columns:1.6fr .9fr .7fr 1fr auto;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--cream-200);}
+.tr:last-child{border-bottom:0;}
+.th{background:var(--cream-100);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding-top:13px;padding-bottom:13px;}
+.rname{font-family:var(--serif);font-weight:600;font-size:16px;}
+.rsub{font-size:12px;color:var(--ink-3);}
+.badge{display:inline-flex;align-items:center;font-weight:600;font-size:12px;padding:4px 12px;border-radius:var(--radius-pill);line-height:1.5;}
+.b-active{background:var(--g100);color:var(--g700);}
+.b-inactive{background:var(--cream-200);color:var(--ink-2);}
+.cellactions{display:flex;gap:8px;justify-content:flex-end;}
+/* modal */
+.scrim{position:absolute;inset:0;background:rgba(27,67,50,.32);display:flex;align-items:center;justify-content:center;padding:40px;}
+.modal{width:520px;max-width:100%;background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-modal);overflow:hidden;}
+.modal .head{background:var(--g900);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;}
+.modal .head h2{font-family:var(--serif);font-weight:600;font-size:19px;color:#fff;margin:0;}
+.modal .head .x{color:rgba(255,255,255,.85);font-size:18px;cursor:pointer;}
+.modal .bd{padding:24px 26px;}
+.warn{display:flex;gap:13px;background:var(--danger-bg);border:1px solid #e7c4c1;border-radius:var(--radius);padding:14px 16px;margin-bottom:18px;}
+.warn .ic{color:var(--danger);font-size:18px;line-height:1.3;}
+.warn p{margin:0;font-size:13.5px;color:#7a241f;}
+.warn b{color:var(--danger);}
+.afflist h4{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;}
+.aff{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;background:var(--cream);}
+.aff .e{font-weight:600;font-size:13.5px;}
+.aff .m{font-size:12px;color:var(--ink-3);}
+.aff .who{font-size:12px;color:var(--ink-2);text-align:right;}
+.modal .ft{display:flex;justify-content:flex-end;gap:12px;padding:18px 26px;border-top:1px solid var(--cream-200);background:var(--cream);}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="chrome">
+    <span class="d" style="background:#ED6A5E"></span><span class="d" style="background:#F4BF4F"></span><span class="d" style="background:#61C554"></span>
+    <span class="u">booking.envocc.go.th/admin/rooms</span>
+  </div>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand">ENVOCC<small>Admin</small></div>
+      <div class="navsec">Manage</div>
+      <a class="nav active"><span class="dot"></span>Rooms</a>
+      <a class="nav"><span class="dot"></span>Analytics</a>
+      <a class="nav"><span class="dot"></span>Settings</a>
+      <div class="navsec">View</div>
+      <a class="nav"><span class="dot"></span>All bookings</a>
+    </aside>
+
+    <main class="main">
+      <div class="pagehead">
+        <div><h1>Rooms</h1><p>Add, edit, block slots, or deactivate rooms. You don’t approve bookings — only room caretaking.</p></div>
+        <button class="btn btn-primary">+ Add room</button>
+      </div>
+
+      <div class="table">
+        <div class="tr th"><div>Room</div><div>Location</div><div>Capacity</div><div>Status</div><div></div></div>
+        <div class="tr">
+          <div><div class="rname">Meeting Room A</div><div class="rsub">Projector · Video conf · Whiteboard</div></div>
+          <div>3rd floor</div><div>30 seats</div>
+          <div><span class="badge b-active">Active</span></div>
+          <div class="cellactions"><button class="btn btn-out">Block slot</button><button class="btn btn-out">Edit</button><button class="btn btn-danger">Deactivate</button></div>
+        </div>
+        <div class="tr">
+          <div><div class="rname">Meeting Room B</div><div class="rsub">Whiteboard · TV screen</div></div>
+          <div>3rd floor</div><div>12 seats</div>
+          <div><span class="badge b-active">Active</span></div>
+          <div class="cellactions"><button class="btn btn-out">Block slot</button><button class="btn btn-out">Edit</button><button class="btn btn-danger">Deactivate</button></div>
+        </div>
+        <div class="tr">
+          <div><div class="rname">Auditorium</div><div class="rsub">Stage · PA system · Live stream</div></div>
+          <div>1st floor</div><div>120 seats</div>
+          <div><span class="badge b-active">Active</span></div>
+          <div class="cellactions"><button class="btn btn-out">Block slot</button><button class="btn btn-out">Edit</button><button class="btn btn-danger">Deactivate</button></div>
+        </div>
+        <div class="tr">
+          <div><div class="rname">Training Room C</div><div class="rsub">Computers · No future bookings</div></div>
+          <div>2nd floor</div><div>20 seats</div>
+          <div><span class="badge b-inactive">Inactive</span></div>
+          <div class="cellactions"><button class="btn btn-out">Edit</button><button class="btn btn-out">Reactivate</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- DESTRUCTIVE CONFIRM MODAL (UXD-019) -->
+  <div class="scrim">
+    <div class="modal">
+      <div class="head"><h2>Deactivate Meeting Room A?</h2><span class="x">✕</span></div>
+      <div class="bd">
+        <div class="warn">
+          <span class="ic">⚠</span>
+          <p>This room has <b>3 future bookings</b>. Deactivating it will <b>auto-cancel them and email every organizer and registrant</b>. This can’t be undone.</p>
+        </div>
+        <div class="afflist">
+          <h4>Bookings that will be cancelled</h4>
+          <div class="aff"><div><div class="e">Air Quality Standards Review 2026</div><div class="m">Tue 14 Mar · 09:00–11:00</div></div><div class="who">Anong S.<br><span class="m">42 registered</span></div></div>
+          <div class="aff"><div><div class="e">Noise Exposure Workshop</div><div class="m">Thu 16 Mar · 13:00–15:00</div></div><div class="who">Anong S.<br><span class="m">17 registered</span></div></div>
+          <div class="aff"><div><div class="e">Ventilation Audit Briefing</div><div class="m">Mon 20 Mar · 10:00–11:30</div></div><div class="who">Wirote P.<br><span class="m">8 registered</span></div></div>
+        </div>
+      </div>
+      <div class="ft"><button class="btn btn-out" style="padding:11px 18px">Keep room active</button><button class="btn btn-danger-solid">Deactivate &amp; notify everyone</button></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

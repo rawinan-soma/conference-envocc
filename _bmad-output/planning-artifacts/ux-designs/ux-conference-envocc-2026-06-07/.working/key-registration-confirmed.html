@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registration Confirmed — ENVOCC Event</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   KEY SCREEN — REGISTRATION CONFIRMED / SELF-CANCEL (surface 9, PUBLIC responsive)
+   Governs: EXPERIENCE Flow 2 steps 3-4 (CLIMAX = instant on-screen confirmation)
+            Voice (public = warm) · State Patterns (full success screen)
+            FR-043/044: self-cancel link, one tap, NO login · DESIGN §4 status, button
+   Two phone frames: (A) success/confirmed + self-cancel CTA · (B) after self-cancel
+   English placeholder (UXD-004).
+   ========================================================================= */
+:root{
+  --g900:#1B4332;--g700:#2D6A4F;--g500:#40916C;--g200:#95D5B2;--g100:#D8F3DC;
+  --copper:#B5651D;--copper-light:#E8A96A;--copper-bg:#FDF3E7;
+  --cream:#FAFAF7;--cream-100:#F0EDE6;--cream-200:#E8E3DA;--border:#E0DBD3;--white:#FFFFFF;
+  --ink:#1C1C1C;--ink-2:#5A5A5A;--ink-3:#9A9A9A;--danger:#B3261E;--danger-bg:#FBEAE9;
+  --radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-pill:20px;
+  --shadow:0 2px 8px rgba(27,67,50,.08);--shadow-md:0 6px 20px rgba(27,67,50,.12);--shadow-modal:0 20px 60px rgba(0,0,0,.2);
+  --serif:"Noto Serif Thai",Georgia,"Times New Roman",serif;
+  --sans:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--g900);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;padding:36px 20px;}
+.row{display:flex;gap:44px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+.col-cap{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin:0 0 14px;text-align:center;}
+.phone{width:390px;background:#000;border-radius:42px;padding:12px;box-shadow:var(--shadow-modal);}
+.screen{background:var(--cream);border-radius:32px;overflow:hidden;height:720px;}
+.notch{height:30px;}
+.topband{background:var(--g900);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:10px;}
+.mark{width:30px;height:30px;border-radius:8px;background:#fff;color:var(--g900);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:14px;}
+.topband b{font-size:13px;}
+.topband .org{font-size:11px;color:var(--g200);}
+.content{padding:36px 26px;text-align:center;}
+.tick{width:78px;height:78px;border-radius:50%;background:var(--g100);color:var(--g700);display:flex;align-items:center;justify-content:center;font-size:38px;margin:14px auto 22px;box-shadow:0 0 0 8px rgba(216,243,220,.5);}
+h1{font-family:var(--serif);font-weight:700;font-size:24px;margin:0 0 8px;}
+.sub{color:var(--ink-2);font-size:14.5px;margin:0 0 26px;}
+.ticket{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:20px 22px;text-align:left;margin-bottom:24px;}
+.ticket .ev{font-family:var(--serif);font-weight:600;font-size:17px;margin:0 0 12px;}
+.tline{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink-2);margin-bottom:8px;}
+.tline .ic{width:18px;text-align:center;opacity:.75;}
+.tline:last-child{margin-bottom:0;}
+.badge{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px;padding:6px 14px;border-radius:var(--radius-pill);background:var(--g100);color:var(--g700);margin-top:4px;}
+.mailnote{font-size:13px;color:var(--ink-3);margin:0 0 26px;line-height:1.6;}
+.mailnote b{color:var(--ink-2);}
+.btn{font-family:var(--sans);font-weight:600;font-size:14.5px;border-radius:var(--radius);border:1.5px solid transparent;cursor:pointer;width:100%;padding:14px;min-height:48px;}
+.btn-ghost{background:#fff;color:var(--ink-2);border-color:var(--border);}
+.btn-ghost:hover{background:var(--cream-100);}
+.cancel-link{display:inline-block;margin-top:16px;font-size:13px;color:var(--ink-3);text-decoration:underline;text-underline-offset:3px;}
+/* cancelled state */
+.tick.gone{background:var(--cream-200);color:var(--ink-2);box-shadow:0 0 0 8px rgba(232,227,218,.5);}
+.badge.gone{background:var(--cream-200);color:var(--ink-2);}
+.reopen{font-size:13px;color:var(--g700);font-weight:600;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="row">
+
+  <!-- STATE A: confirmed -->
+  <div>
+    <p class="col-cap">State — confirmed (Flow 2 climax)</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="topband"><span class="mark">EV</span><div><b>ENVOCC</b><div class="org">Environmental &amp; Occupational Health</div></div></div>
+      <div class="content">
+        <div class="tick">✓</div>
+        <h1>You’re registered!</h1>
+        <p class="sub">Thanks, Pranee. We’ve saved your spot and emailed the details.</p>
+        <div class="ticket">
+          <p class="ev">Air Quality Standards Review 2026</p>
+          <div class="tline"><span class="ic">📅</span><span>Tuesday, 14 March 2026 · 09:00–11:00</span></div>
+          <div class="tline"><span class="ic">📍</span><span>Meeting Room A, 3rd floor · ENVOCC, Nonthaburi</span></div>
+          <div class="tline"><span class="ic">🍽</span><span>Meal: Normal</span></div>
+          <span class="badge">● Registered</span>
+        </div>
+        <p class="mailnote">A confirmation is on its way to <b>pranee.k@example.go.th</b> from <b>ENVOCC Events</b>. It includes a link to cancel if your plans change.</p>
+        <button class="btn btn-ghost">Add to calendar</button>
+        <a class="cancel-link" href="#">Can’t make it? Cancel my registration</a>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- STATE B: after self-cancel -->
+  <div>
+    <p class="col-cap">State — after self-cancel (FR-044)</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="topband"><span class="mark">EV</span><div><b>ENVOCC</b><div class="org">Environmental &amp; Occupational Health</div></div></div>
+      <div class="content">
+        <div class="tick gone">↩</div>
+        <h1>Registration cancelled</h1>
+        <p class="sub">No problem, Pranee — your spot has been released. We’ve let the organizer know.</p>
+        <div class="ticket">
+          <p class="ev">Air Quality Standards Review 2026</p>
+          <div class="tline"><span class="ic">📅</span><span>Tuesday, 14 March 2026 · 09:00–11:00</span></div>
+          <div class="tline"><span class="ic">📍</span><span>Meeting Room A, 3rd floor · ENVOCC, Nonthaburi</span></div>
+          <span class="badge gone">● Cancelled</span>
+        </div>
+        <p class="mailnote">Changed your mind? You can register again any time before the event from the original link.</p>
+        <a class="reopen" href="#">↻ Register again</a>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — ConfRoom</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --g900: #1B4332; --g700: #2D6A4F; --g500: #40916C; --g200: #95D5B2; --g100: #D8F3DC;
+      --copper: #B5651D; --copper-light: #E8A96A; --copper-bg: #FDF3E7;
+      --cream: #FAFAF7; --cream-100: #F0EDE6; --cream-200: #E8E3DA;
+      --white: #FFFFFF; --ink: #1C1C1C; --ink-2: #5A5A5A; --ink-3: #9A9A9A;
+      --border: #E0DBD3; --radius: 10px; --radius-lg: 16px;
+      --shadow: 0 2px 8px rgba(27,67,50,0.08); --shadow-md: 0 6px 20px rgba(27,67,50,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; display: flex; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px; background: var(--g900); min-height: 100vh;
+      display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0;
+    }
+    .sidebar-brand { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-brand-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .sidebar-brand-icon { width: 28px; height: 28px; background: var(--copper); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .sidebar-brand-name { font-family: 'DM Serif Display', serif; font-size: 18px; color: white; }
+    .sidebar-badge { font-size: 10px; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 20px; font-weight: 600; letter-spacing: 0.05em; width: fit-content; }
+    .sidebar-nav { padding: 16px 12px; flex: 1; }
+    .sidebar-section-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 8px; margin-bottom: 8px; margin-top: 16px; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+      color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: all 0.2s; text-decoration: none; margin-bottom: 2px;
+    }
+    .sidebar-item:hover { background: rgba(255,255,255,0.08); color: white; }
+    .sidebar-item.active { background: rgba(255,255,255,0.15); color: white; font-weight: 600; }
+    .sidebar-item-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-user { display: flex; align-items: center; gap: 10px; }
+    .sidebar-avatar { width: 32px; height: 32px; background: var(--copper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: white; }
+    .sidebar-user-info { font-size: 13px; }
+    .sidebar-user-name { color: white; font-weight: 500; }
+    .sidebar-user-role { color: rgba(255,255,255,0.5); font-size: 11px; }
+
+    /* MAIN */
+    .main { margin-left: 220px; flex: 1; padding: 32px; padding-bottom: 80px; }
+
+    /* PAGE HEADER */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--g900); }
+    .page-sub { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+    .btn-primary { background: var(--g900); color: white; border: none; padding: 10px 20px; border-radius: var(--radius); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background: var(--g700); }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.07em; }
+    .stat-value { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--g900); margin: 6px 0 2px; }
+    .stat-sub { font-size: 12px; color: var(--g500); font-weight: 500; }
+    .stat-trend-up { color: var(--g500); }
+    .stat-trend-down { color: #e53935; }
+
+    /* SECTION TITLE */
+    .section-title { font-size: 13px; font-weight: 700; color: var(--g900); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .section-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--copper); border-radius: 2px; }
+
+    /* ROOM TABLE */
+    .table-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 32px; }
+    .table-card-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .table-card-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+    .table-actions { display: flex; gap: 8px; }
+    .btn-sm { padding: 7px 14px; border-radius: 7px; font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+    .btn-sm-outline { background: white; color: var(--ink-2); border: 1.5px solid var(--border); }
+    .btn-sm-outline:hover { border-color: var(--g500); color: var(--g700); }
+    .btn-sm-filled { background: var(--g900); color: white; }
+    .btn-sm-filled:hover { background: var(--g700); }
+    table.rooms { width: 100%; border-collapse: collapse; }
+    table.rooms th { text-align: left; font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 20px; border-bottom: 2px solid var(--border); background: var(--cream); }
+    table.rooms td { padding: 14px 20px; border-bottom: 1px solid var(--cream-200); font-size: 14px; vertical-align: middle; }
+    table.rooms tr:last-child td { border-bottom: none; }
+    table.rooms tr:hover td { background: rgba(27,67,50,0.02); }
+    .room-name-cell { font-weight: 600; color: var(--ink); }
+    .room-floor { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+    .status-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-active { background: var(--g500); }
+    .dot-inactive { background: var(--border); }
+    .tag-list { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--g100); color: var(--g700); font-weight: 500; }
+    .actions-cell { display: flex; gap: 6px; }
+    .action-icon-btn { width: 30px; height: 30px; border: 1.5px solid var(--border); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all 0.2s; }
+    .action-icon-btn:hover { border-color: var(--g500); background: var(--g100); }
+
+    /* UTILIZATION HEATMAP */
+    .heatmap-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; }
+    .heatmap-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .heatmap-body { padding: 24px; }
+    .heatmap-grid { display: grid; grid-template-columns: 160px repeat(6, 1fr); gap: 6px; align-items: center; }
+    .heatmap-col-label { font-size: 12px; font-weight: 600; color: var(--ink-3); text-align: center; padding: 4px; }
+    .heatmap-row-label { font-size: 13px; font-weight: 500; color: var(--ink-2); padding-right: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .heatmap-cell {
+      height: 48px; border-radius: 6px; cursor: default;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; transition: transform 0.15s;
+      position: relative;
+    }
+    .heatmap-cell:hover { transform: scale(1.05); z-index: 1; }
+    .heatmap-cell::after {
+      content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: var(--g900); color: white; padding: 5px 10px; border-radius: 6px; font-size: 11px;
+      white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; font-weight: 500;
+    }
+    .heatmap-cell:hover::after { opacity: 1; }
+    .u0 { background: var(--cream-200); color: var(--ink-3); }
+    .u1 { background: #c7e9d0; color: #276045; }
+    .u2 { background: #95d5b2; color: #1e5038; }
+    .u3 { background: #52b788; color: #fff; }
+    .u4 { background: #2d6a4f; color: #fff; }
+    .u5 { background: #1b4332; color: rgba(255,255,255,0.9); }
+    .heatmap-legend { display: flex; align-items: center; gap: 8px; margin-top: 20px; font-size: 12px; color: var(--ink-3); }
+    .heatmap-legend-label { font-size: 12px; color: var(--ink-3); }
+    .legend-cells { display: flex; gap: 3px; }
+    .legend-cell { width: 20px; height: 20px; border-radius: 3px; }
+
+    /* PROTO NAV */
+    .proto-nav { position: fixed; bottom: 20px; left: calc(220px + 50% - 110px); transform: translateX(-50%); background: var(--g900); color: white; border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; gap: 8px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 999; }
+    .proto-nav { left: 50%; transform: translateX(-50%); }
+    .proto-nav-label { color: rgba(255,255,255,0.5); font-size: 11px; margin-right: 4px; }
+    .proto-nav a { color: rgba(255,255,255,0.7); text-decoration: none; padding: 4px 10px; border-radius: 20px; font-weight: 500; transition: all 0.2s; font-size: 12px; }
+    .proto-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+    .proto-nav a.current { background: var(--copper); color: white; }
+    .proto-nav-divider { color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar {
+        width: 100%; min-height: unset; position: relative;
+        display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;
+        overflow-x: auto; padding: 0;
+      }
+      .sidebar-brand { padding: 12px 16px; border-bottom: none; border-right: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+      .sidebar-brand-logo { margin-bottom: 0; }
+      .sidebar-brand-name { font-size: 16px; }
+      .sidebar-badge { display: none; }
+      .sidebar-nav { display: flex; flex-direction: row; padding: 8px; gap: 2px; flex: 1; overflow-x: auto; }
+      .sidebar-section-label { display: none; }
+      .sidebar-item { white-space: nowrap; padding: 8px 12px; margin-bottom: 0; font-size: 13px; }
+      .sidebar-item-icon { font-size: 14px; }
+      .sidebar-footer { display: none; }
+      .main { margin-left: 0; padding: 16px 16px 100px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .page-title { font-size: 22px; }
+      .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-value { font-size: 26px; }
+      .table-card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .table-actions { width: 100%; justify-content: flex-end; }
+      .rooms-wrapper { overflow-x: auto; }
+      table.rooms { min-width: 600px; }
+      .heatmap-body { overflow-x: auto; }
+      .heatmap-grid { min-width: 500px; }
+      .heatmap-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .proto-nav { gap: 4px; padding: 8px 12px; width: calc(100% - 32px); justify-content: center; flex-wrap: wrap; }
+      .proto-nav a { padding: 4px 7px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-logo">
+      <div class="sidebar-brand-icon">🏢</div>
+      <span class="sidebar-brand-name">ConfRoom</span>
+    </div>
+    <div class="sidebar-badge">ADMIN PANEL</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <div class="sidebar-item active">
+      <span class="sidebar-item-icon">📊</span> Dashboard
+    </div>
+    <div class="sidebar-section-label">Management</div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">🚪</span> Rooms
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">📅</span> All Bookings
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">👥</span> Registrants
+    </div>
+    <div class="sidebar-section-label">Reports</div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">📈</span> Utilization
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">⬇</span> Export Data
+    </div>
+    <div class="sidebar-section-label">Settings</div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">✉️</span> SMTP Config
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">⚙️</span> System Settings
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">Admin User</div>
+        <div class="sidebar-user-role">System Administrator</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Admin Dashboard</div>
+      <div class="page-sub">Room management and utilization overview · June 2026</div>
+    </div>
+    <button class="btn-primary">+ Add Room</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Rooms</div>
+      <div class="stat-value">5</div>
+      <div class="stat-sub">4 active · 1 maintenance</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Bookings This Month</div>
+      <div class="stat-value">38</div>
+      <div class="stat-sub stat-trend-up">↑ 14% vs last month</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Registrants</div>
+      <div class="stat-value">312</div>
+      <div class="stat-sub stat-trend-up">↑ 22% vs last month</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Avg. Utilization</div>
+      <div class="stat-value">64%</div>
+      <div class="stat-sub stat-trend-up">↑ 8% vs last month</div>
+    </div>
+  </div>
+
+  <!-- ROOM MANAGEMENT TABLE -->
+  <div class="section-title">Room Management</div>
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="table-card-title">All Rooms (5)</div>
+      <div class="table-actions">
+        <button class="btn-sm btn-sm-outline">⬇ Export</button>
+        <button class="btn-sm btn-sm-filled">+ Add Room</button>
+      </div>
+    </div>
+    <div class="rooms-wrapper"><table class="rooms">
+      <thead>
+        <tr>
+          <th>Room</th>
+          <th>Capacity</th>
+          <th>Status</th>
+          <th>Features</th>
+          <th>Bookings (June)</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="room-name-cell">Horizon Suite</div><div class="room-floor">Floor 3 · Room 301</div></td>
+          <td>20 pax</td>
+          <td><span class="status-dot"><span class="dot dot-active"></span> Active</span></td>
+          <td><div class="tag-list"><span class="tag">Projector</span><span class="tag">Video Conf</span><span class="tag">Whiteboard</span></div></td>
+          <td><strong>12</strong> bookings</td>
+          <td><div class="actions-cell"><button class="action-icon-btn" title="Edit">✏️</button><button class="action-icon-btn" title="Deactivate">⏸</button></div></td>
+        </tr>
+        <tr>
+          <td><div class="room-name-cell">The Birch Room</div><div class="room-floor">Floor 2 · Room 201</div></td>
+          <td>8 pax</td>
+          <td><span class="status-dot"><span class="dot dot-active"></span> Active</span></td>
+          <td><div class="tag-list"><span class="tag">Whiteboard</span><span class="tag">TV Screen</span></div></td>
+          <td><strong>9</strong> bookings</td>
+          <td><div class="actions-cell"><button class="action-icon-btn" title="Edit">✏️</button><button class="action-icon-btn" title="Deactivate">⏸</button></div></td>
+        </tr>
+        <tr>
+          <td><div class="room-name-cell">Executive Boardroom</div><div class="room-floor">Floor 4 · Room 401</div></td>
+          <td>15 pax</td>
+          <td><span class="status-dot"><span class="dot dot-active"></span> Active</span></td>
+          <td><div class="tag-list"><span class="tag">Projector</span><span class="tag">Video Conf</span><span class="tag">Catering</span></div></td>
+          <td><strong>8</strong> bookings</td>
+          <td><div class="actions-cell"><button class="action-icon-btn" title="Edit">✏️</button><button class="action-icon-btn" title="Deactivate">⏸</button></div></td>
+        </tr>
+        <tr>
+          <td><div class="room-name-cell">Cedar Hall</div><div class="room-floor">Floor 1 · Main Hall</div></td>
+          <td>50 pax</td>
+          <td><span class="status-dot"><span class="dot dot-active"></span> Active</span></td>
+          <td><div class="tag-list"><span class="tag">Projector</span><span class="tag">PA System</span><span class="tag">Stage</span></div></td>
+          <td><strong>5</strong> bookings</td>
+          <td><div class="actions-cell"><button class="action-icon-btn" title="Edit">✏️</button><button class="action-icon-btn" title="Deactivate">⏸</button></div></td>
+        </tr>
+        <tr>
+          <td><div class="room-name-cell">Innovation Lab</div><div class="room-floor">Floor 2 · Room 210</div></td>
+          <td>12 pax</td>
+          <td><span class="status-dot"><span class="dot" style="background:#f59e0b;"></span> Maintenance</span></td>
+          <td><div class="tag-list"><span class="tag">Whiteboards ×4</span><span class="tag">Standing Desks</span></div></td>
+          <td><strong>4</strong> bookings</td>
+          <td><div class="actions-cell"><button class="action-icon-btn" title="Edit">✏️</button><button class="action-icon-btn" title="Activate" style="border-color:var(--g500);color:var(--g500);">▶</button></div></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- UTILIZATION HEATMAP -->
+  <div class="section-title">Room Utilization Heatmap</div>
+  <div class="heatmap-card">
+    <div class="heatmap-header">
+      <div class="table-card-title">Monthly Utilization by Room</div>
+      <div class="table-actions">
+        <select style="padding:7px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:'Outfit',sans-serif;font-size:13px;background:white;color:var(--ink);outline:none;">
+          <option>Jan – Jun 2026</option>
+          <option>Jul – Dec 2025</option>
+        </select>
+        <button class="btn-sm btn-sm-outline">⬇ Export PDF</button>
+      </div>
+    </div>
+    <div class="heatmap-body">
+      <div class="heatmap-grid">
+        <div></div>
+        <div class="heatmap-col-label">Jan</div>
+        <div class="heatmap-col-label">Feb</div>
+        <div class="heatmap-col-label">Mar</div>
+        <div class="heatmap-col-label">Apr</div>
+        <div class="heatmap-col-label">May</div>
+        <div class="heatmap-col-label">Jun</div>
+
+        <div class="heatmap-row-label">Horizon Suite</div>
+        <div class="heatmap-cell u3" data-tip="Jan · 68%">68%</div>
+        <div class="heatmap-cell u4" data-tip="Feb · 75%">75%</div>
+        <div class="heatmap-cell u3" data-tip="Mar · 60%">60%</div>
+        <div class="heatmap-cell u5" data-tip="Apr · 88%">88%</div>
+        <div class="heatmap-cell u4" data-tip="May · 72%">72%</div>
+        <div class="heatmap-cell u3" data-tip="Jun · 64%">64%</div>
+
+        <div class="heatmap-row-label">The Birch Room</div>
+        <div class="heatmap-cell u2" data-tip="Jan · 42%">42%</div>
+        <div class="heatmap-cell u2" data-tip="Feb · 38%">38%</div>
+        <div class="heatmap-cell u3" data-tip="Mar · 55%">55%</div>
+        <div class="heatmap-cell u2" data-tip="Apr · 48%">48%</div>
+        <div class="heatmap-cell u3" data-tip="May · 61%">61%</div>
+        <div class="heatmap-cell u2" data-tip="Jun · 45%">45%</div>
+
+        <div class="heatmap-row-label">Exec. Boardroom</div>
+        <div class="heatmap-cell u4" data-tip="Jan · 80%">80%</div>
+        <div class="heatmap-cell u5" data-tip="Feb · 92%">92%</div>
+        <div class="heatmap-cell u4" data-tip="Mar · 77%">77%</div>
+        <div class="heatmap-cell u4" data-tip="Apr · 83%">83%</div>
+        <div class="heatmap-cell u5" data-tip="May · 90%">90%</div>
+        <div class="heatmap-cell u4" data-tip="Jun · 78%">78%</div>
+
+        <div class="heatmap-row-label">Cedar Hall</div>
+        <div class="heatmap-cell u1" data-tip="Jan · 22%">22%</div>
+        <div class="heatmap-cell u1" data-tip="Feb · 18%">18%</div>
+        <div class="heatmap-cell u2" data-tip="Mar · 35%">35%</div>
+        <div class="heatmap-cell u1" data-tip="Apr · 28%">28%</div>
+        <div class="heatmap-cell u2" data-tip="May · 40%">40%</div>
+        <div class="heatmap-cell u1" data-tip="Jun · 25%">25%</div>
+
+        <div class="heatmap-row-label">Innovation Lab</div>
+        <div class="heatmap-cell u3" data-tip="Jan · 58%">58%</div>
+        <div class="heatmap-cell u2" data-tip="Feb · 44%">44%</div>
+        <div class="heatmap-cell u3" data-tip="Mar · 62%">62%</div>
+        <div class="heatmap-cell u0" data-tip="Apr · Maintenance">—</div>
+        <div class="heatmap-cell u0" data-tip="May · Maintenance">—</div>
+        <div class="heatmap-cell u0" data-tip="Jun · Maintenance">—</div>
+      </div>
+
+      <div class="heatmap-legend">
+        <span class="heatmap-legend-label">Lower utilization</span>
+        <div class="legend-cells">
+          <div class="legend-cell u0"></div>
+          <div class="legend-cell u1"></div>
+          <div class="legend-cell u2"></div>
+          <div class="legend-cell u3"></div>
+          <div class="legend-cell u4"></div>
+          <div class="legend-cell u5"></div>
+        </div>
+        <span class="heatmap-legend-label">Higher utilization</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="proto-nav">
+  <span class="proto-nav-label">🧪 Prototype</span>
+  <a href="index.html">1 · Calendar</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="booking-form.html">2 · Booking Form</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="dashboard.html">3 · My Bookings</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="registration.html">4 · Registration</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="admin.html" class="current">5 · Admin</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ENVOCC Booking — Brand Board &amp; Color Themes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/*
+  ============================================================================
+  ENVOCC CONFERENCE ROOM BOOKING — COLOR THEMES (concrete hex, liftable)
+  ----------------------------------------------------------------------------
+  TYPE PAIRING
+    Headings / brand : "DM Serif Display"
+    UI / body        : "Outfit"
+    body 14px · label 13px/600 · button 13px/600 · hint 12px
+
+  THEME 1 — FOREST & COPPER (ANCHOR / RECOMMENDED)
+    g900  #1B4332   g700 #2D6A4F   g500 #40916C   g200 #95D5B2   g100 #D8F3DC
+    copper #B5651D  copper-light #E8A96A  copper-bg #FDF3E7
+    page  #FAFAF7   surface-2 #F0EDE6  border #E0DBD3   card #FFFFFF
+    text  #1C1C1C   text-2 #5A5A5A   text-3 #9A9A9A
+
+  THEME 2 — DEEP PINE (crisp, authoritative, high-contrast)
+    g900  #0B2B20   g700 #14503B   g500 #1F6B4D   g200 #7FBFA3   g100 #CFE8DC
+    bronze #9A5A22  bronze-light #D29A60  bronze-bg #F7EFE4
+    page  #F6F6F2   surface-2 #ECEAE3  border #D4CFC6   card #FFFFFF
+    text  #111111   text-2 #4A4A4A   text-3 #8A8A8A
+
+  THEME 3 — SAGE CALM (soft, calm, approachable)
+    g900  #36584A   g700 #5B8270   g500 #7FA793   g200 #BFD9CC   g100 #E7F1EB
+    copper #C57A3C  copper-light #F0C193  copper-bg #FBF1E6
+    page  #FCFBF7   surface-2 #F3F0E9  border #E5E0D8   card #FFFFFF
+    text  #2B2B2B   text-2 #6A6A6A   text-3 #A6A6A6
+
+  THEME 4 — EMERALD VIVID (energetic, modern, vivid)
+    g900  #12503A   g700 #1A7A52   g500 #19A974   g200 #6FE3B2   g100 #D2F8E6
+    copper #C25E12  copper-light #F2A24E  copper-bg #FEF1E2
+    page  #FBFCFA   surface-2 #EFF1ED  border #DCE2DB   card #FFFFFF
+    text  #141414   text-2 #555555   text-3 #969696
+  ============================================================================
+*/
+
+:root {
+  --font-serif: "DM Serif Display", Georgia, serif;
+  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: #f4f3ee;
+  color: #1c1c1c;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding: 40px 32px 64px;
+}
+
+.board {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+/* ---- Page header ---- */
+.board-head { margin-bottom: 28px; }
+.board-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #B5651D;
+  margin-bottom: 8px;
+}
+.board-title {
+  font-family: var(--font-serif);
+  font-size: 40px;
+  line-height: 1.05;
+  color: #1B4332;
+  letter-spacing: 0.2px;
+}
+.board-sub {
+  font-size: 14px;
+  color: #5A5A5A;
+  margin-top: 10px;
+  max-width: 720px;
+}
+
+/* ---- Generic panel ---- */
+.panel {
+  background: #ffffff;
+  border: 1px solid #E0DBD3;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(27,67,50,0.04), 0 12px 28px -16px rgba(27,67,50,0.18);
+}
+
+/* ---- Typography panel ---- */
+.type-panel {
+  padding: 28px 32px;
+  margin-bottom: 28px;
+}
+.type-panel .ptitle {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9A9A9A;
+  margin-bottom: 18px;
+}
+.type-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 1.5fr;
+  gap: 36px;
+  align-items: start;
+}
+@media (max-width: 1000px) { .type-grid { grid-template-columns: 1fr; gap: 24px; } }
+
+.type-block .tlabel {
+  font-size: 12px;
+  color: #9A9A9A;
+  margin-bottom: 10px;
+}
+.type-block .tlabel b { color: #5A5A5A; font-weight: 600; }
+
+.sample-h1 {
+  font-family: var(--font-serif);
+  font-size: 38px;
+  line-height: 1.08;
+  color: #1B4332;
+}
+.sample-stat {
+  font-family: var(--font-serif);
+  font-size: 64px;
+  line-height: 1;
+  color: #B5651D;
+}
+.sample-stat .unit {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: #5A5A5A;
+  display: block;
+  margin-top: 4px;
+  letter-spacing: 0.04em;
+}
+
+.ui-samples { display: flex; flex-direction: column; gap: 14px; }
+.s-body { font-size: 14px; color: #1C1C1C; }
+.s-body .meta { font-size: 12px; color: #9A9A9A; }
+.s-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5A5A5A;
+  letter-spacing: 0.02em;
+}
+.s-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #1B4332;
+  padding: 9px 16px;
+  border-radius: 9px;
+  letter-spacing: 0.02em;
+  align-self: flex-start;
+}
+.s-hint { font-size: 12px; color: #9A9A9A; }
+.size-tag {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #B5651D;
+  background: #FDF3E7;
+  padding: 1px 6px;
+  border-radius: 5px;
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+
+/* ---- Themes row ---- */
+.themes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+}
+@media (max-width: 1180px) { .themes { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .themes { grid-template-columns: 1fr; } }
+
+.theme {
+  padding: 22px 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.theme--anchor {
+  border: 1px solid var(--c-g500);
+  box-shadow: 0 1px 2px rgba(27,67,50,0.05), 0 18px 36px -18px rgba(27,67,50,0.30);
+}
+
+.theme-head { margin-bottom: 18px; }
+.theme-name {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--c-g900);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rec-pill {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--c-copper);
+  padding: 3px 8px;
+  border-radius: 20px;
+  transform: translateY(-2px);
+}
+.theme-register {
+  font-size: 13px;
+  color: #6A6A6A;
+  margin-top: 7px;
+  font-style: italic;
+}
+
+/* chips */
+.chips {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px 8px;
+  margin-bottom: 22px;
+}
+.chip { display: flex; flex-direction: column; gap: 5px; }
+.swatch {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+}
+.chip .name {
+  font-size: 10px;
+  font-weight: 600;
+  color: #5A5A5A;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.chip .hex {
+  font-size: 9.5px;
+  color: #A6A6A6;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.chips-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #B0AAA0;
+  margin: 0 0 9px;
+}
+
+/* ---- Booking card snippet ---- */
+.snippet-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #B0AAA0;
+  margin: 4px 0 11px;
+}
+.snippet-stage {
+  background: var(--c-page);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: auto;
+}
+.booking-card {
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 16px 16px 14px;
+  box-shadow: 0 1px 2px rgba(20,30,25,0.05), 0 10px 22px -14px rgba(20,30,25,0.30);
+  border-left: 3px solid var(--c-g500);
+}
+.bc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.bc-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--c-text);
+}
+.bc-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-copper);
+  background: var(--c-copper-bg);
+  border: 1px solid var(--c-copper-light);
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.bc-meta { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.bc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+.bc-row .ic {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  color: var(--c-g500);
+}
+.bc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+}
+.bc-count {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.bc-count .num {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  color: var(--c-g700);
+}
+.bc-count .num .max { color: var(--c-text-3); font-size: 14px; }
+.bc-count .cap {
+  font-size: 11px;
+  color: var(--c-text-3);
+  margin-top: 1px;
+}
+.bc-bookbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--c-g700);
+  border: none;
+  padding: 9px 18px;
+  border-radius: 9px;
+  box-shadow: 0 2px 6px -1px rgba(20,60,40,0.35);
+  cursor: pointer;
+}
+.bc-bookbtn .ic { width: 14px; height: 14px; }
+
+/* ---- THEME TOKEN ASSIGNMENTS ---- */
+.theme-forest {
+  --c-g900:#1B4332; --c-g700:#2D6A4F; --c-g500:#40916C; --c-g200:#95D5B2; --c-g100:#D8F3DC;
+  --c-copper:#B5651D; --c-copper-light:#E8A96A; --c-copper-bg:#FDF3E7;
+  --c-page:#FAFAF7; --c-surface2:#F0EDE6; --c-border:#E0DBD3; --c-card:#FFFFFF;
+  --c-text:#1C1C1C; --c-text-2:#5A5A5A; --c-text-3:#9A9A9A;
+}
+.theme-pine {
+  --c-g900:#0B2B20; --c-g700:#14503B; --c-g500:#1F6B4D; --c-g200:#7FBFA3; --c-g100:#CFE8DC;
+  --c-copper:#9A5A22; --c-copper-light:#D29A60; --c-copper-bg:#F7EFE4;
+  --c-page:#F6F6F2; --c-surface2:#ECEAE3; --c-border:#D4CFC6; --c-card:#FFFFFF;
+  --c-text:#111111; --c-text-2:#4A4A4A; --c-text-3:#8A8A8A;
+}
+.theme-sage {
+  --c-g900:#36584A; --c-g700:#5B8270; --c-g500:#7FA793; --c-g200:#BFD9CC; --c-g100:#E7F1EB;
+  --c-copper:#C57A3C; --c-copper-light:#F0C193; --c-copper-bg:#FBF1E6;
+  --c-page:#FCFBF7; --c-surface2:#F3F0E9; --c-border:#E5E0D8; --c-card:#FFFFFF;
+  --c-text:#2B2B2B; --c-text-2:#6A6A6A; --c-text-3:#A6A6A6;
+}
+.theme-emerald {
+  --c-g900:#12503A; --c-g700:#1A7A52; --c-g500:#19A974; --c-g200:#6FE3B2; --c-g100:#D2F8E6;
+  --c-copper:#C25E12; --c-copper-light:#F2A24E; --c-copper-bg:#FEF1E2;
+  --c-page:#FBFCFA; --c-surface2:#EFF1ED; --c-border:#DCE2DB; --c-card:#FFFFFF;
+  --c-text:#141414; --c-text-2:#555555; --c-text-3:#969696;
+}
+
+.foot-note {
+  margin-top: 30px;
+  font-size: 12px;
+  color: #9A9A9A;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="board">
+
+  <header class="board-head">
+    <div class="board-eyebrow">ENVOCC · Internal Tool · Brand Board</div>
+    <h1 class="board-title">Conference Room Booking — Color Themes</h1>
+    <p class="board-sub">
+      One product family, four emotional registers. <b>Forest &amp; Copper</b> is the established
+      system from the existing prototypes (recommended anchor). The three variations keep the same
+      green-and-copper DNA but shift weight, contrast, and warmth so you can compare and pick.
+    </p>
+  </header>
+
+  <!-- ============ TYPOGRAPHY PANEL ============ -->
+  <section class="panel type-panel">
+    <div class="ptitle">Type System · DM Serif Display + Outfit</div>
+    <div class="type-grid">
+
+      <div class="type-block">
+        <div class="tlabel"><b>DM Serif Display</b> — headings &amp; brand</div>
+        <div class="sample-h1">Conference Room Booking</div>
+      </div>
+
+      <div class="type-block">
+        <div class="tlabel"><b>DM Serif Display</b> — stat number</div>
+        <div class="sample-stat">128<span class="unit">bookings this month</span></div>
+      </div>
+
+      <div class="type-block">
+        <div class="tlabel"><b>Outfit</b> — UI &amp; body</div>
+        <div class="ui-samples">
+          <div class="s-body">
+            Reserve Meeting Room A2 for the occupational health briefing.
+            <span class="meta">Building 3 · 4th floor · seats 30</span>
+            <span class="size-tag">body 14px</span>
+          </div>
+          <div class="s-label">Date &amp; time <span class="size-tag">label 13px / 600</span></div>
+          <button class="s-btn">Book this room <span class="size-tag" style="color:#fff;background:rgba(255,255,255,0.18)">button 13px / 600</span></button>
+          <div class="s-hint">Bookings lock 30 minutes before start time. <span class="size-tag">hint 12px</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ THEME COLUMNS ============ -->
+  <section class="themes">
+
+    <!-- THEME 1 — FOREST & COPPER (ANCHOR) -->
+    <article class="panel theme theme-forest theme--anchor">
+      <div class="theme-head">
+        <h2 class="theme-name">Forest &amp; Copper <span class="rec-pill">Recommended</span></h2>
+        <p class="theme-register">Grounded, warm, trustworthy — nature-rooted and human.</p>
+      </div>
+
+      <div class="chips-section-label">Brand · Green</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#1B4332"></div><span class="name">g900</span><span class="hex">#1B4332</span></div>
+        <div class="chip"><div class="swatch" style="background:#2D6A4F"></div><span class="name">g700</span><span class="hex">#2D6A4F</span></div>
+        <div class="chip"><div class="swatch" style="background:#40916C"></div><span class="name">g500</span><span class="hex">#40916C</span></div>
+        <div class="chip"><div class="swatch" style="background:#95D5B2"></div><span class="name">g200</span><span class="hex">#95D5B2</span></div>
+        <div class="chip"><div class="swatch" style="background:#D8F3DC"></div><span class="name">g100</span><span class="hex">#D8F3DC</span></div>
+      </div>
+
+      <div class="chips-section-label">Copper · Neutral · Text</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#B5651D"></div><span class="name">copper</span><span class="hex">#B5651D</span></div>
+        <div class="chip"><div class="swatch" style="background:#E8A96A"></div><span class="name">copper lt</span><span class="hex">#E8A96A</span></div>
+        <div class="chip"><div class="swatch" style="background:#FDF3E7"></div><span class="name">copper bg</span><span class="hex">#FDF3E7</span></div>
+        <div class="chip"><div class="swatch" style="background:#FAFAF7"></div><span class="name">page</span><span class="hex">#FAFAF7</span></div>
+        <div class="chip"><div class="swatch" style="background:#E0DBD3"></div><span class="name">border</span><span class="hex">#E0DBD3</span></div>
+        <div class="chip"><div class="swatch" style="background:#1C1C1C"></div><span class="name">text</span><span class="hex">#1C1C1C</span></div>
+        <div class="chip"><div class="swatch" style="background:#5A5A5A"></div><span class="name">text-2</span><span class="hex">#5A5A5A</span></div>
+        <div class="chip"><div class="swatch" style="background:#9A9A9A"></div><span class="name">text-3</span><span class="hex">#9A9A9A</span></div>
+        <div class="chip"><div class="swatch" style="background:#F0EDE6"></div><span class="name">surf-2</span><span class="hex">#F0EDE6</span></div>
+        <div class="chip"><div class="swatch" style="background:#FFFFFF"></div><span class="name">card</span><span class="hex">#FFFFFF</span></div>
+      </div>
+
+      <div class="snippet-label">UI Preview</div>
+      <div class="snippet-stage">
+        <div class="booking-card">
+          <div class="bc-top">
+            <div class="bc-title">Air Quality Standards Review</div>
+            <span class="bc-badge">Lunch</span>
+          </div>
+          <div class="bc-meta">
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Meeting Room A2 · Building 3</div>
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Tue 9 Jun · 11:30 – 13:00</div>
+          </div>
+          <div class="bc-foot">
+            <div class="bc-count"><span class="num">12 <span class="max">/ 30</span></span><span class="cap">registrants</span></div>
+            <button class="bc-bookbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Book</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- THEME 2 — DEEP PINE -->
+    <article class="panel theme theme-pine">
+      <div class="theme-head">
+        <h2 class="theme-name">Deep Pine</h2>
+        <p class="theme-register">Crisp, authoritative, high-contrast.</p>
+      </div>
+
+      <div class="chips-section-label">Brand · Green</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#0B2B20"></div><span class="name">g900</span><span class="hex">#0B2B20</span></div>
+        <div class="chip"><div class="swatch" style="background:#14503B"></div><span class="name">g700</span><span class="hex">#14503B</span></div>
+        <div class="chip"><div class="swatch" style="background:#1F6B4D"></div><span class="name">g500</span><span class="hex">#1F6B4D</span></div>
+        <div class="chip"><div class="swatch" style="background:#7FBFA3"></div><span class="name">g200</span><span class="hex">#7FBFA3</span></div>
+        <div class="chip"><div class="swatch" style="background:#CFE8DC"></div><span class="name">g100</span><span class="hex">#CFE8DC</span></div>
+      </div>
+
+      <div class="chips-section-label">Bronze · Neutral · Text</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#9A5A22"></div><span class="name">bronze</span><span class="hex">#9A5A22</span></div>
+        <div class="chip"><div class="swatch" style="background:#D29A60"></div><span class="name">bronze lt</span><span class="hex">#D29A60</span></div>
+        <div class="chip"><div class="swatch" style="background:#F7EFE4"></div><span class="name">bronze bg</span><span class="hex">#F7EFE4</span></div>
+        <div class="chip"><div class="swatch" style="background:#F6F6F2"></div><span class="name">page</span><span class="hex">#F6F6F2</span></div>
+        <div class="chip"><div class="swatch" style="background:#D4CFC6"></div><span class="name">border</span><span class="hex">#D4CFC6</span></div>
+        <div class="chip"><div class="swatch" style="background:#111111"></div><span class="name">text</span><span class="hex">#111111</span></div>
+        <div class="chip"><div class="swatch" style="background:#4A4A4A"></div><span class="name">text-2</span><span class="hex">#4A4A4A</span></div>
+        <div class="chip"><div class="swatch" style="background:#8A8A8A"></div><span class="name">text-3</span><span class="hex">#8A8A8A</span></div>
+        <div class="chip"><div class="swatch" style="background:#ECEAE3"></div><span class="name">surf-2</span><span class="hex">#ECEAE3</span></div>
+        <div class="chip"><div class="swatch" style="background:#FFFFFF"></div><span class="name">card</span><span class="hex">#FFFFFF</span></div>
+      </div>
+
+      <div class="snippet-label">UI Preview</div>
+      <div class="snippet-stage">
+        <div class="booking-card">
+          <div class="bc-top">
+            <div class="bc-title">Air Quality Standards Review</div>
+            <span class="bc-badge">Lunch</span>
+          </div>
+          <div class="bc-meta">
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Meeting Room A2 · Building 3</div>
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Tue 9 Jun · 11:30 – 13:00</div>
+          </div>
+          <div class="bc-foot">
+            <div class="bc-count"><span class="num">12 <span class="max">/ 30</span></span><span class="cap">registrants</span></div>
+            <button class="bc-bookbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Book</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- THEME 3 — SAGE CALM -->
+    <article class="panel theme theme-sage">
+      <div class="theme-head">
+        <h2 class="theme-name">Sage Calm</h2>
+        <p class="theme-register">Soft, calm, approachable.</p>
+      </div>
+
+      <div class="chips-section-label">Brand · Green</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#36584A"></div><span class="name">g900</span><span class="hex">#36584A</span></div>
+        <div class="chip"><div class="swatch" style="background:#5B8270"></div><span class="name">g700</span><span class="hex">#5B8270</span></div>
+        <div class="chip"><div class="swatch" style="background:#7FA793"></div><span class="name">g500</span><span class="hex">#7FA793</span></div>
+        <div class="chip"><div class="swatch" style="background:#BFD9CC"></div><span class="name">g200</span><span class="hex">#BFD9CC</span></div>
+        <div class="chip"><div class="swatch" style="background:#E7F1EB"></div><span class="name">g100</span><span class="hex">#E7F1EB</span></div>
+      </div>
+
+      <div class="chips-section-label">Copper · Neutral · Text</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#C57A3C"></div><span class="name">copper</span><span class="hex">#C57A3C</span></div>
+        <div class="chip"><div class="swatch" style="background:#F0C193"></div><span class="name">copper lt</span><span class="hex">#F0C193</span></div>
+        <div class="chip"><div class="swatch" style="background:#FBF1E6"></div><span class="name">copper bg</span><span class="hex">#FBF1E6</span></div>
+        <div class="chip"><div class="swatch" style="background:#FCFBF7"></div><span class="name">page</span><span class="hex">#FCFBF7</span></div>
+        <div class="chip"><div class="swatch" style="background:#E5E0D8"></div><span class="name">border</span><span class="hex">#E5E0D8</span></div>
+        <div class="chip"><div class="swatch" style="background:#2B2B2B"></div><span class="name">text</span><span class="hex">#2B2B2B</span></div>
+        <div class="chip"><div class="swatch" style="background:#6A6A6A"></div><span class="name">text-2</span><span class="hex">#6A6A6A</span></div>
+        <div class="chip"><div class="swatch" style="background:#A6A6A6"></div><span class="name">text-3</span><span class="hex">#A6A6A6</span></div>
+        <div class="chip"><div class="swatch" style="background:#F3F0E9"></div><span class="name">surf-2</span><span class="hex">#F3F0E9</span></div>
+        <div class="chip"><div class="swatch" style="background:#FFFFFF"></div><span class="name">card</span><span class="hex">#FFFFFF</span></div>
+      </div>
+
+      <div class="snippet-label">UI Preview</div>
+      <div class="snippet-stage">
+        <div class="booking-card">
+          <div class="bc-top">
+            <div class="bc-title">Air Quality Standards Review</div>
+            <span class="bc-badge">Lunch</span>
+          </div>
+          <div class="bc-meta">
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Meeting Room A2 · Building 3</div>
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Tue 9 Jun · 11:30 – 13:00</div>
+          </div>
+          <div class="bc-foot">
+            <div class="bc-count"><span class="num">12 <span class="max">/ 30</span></span><span class="cap">registrants</span></div>
+            <button class="bc-bookbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Book</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- THEME 4 — EMERALD VIVID -->
+    <article class="panel theme theme-emerald">
+      <div class="theme-head">
+        <h2 class="theme-name">Emerald Vivid</h2>
+        <p class="theme-register">Energetic, modern, vivid.</p>
+      </div>
+
+      <div class="chips-section-label">Brand · Green</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#12503A"></div><span class="name">g900</span><span class="hex">#12503A</span></div>
+        <div class="chip"><div class="swatch" style="background:#1A7A52"></div><span class="name">g700</span><span class="hex">#1A7A52</span></div>
+        <div class="chip"><div class="swatch" style="background:#19A974"></div><span class="name">g500</span><span class="hex">#19A974</span></div>
+        <div class="chip"><div class="swatch" style="background:#6FE3B2"></div><span class="name">g200</span><span class="hex">#6FE3B2</span></div>
+        <div class="chip"><div class="swatch" style="background:#D2F8E6"></div><span class="name">g100</span><span class="hex">#D2F8E6</span></div>
+      </div>
+
+      <div class="chips-section-label">Copper · Neutral · Text</div>
+      <div class="chips">
+        <div class="chip"><div class="swatch" style="background:#C25E12"></div><span class="name">copper</span><span class="hex">#C25E12</span></div>
+        <div class="chip"><div class="swatch" style="background:#F2A24E"></div><span class="name">copper lt</span><span class="hex">#F2A24E</span></div>
+        <div class="chip"><div class="swatch" style="background:#FEF1E2"></div><span class="name">copper bg</span><span class="hex">#FEF1E2</span></div>
+        <div class="chip"><div class="swatch" style="background:#FBFCFA"></div><span class="name">page</span><span class="hex">#FBFCFA</span></div>
+        <div class="chip"><div class="swatch" style="background:#DCE2DB"></div><span class="name">border</span><span class="hex">#DCE2DB</span></div>
+        <div class="chip"><div class="swatch" style="background:#141414"></div><span class="name">text</span><span class="hex">#141414</span></div>
+        <div class="chip"><div class="swatch" style="background:#555555"></div><span class="name">text-2</span><span class="hex">#555555</span></div>
+        <div class="chip"><div class="swatch" style="background:#969696"></div><span class="name">text-3</span><span class="hex">#969696</span></div>
+        <div class="chip"><div class="swatch" style="background:#EFF1ED"></div><span class="name">surf-2</span><span class="hex">#EFF1ED</span></div>
+        <div class="chip"><div class="swatch" style="background:#FFFFFF"></div><span class="name">card</span><span class="hex">#FFFFFF</span></div>
+      </div>
+
+      <div class="snippet-label">UI Preview</div>
+      <div class="snippet-stage">
+        <div class="booking-card">
+          <div class="bc-top">
+            <div class="bc-title">Air Quality Standards Review</div>
+            <span class="bc-badge">Lunch</span>
+          </div>
+          <div class="bc-meta">
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Meeting Room A2 · Building 3</div>
+            <div class="bc-row"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Tue 9 Jun · 11:30 – 13:00</div>
+          </div>
+          <div class="bc-foot">
+            <div class="bc-count"><span class="num">12 <span class="max">/ 30</span></span><span class="cap">registrants</span></div>
+            <button class="bc-bookbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>Book</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </section>
+
+  <p class="foot-note">
+    ENVOCC Conference Room Booking · Brand board generated 2026-06-07 · One product family, four registers — pick one to anchor the system.
+  </p>
+
+</div>
+</body>
+</html>

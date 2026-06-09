@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Calendar — ENVOCC Booking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   KEY SCREEN — ROOM CALENDAR (organizer, surface 1) — WEEK SCHEDULER, ROOMS × DAYS
+   Governs: EXPERIENCE §1 (Room Calendar) · Flow 1 step 1 · State Patterns (Loading=skeleton)
+            DESIGN §4 calendar-slot
+            UXD-024: week schedule (no day view)
+            UXD-025: ROOMS on Y axis (rows) × DAYS on X axis (columns). Each booking chip in a
+                     cell shows its booked TIME + event. Available = empty, clickable cell with no
+                     pre-set time (UXD-013 holds — time is chosen in the booking form).
+   Two states shown: (A) loaded week scheduler · (B) skeleton loading
+   Offline: Noto Thai via CDN, system serif/sans fallback. English placeholder (UXD-004).
+   ========================================================================= */
+:root{
+  --g900:#1B4332;--g700:#2D6A4F;--g500:#40916C;--g200:#95D5B2;--g100:#D8F3DC;
+  --copper:#B5651D;--copper-light:#E8A96A;--copper-bg:#FDF3E7;
+  --cream:#FAFAF7;--cream-100:#F0EDE6;--cream-200:#E8E3DA;--border:#E0DBD3;--white:#FFFFFF;
+  --ink:#1C1C1C;--ink-2:#5A5A5A;--ink-3:#9A9A9A;--danger:#B3261E;--danger-bg:#FBEAE9;
+  --radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-pill:20px;
+  --shadow:0 2px 8px rgba(27,67,50,.08);--shadow-md:0 6px 20px rgba(27,67,50,.12);--shadow-modal:0 20px 60px rgba(0,0,0,.2);
+  --serif:"Noto Serif Thai",Georgia,"Times New Roman",serif;
+  --sans:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.frame{max-width:1240px;margin:28px auto;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-modal);border:1px solid var(--border);background:var(--white);}
+.chrome{background:#ECE7DF;display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--border);}
+.chrome .d{width:11px;height:11px;border-radius:50%;}
+.chrome .u{flex:1;margin-left:12px;background:var(--white);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--ink-3);}
+.topnav{background:var(--g900);color:#fff;display:flex;align-items:center;gap:8px;padding:0 28px;height:60px;}
+.topnav .brand{font-family:var(--serif);font-weight:700;font-size:17px;margin-right:18px;}
+.topnav a{color:rgba(255,255,255,.74);font-weight:500;text-decoration:none;padding:8px 14px;border-radius:8px;font-size:14px;}
+.topnav a.active{background:rgba(255,255,255,.15);color:#fff;font-weight:600;}
+.topnav .me{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8);}
+.topnav .avatar{width:32px;height:32px;border-radius:50%;background:var(--copper);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;}
+.body{padding:32px 36px 44px;background:var(--cream);}
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;gap:18px;flex-wrap:wrap;}
+.pagehead h1{font-family:var(--serif);font-weight:600;font-size:28px;margin:0 0 4px;}
+.pagehead p{margin:0;color:var(--ink-2);font-size:14px;}
+.btn{font-family:var(--sans);font-weight:600;font-size:13px;border-radius:var(--radius);border:1.5px solid transparent;cursor:pointer;}
+.btn-primary{background:var(--g900);color:#fff;padding:12px 24px;}
+.btn-primary:hover{background:var(--g700);}
+.btn-secondary{background:var(--white);color:var(--ink-2);border-color:var(--border);padding:11px 18px;}
+.controls{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.weeknav{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:9px 16px;font-weight:600;color:var(--ink);font-size:14px;display:flex;align-items:center;gap:14px;}
+.weeknav .nav{color:var(--ink-3);cursor:pointer;font-size:16px;}
+.legend{margin-left:auto;display:flex;gap:16px;align-items:center;font-size:12px;color:var(--ink-2);}
+.legend .k{display:inline-flex;align-items:center;gap:7px;}
+.legend .sw{width:14px;height:14px;border-radius:4px;}
+/* scheduler grid: room col + 7 day columns */
+.grid{display:grid;grid-template-columns:172px repeat(7,1fr);background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);}
+/* header row */
+.corner{border-bottom:1.5px solid var(--border);padding:12px 14px;display:flex;align-items:flex-end;}
+.corner span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);}
+.dhead{padding:10px 8px;border-bottom:1.5px solid var(--border);border-left:1px solid var(--cream-200);text-align:center;}
+.dhead .dow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);}
+.dhead .dnum{font-family:var(--serif);font-size:17px;font-weight:600;margin-top:1px;}
+.dhead.today .dnum{color:var(--g700);}.dhead.today .dow{color:var(--g500);}
+.dhead.weekend{background:#fbfaf6;}
+/* room label (Y axis) */
+.rlabel{border-bottom:1px solid var(--cream-200);padding:14px;background:var(--cream-100);display:flex;flex-direction:column;justify-content:center;}
+.rlabel .rn{font-family:var(--serif);font-weight:600;font-size:15px;}
+.rlabel .rc{font-size:11.5px;color:var(--ink-3);margin-top:2px;}
+.rlabel.inactive{opacity:.6;}
+/* day cell */
+.cell{border-bottom:1px solid var(--cream-200);border-left:1px solid var(--cream-200);min-height:74px;padding:6px;display:flex;flex-direction:column;gap:5px;}
+.cell.weekend{background:#fbfaf6;}
+/* booking chip — shows the booked TIME */
+.ev{border-radius:var(--radius-sm);padding:6px 8px;line-height:1.3;}
+.ev .tm{font-weight:700;font-size:11.5px;}
+.ev .nm{font-size:11px;margin-top:1px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ev.booked{background:var(--g700);color:#fff;}
+.ev.booked .nm{color:rgba(255,255,255,.85);}
+.ev.mine{background:var(--copper);color:#fff;}
+.ev.mine .nm{color:rgba(255,255,255,.88);}
+.ev.blocked{background:repeating-linear-gradient(45deg,var(--cream-200),var(--cream-200) 6px,#e0d9cd 6px,#e0d9cd 12px);color:var(--ink-2);}
+.ev.blocked .tm{font-size:11px;}
+/* available = empty clickable cell (no pre-set time, UXD-013) */
+.add{flex:1;border:1.5px dashed transparent;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:11.5px;font-weight:600;cursor:pointer;min-height:28px;}
+.cell:hover .add{border-color:var(--border);}
+.add::before{content:"+ Book";opacity:.55;}
+.cell.weekend .add{cursor:default;}
+.cell.weekend .add::before{content:"—";opacity:.4;}
+/* state label + skeleton */
+.statebar{margin:34px 0 14px;display:flex;align-items:center;gap:12px;}
+.statebar span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);}
+.statebar .ln{flex:1;height:1px;background:var(--border);}
+@keyframes sh{0%{opacity:.55;}50%{opacity:1;}100%{opacity:.55;}}
+.sk{background:linear-gradient(90deg,var(--cream-100),var(--g100),var(--cream-100));border-radius:var(--radius-sm);animation:sh 1.4s ease-in-out infinite;}
+.foot{padding:16px 36px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-3);display:flex;justify-content:space-between;background:var(--white);}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="chrome">
+    <span class="d" style="background:#ED6A5E"></span><span class="d" style="background:#F4BF4F"></span><span class="d" style="background:#61C554"></span>
+    <span class="u">booking.envocc.go.th/calendar?week=10mar</span>
+  </div>
+  <nav class="topnav">
+    <span class="brand">ENVOCC Booking</span>
+    <a href="#" class="active">Calendar</a>
+    <a href="#">My bookings</a>
+    <span class="me"><span>Anong S.</span><span class="avatar">A</span></span>
+  </nav>
+  <div class="body">
+
+    <div class="pagehead">
+      <div>
+        <h1>Room availability</h1>
+        <p>Every room across the week. Tap an open day to book — you set the exact time on the next step.</p>
+      </div>
+      <button class="btn btn-primary">+ New booking</button>
+    </div>
+
+    <div class="controls">
+      <div class="weeknav"><span class="nav">‹</span><span>Week of 10–16 March 2026</span><span class="nav">›</span></div>
+      <button class="btn btn-secondary">This week</button>
+      <div class="legend">
+        <span class="k"><span class="sw" style="background:var(--g700)"></span>Booked</span>
+        <span class="k"><span class="sw" style="background:var(--copper)"></span>Yours</span>
+        <span class="k"><span class="sw" style="background:repeating-linear-gradient(45deg,var(--cream-200),var(--cream-200) 4px,#e0d9cd 4px,#e0d9cd 8px)"></span>Blocked</span>
+        <span class="k"><span class="sw" style="background:#fff;border:1.5px dashed var(--border)"></span>Open</span>
+      </div>
+    </div>
+
+    <!-- ROOMS (Y) × DAYS (X) -->
+    <div class="grid">
+      <!-- header row -->
+      <div class="corner"><span>Room \ Day</span></div>
+      <div class="dhead today"><div class="dow">Mon</div><div class="dnum">10</div></div>
+      <div class="dhead"><div class="dow">Tue</div><div class="dnum">11</div></div>
+      <div class="dhead"><div class="dow">Wed</div><div class="dnum">12</div></div>
+      <div class="dhead"><div class="dow">Thu</div><div class="dnum">13</div></div>
+      <div class="dhead"><div class="dow">Fri</div><div class="dnum">14</div></div>
+      <div class="dhead weekend"><div class="dow">Sat</div><div class="dnum">15</div></div>
+      <div class="dhead weekend"><div class="dow">Sun</div><div class="dnum">16</div></div>
+
+      <!-- Meeting Room A -->
+      <div class="rlabel"><span class="rn">Meeting Room A</span><span class="rc">3rd floor · 30 seats</span></div>
+      <div class="cell"><div class="ev booked"><span class="tm">09:00–11:00</span><span class="nm">Air Quality Review</span></div><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="ev mine"><span class="tm">13:00–15:00</span><span class="nm">Noise Workshop · yours</span></div><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="ev booked"><span class="tm">13:00–14:30</span><span class="nm">Dust Standards Mtg</span></div><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+
+      <!-- Meeting Room B -->
+      <div class="rlabel"><span class="rn">Meeting Room B</span><span class="rc">3rd floor · 12 seats</span></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="ev booked"><span class="tm">09:00–10:00</span><span class="nm">Lab Safety Briefing</span></div><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="ev mine"><span class="tm">11:00–12:00</span><span class="nm">Ventilation Audit · yours</span></div><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+
+      <!-- Auditorium -->
+      <div class="rlabel"><span class="rn">Auditorium</span><span class="rc">1st floor · 120 seats</span></div>
+      <div class="cell"><div class="ev booked"><span class="tm">09:00–16:00</span><span class="nm">Annual OccHealth Seminar</span></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="ev booked"><span class="tm">13:00–15:00</span><span class="nm">Standards Public Hearing</span></div><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+
+      <!-- Training Room C -->
+      <div class="rlabel"><span class="rn">Training Room C</span><span class="rc">2nd floor · 20 seats</span></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="ev booked"><span class="tm">09:00–12:00</span><span class="nm">GIS Training</span></div><div class="add"></div></div>
+      <div class="cell"><div class="ev blocked"><span class="tm">Blocked</span><span class="nm">Maintenance</span></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+      <div class="cell weekend"><div class="add"></div></div>
+    </div>
+
+    <div class="statebar"><span>Loading state — skeleton</span><span class="ln"></span></div>
+    <div class="grid" aria-hidden="true">
+      <div class="corner"><span>Room \ Day</span></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="dhead"><div class="sk" style="height:11px;width:46%;margin:0 auto 5px"></div><div class="sk" style="height:15px;width:30%;margin:0 auto"></div></div>
+      <div class="rlabel"><div class="sk" style="height:14px;width:70%;margin-bottom:5px"></div><div class="sk" style="height:10px;width:50%"></div></div>
+      <div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div>
+      <div class="rlabel"><div class="sk" style="height:14px;width:70%;margin-bottom:5px"></div><div class="sk" style="height:10px;width:50%"></div></div>
+      <div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div><div class="cell"><div class="sk" style="height:34px"></div></div>
+    </div>
+
+  </div>
+  <div class="foot"><span>ENVOCC Conference Room Booking — key screen mock (week scheduler · rooms × days)</span><span>English reference · production locale: Thai</span></div>
+</div>
+</body>
+</html>

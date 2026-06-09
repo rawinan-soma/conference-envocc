@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENVOCC Conference Room Booking — Visual System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   ENVOCC CONFERENCE ROOM BOOKING — LOCKED VISUAL SYSTEM
+   Internal tool · Thai gov environmental & occupational health org
+   -------------------------------------------------------------------------
+   FULL TOKEN SET
+   -------------------------------------------------------------------------
+   COLOR
+     --g900   #1B4332  primary brand / dark / nav / primary buttons
+     --g700   #2D6A4F  hover / booked slots
+     --g500   #40916C  accent / focus rings
+     --g200   #95D5B2  light green
+     --g100   #D8F3DC  tint / badge bg / hover bg
+     --copper       #B5651D  accent: icons, toggles, "my booking"
+     --copper-light #E8A96A
+     --copper-bg    #FDF3E7  selected lunch / soft accent bg
+     --cream      #FAFAF7  page bg
+     --cream-100  #F0EDE6  available slot bg
+     --cream-200  #E8E3DA  subtle divider
+     --border     #E0DBD3  all borders
+     --ink    #1C1C1C  primary text
+     --ink-2  #5A5A5A  secondary text
+     --ink-3  #9A9A9A  tertiary / hint text
+     --white  #FFFFFF  card bg
+   TYPOGRAPHY
+     Headings / brand / stat numbers : "Noto Serif Thai"
+     Body / labels / buttons / hints : "Noto Sans Thai"
+     Body line-height 1.6–1.7 for Thai vowel/tone marks
+     Scale: Hero 36 · Page title 28 · Stat 32 · Card name 20 · Body 14
+            Label 13/600 · Button 13/600 · Hint 12 (ink-3)
+   SPACING   8px scale: 8 / 16 / 24 / 32
+   RADIUS    --radius-sm 6 · --radius 10 · --radius-lg 16 · --radius-pill 20
+   ELEVATION
+     --shadow     0 2px 8px rgba(27,67,50,0.08)
+     --shadow-md  0 6px 20px rgba(27,67,50,0.12)
+     --shadow-modal 0 20px 60px rgba(0,0,0,0.2)
+   ========================================================================= */
+
+:root{
+  /* greens */
+  --g900:#1B4332; --g700:#2D6A4F; --g500:#40916C; --g200:#95D5B2; --g100:#D8F3DC;
+  /* copper */
+  --copper:#B5651D; --copper-light:#E8A96A; --copper-bg:#FDF3E7;
+  /* neutrals */
+  --cream:#FAFAF7; --cream-100:#F0EDE6; --cream-200:#E8E3DA; --border:#E0DBD3; --white:#FFFFFF;
+  /* ink */
+  --ink:#1C1C1C; --ink-2:#5A5A5A; --ink-3:#9A9A9A;
+  /* radius */
+  --radius-sm:6px; --radius:10px; --radius-lg:16px; --radius-pill:20px;
+  /* elevation */
+  --shadow:0 2px 8px rgba(27,67,50,0.08);
+  --shadow-md:0 6px 20px rgba(27,67,50,0.12);
+  --shadow-modal:0 20px 60px rgba(0,0,0,0.2);
+  /* fonts */
+  --serif:"Noto Serif Thai", serif;
+  --sans:"Noto Sans Thai", sans-serif;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--cream); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---- page shell ---- */
+.page{max-width:1080px; margin:0 auto; padding:56px 40px 96px;}
+
+/* ---- masthead ---- */
+.masthead{
+  background:var(--g900); color:var(--white);
+  border-radius:var(--radius-lg); padding:40px 44px; margin-bottom:48px;
+  box-shadow:var(--shadow-md);
+}
+.masthead .eyebrow{
+  font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--g200); margin:0 0 12px;
+}
+.masthead h1{
+  font-family:var(--serif); font-weight:700; font-size:36px; line-height:1.25; margin:0 0 10px;
+}
+.masthead p{
+  font-family:var(--sans); font-size:14px; line-height:1.7; color:rgba(255,255,255,.78);
+  margin:0; max-width:620px;
+}
+
+/* ---- section scaffolding ---- */
+.section{margin-bottom:64px;}
+.section-head{display:flex; align-items:baseline; gap:14px; margin-bottom:28px;
+  padding-bottom:14px; border-bottom:1.5px solid var(--border);}
+.section-num{
+  font-family:var(--serif); font-weight:700; font-size:15px; color:var(--g500);
+  width:34px; height:34px; border:1.5px solid var(--g200); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+}
+.section-title{font-family:var(--serif); font-weight:600; font-size:24px; margin:0;}
+.section-sub{font-family:var(--sans); font-size:13px; color:var(--ink-3); margin-left:auto;}
+
+.subhead{font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); margin:0 0 16px;}
+
+/* ============================ 1. COLOR ============================ */
+.swatch-group{margin-bottom:32px;}
+.swatch-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:16px;}
+.swatch{background:var(--white); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; box-shadow:var(--shadow);}
+.swatch .chip{height:78px;}
+.swatch .meta{padding:12px 14px;}
+.swatch .hex{font-family:var(--serif); font-weight:600; font-size:15px; color:var(--ink);}
+.swatch .role{font-family:var(--sans); font-size:12px; color:var(--ink-2); margin-top:3px; line-height:1.5;}
+.swatch .name{font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.05em;
+  color:var(--ink-3); text-transform:uppercase; margin-top:7px;}
+
+/* ============================ 2. TYPOGRAPHY ============================ */
+.type-row{display:grid; grid-template-columns:1fr 220px; gap:28px; align-items:baseline;
+  padding:18px 0; border-bottom:1px solid var(--cream-200);}
+.type-row:last-of-type{border-bottom:none;}
+.type-spec{font-family:var(--sans); font-size:12px; color:var(--ink-3); line-height:1.6; text-align:right;}
+.type-spec b{display:block; color:var(--ink-2); font-weight:600; font-size:13px;}
+.t-hero{font-family:var(--serif); font-weight:700; font-size:36px; line-height:1.25;}
+.t-page{font-family:var(--serif); font-weight:600; font-size:28px;}
+.t-card{font-family:var(--serif); font-weight:600; font-size:20px;}
+.t-stat{font-family:var(--serif); font-weight:700; font-size:32px; color:var(--g700);}
+.t-body{font-family:var(--sans); font-size:14px; line-height:1.6; color:var(--ink); max-width:520px;}
+.t-label{font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink);}
+.t-btn{font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink);}
+.t-hint{font-family:var(--sans); font-size:12px; color:var(--ink-3);}
+.type-note{margin-top:20px; font-family:var(--sans); font-size:12px; color:var(--ink-2);
+  background:var(--cream-100); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 16px; display:inline-block;}
+
+/* ============================ 3. SPACING ============================ */
+.space-row{display:flex; align-items:center; gap:18px; margin-bottom:14px;}
+.space-bar{height:22px; background:var(--g500); border-radius:4px;}
+.space-tag{font-family:var(--sans); font-size:12px; font-weight:600; color:var(--ink-2); width:54px;}
+
+/* ============================ 4. RADIUS ============================ */
+.radius-grid{display:flex; gap:24px; flex-wrap:wrap;}
+.radius-item{text-align:center;}
+.radius-box{width:96px; height:96px; background:var(--g100); border:1.5px solid var(--g200);
+  display:flex; align-items:center; justify-content:center;}
+.radius-box span{font-family:var(--serif); font-weight:600; font-size:15px; color:var(--g700);}
+.radius-cap{font-family:var(--sans); font-size:12px; color:var(--ink-2); margin-top:10px;}
+.radius-cap b{display:block; color:var(--ink); font-weight:600;}
+
+/* ============================ 5. ELEVATION ============================ */
+.elev-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+.elev-card{background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:24px;}
+.elev-card.e1{box-shadow:var(--shadow);}
+.elev-card.e2{box-shadow:var(--shadow-md);}
+.elev-card.e3{box-shadow:var(--shadow-modal);}
+.elev-card .tier{font-family:var(--serif); font-weight:600; font-size:18px; margin-bottom:6px;}
+.elev-card .val{font-family:var(--sans); font-size:12px; color:var(--ink-3); line-height:1.5;}
+
+/* ============================ 6. COMPONENTS ============================ */
+.comp-block{margin-bottom:40px;}
+.comp-row{display:flex; flex-wrap:wrap; align-items:flex-start; gap:18px;}
+
+/* buttons */
+.btn{font-family:var(--sans); font-weight:600; font-size:13px; border-radius:var(--radius);
+  border:1.5px solid transparent; cursor:pointer; transition:.15s;}
+.btn-primary{background:var(--g900); color:var(--white); padding:13px 28px;}
+.btn-primary:hover{background:var(--g700);}
+.btn-secondary{background:var(--white); color:var(--ink-2); border-color:var(--border); padding:13px 28px;}
+.btn-secondary:hover{background:var(--cream-100);}
+.btn-sm{background:var(--g900); color:var(--white); padding:8px 16px; font-size:12px;}
+
+/* form field */
+.field{max-width:360px;}
+.field label{display:block; font-family:var(--sans); font-weight:600; font-size:13px;
+  color:var(--ink); margin-bottom:7px;}
+.input{width:100%; font-family:var(--sans); font-size:14px; color:var(--ink);
+  background:var(--white); border:1.5px solid var(--border); border-radius:var(--radius);
+  padding:11px 14px; outline:none;}
+.input::placeholder{color:var(--ink-3);}
+.input.focused{border-color:var(--g500); box-shadow:0 0 0 3px var(--g100);}
+.field .hint{font-family:var(--sans); font-size:12px; color:var(--ink-3); margin-top:7px;}
+.field-cap{font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:10px;}
+
+/* badges */
+.badge{display:inline-flex; align-items:center; font-family:var(--sans); font-weight:600;
+  font-size:12px; padding:5px 13px; border-radius:var(--radius-pill);}
+.badge-reg{background:var(--g100); color:var(--g700);}
+.badge-lunch{background:var(--copper-bg); color:var(--copper);}
+.badge-none{background:var(--cream-200); color:var(--ink-3);}
+
+/* toggle */
+.toggle-wrap{display:flex; align-items:center; gap:32px;}
+.toggle-item{display:flex; align-items:center; gap:12px;}
+.toggle{width:48px; height:26px; border-radius:var(--radius-pill); position:relative; transition:.18s;}
+.toggle.off{background:var(--white); border:1.5px solid var(--border);}
+.toggle.on{background:var(--g700);}
+.toggle .knob{position:absolute; top:3px; width:20px; height:20px; border-radius:50%;
+  background:var(--white); box-shadow:var(--shadow); transition:.18s;}
+.toggle.off .knob{left:3px; background:var(--ink-3);}
+.toggle.on .knob{left:25px;}
+.toggle-lbl{font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink-2);}
+
+/* calendar slots */
+.slot-row{display:flex; gap:16px; flex-wrap:wrap;}
+.slot{width:200px; min-height:70px; border-radius:var(--radius); padding:14px 16px;
+  display:flex; flex-direction:column; justify-content:center;}
+.slot .s-title{font-family:var(--sans); font-weight:600; font-size:13px;}
+.slot .s-sub{font-family:var(--sans); font-size:12px; margin-top:4px;}
+.slot-avail{background:var(--cream-100); border:1.5px dashed var(--border);}
+.slot-avail .s-title{color:var(--ink-2);} .slot-avail .s-sub{color:var(--ink-3);}
+.slot-booked{background:var(--g700); color:var(--white);}
+.slot-booked .s-sub{color:rgba(255,255,255,.8);}
+.slot-mine{background:var(--copper); color:var(--white);}
+.slot-mine .s-sub{color:rgba(255,255,255,.85);}
+
+/* heatmap */
+.heat{display:flex; align-items:center; gap:0; }
+.heat-cell{width:46px; height:38px; display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:4px; font-family:var(--sans); font-size:10px; font-weight:600;}
+.heat-labels{display:flex; justify-content:space-between; margin-top:8px; max-width:276px;
+  font-family:var(--sans); font-size:12px; color:var(--ink-2); font-weight:600;}
+
+/* booking card */
+.bk-card{position:relative; background:var(--white); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:22px 24px 22px 28px; box-shadow:var(--shadow);
+  max-width:460px; overflow:hidden;}
+.bk-card .accent{position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--copper);}
+.bk-card .bk-name{font-family:var(--serif); font-weight:600; font-size:20px; margin:0 0 6px;}
+.bk-card .bk-meta{font-family:var(--sans); font-size:13px; color:var(--ink-2); margin:0 0 14px;}
+.bk-card .bk-badges{display:flex; gap:8px; margin-bottom:18px;}
+.bk-card .bk-foot{display:flex; align-items:center; justify-content:space-between;
+  border-top:1px solid var(--cream-200); padding-top:16px;}
+.bk-card .bk-count{font-family:var(--sans); font-size:13px; color:var(--ink-2);}
+.bk-card .bk-count b{font-family:var(--serif); font-size:17px; color:var(--ink); font-weight:700;}
+
+/* modal header */
+.modal-head{background:var(--g900); border-radius:var(--radius) var(--radius) 0 0;
+  padding:18px 22px; display:flex; align-items:center; justify-content:space-between;
+  max-width:460px; box-shadow:var(--shadow-md);}
+.modal-head .m-title{font-family:var(--serif); font-weight:600; font-size:20px; color:var(--white);}
+.modal-head .m-close{font-family:var(--sans); font-size:18px; color:rgba(255,255,255,.85);
+  width:30px; height:30px; border-radius:var(--radius-sm); display:flex; align-items:center;
+  justify-content:center; cursor:pointer;}
+.modal-head .m-close:hover{background:rgba(255,255,255,.12);}
+
+/* sidebar nav */
+.sidenav{width:220px; background:var(--g900); border-radius:var(--radius-lg); padding:24px 14px;
+  box-shadow:var(--shadow-md);}
+.sidenav .brand{font-family:var(--serif); font-weight:700; font-size:17px; color:var(--white);
+  padding:0 12px 20px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:16px;}
+.sidenav .nav-sec{font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:rgba(255,255,255,.35); padding:0 12px; margin:0 0 10px;}
+.nav-item{display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:var(--radius);
+  font-family:var(--sans); font-size:14px; font-weight:500; color:rgba(255,255,255,.78);
+  margin-bottom:4px; cursor:pointer;}
+.nav-item:hover{background:rgba(255,255,255,.08); color:var(--white);}
+.nav-item.active{background:rgba(255,255,255,.15); color:var(--white); font-weight:600;}
+.nav-item .dot{width:7px; height:7px; border-radius:50%; background:var(--copper-light);}
+.nav-item.active .dot{background:var(--g200);}
+
+/* footer */
+.footer{margin-top:80px; padding-top:24px; border-top:1.5px solid var(--border);
+  font-family:var(--sans); font-size:12px; color:var(--ink-3); display:flex;
+  justify-content:space-between; flex-wrap:wrap; gap:8px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <p class="eyebrow">Locked Visual System · v1</p>
+    <h1>Conference Room Booking</h1>
+    <p>The adopted design system for the ENVOCC internal room-booking tool. Earthy greens for an environmental &amp; occupational-health identity, a warm copper accent for personal touchpoints, and a calm cream canvas. Noto Serif Thai carries headings and figures; Noto Sans Thai carries every interface surface.</p>
+  </header>
+
+  <!-- 1. COLOR -->
+  <section class="section" id="color">
+    <div class="section-head">
+      <span class="section-num">1</span>
+      <h2 class="section-title">Color</h2>
+      <span class="section-sub">Greens · Copper · Neutrals · Ink</span>
+    </div>
+
+    <div class="swatch-group">
+      <p class="subhead">Greens — brand core</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#1B4332"></div><div class="meta"><div class="hex">#1B4332</div><div class="role">Primary brand / dark · nav · primary buttons</div><div class="name">g900</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#2D6A4F"></div><div class="meta"><div class="hex">#2D6A4F</div><div class="role">Hover · booked slots</div><div class="name">g700</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#40916C"></div><div class="meta"><div class="hex">#40916C</div><div class="role">Accent · focus rings</div><div class="name">g500</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#95D5B2"></div><div class="meta"><div class="hex">#95D5B2</div><div class="role">Light green</div><div class="name">g200</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#D8F3DC"></div><div class="meta"><div class="hex">#D8F3DC</div><div class="role">Tint · badge bg · hover bg</div><div class="name">g100</div></div></div>
+      </div>
+    </div>
+
+    <div class="swatch-group">
+      <p class="subhead">Copper — warm accent</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#B5651D"></div><div class="meta"><div class="hex">#B5651D</div><div class="role">Icons · toggles · "my booking"</div><div class="name">copper</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#E8A96A"></div><div class="meta"><div class="hex">#E8A96A</div><div class="role">Light copper</div><div class="name">copper-light</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#FDF3E7"></div><div class="meta"><div class="hex">#FDF3E7</div><div class="role">Selected lunch · soft accent bg</div><div class="name">copper-bg</div></div></div>
+      </div>
+    </div>
+
+    <div class="swatch-group">
+      <p class="subhead">Neutrals — surfaces &amp; borders</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#FAFAF7; border-bottom:1px solid var(--border)"></div><div class="meta"><div class="hex">#FAFAF7</div><div class="role">Page background</div><div class="name">cream</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#F0EDE6"></div><div class="meta"><div class="hex">#F0EDE6</div><div class="role">Available slot bg</div><div class="name">cream-100</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#E8E3DA"></div><div class="meta"><div class="hex">#E8E3DA</div><div class="role">Subtle divider</div><div class="name">cream-200</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#E0DBD3"></div><div class="meta"><div class="hex">#E0DBD3</div><div class="role">All borders</div><div class="name">border</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#FFFFFF; border-bottom:1px solid var(--border)"></div><div class="meta"><div class="hex">#FFFFFF</div><div class="role">Card background</div><div class="name">white</div></div></div>
+      </div>
+    </div>
+
+    <div class="swatch-group">
+      <p class="subhead">Ink — text</p>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#1C1C1C"></div><div class="meta"><div class="hex">#1C1C1C</div><div class="role">Primary text</div><div class="name">ink</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#5A5A5A"></div><div class="meta"><div class="hex">#5A5A5A</div><div class="role">Secondary text</div><div class="name">ink-2</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#9A9A9A"></div><div class="meta"><div class="hex">#9A9A9A</div><div class="role">Tertiary / hint text</div><div class="name">ink-3</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. TYPOGRAPHY -->
+  <section class="section" id="typography">
+    <div class="section-head">
+      <span class="section-num">2</span>
+      <h2 class="section-title">Typography</h2>
+      <span class="section-sub">Noto Serif Thai · Noto Sans Thai</span>
+    </div>
+
+    <div class="type-row">
+      <div class="t-hero">Conference Room Booking</div>
+      <div class="type-spec"><b>Hero</b>Noto Serif Thai · 36px · 700</div>
+    </div>
+    <div class="type-row">
+      <div class="t-page">My Bookings</div>
+      <div class="type-spec"><b>Page title</b>Noto Serif Thai · 28px · 600</div>
+    </div>
+    <div class="type-row">
+      <div class="t-card">Air Quality Standards Review</div>
+      <div class="type-spec"><b>Card / event name</b>Noto Serif Thai · 20px · 600</div>
+    </div>
+    <div class="type-row">
+      <div class="t-stat">128</div>
+      <div class="type-spec"><b>Stat number</b>Noto Serif Thai · 32px · 700</div>
+    </div>
+    <div class="type-row">
+      <div class="t-body">Select an available time slot to reserve the room for your event. Bookings can be edited up to one hour before the start time.</div>
+      <div class="type-spec"><b>Body</b>Noto Sans Thai · 14px · line-height 1.6</div>
+    </div>
+    <div class="type-row">
+      <div class="t-label">Room</div>
+      <div class="type-spec"><b>Label</b>Noto Sans Thai · 13px · 600</div>
+    </div>
+    <div class="type-row">
+      <div class="t-btn">Book</div>
+      <div class="type-spec"><b>Button text</b>Noto Sans Thai · 13px · 600</div>
+    </div>
+    <div class="type-row">
+      <div class="t-hint">Max capacity cannot exceed room size</div>
+      <div class="type-spec"><b>Hint</b>Noto Sans Thai · 12px · ink-3</div>
+    </div>
+
+    <div class="type-note">Body line-height 1.6–1.7 for Thai vowel/tone marks.</div>
+  </section>
+
+  <!-- 3. SPACING -->
+  <section class="section" id="spacing">
+    <div class="section-head">
+      <span class="section-num">3</span>
+      <h2 class="section-title">Spacing</h2>
+      <span class="section-sub">8px base scale</span>
+    </div>
+    <div class="space-row"><span class="space-tag">8px</span><div class="space-bar" style="width:8px"></div></div>
+    <div class="space-row"><span class="space-tag">16px</span><div class="space-bar" style="width:16px"></div></div>
+    <div class="space-row"><span class="space-tag">24px</span><div class="space-bar" style="width:24px"></div></div>
+    <div class="space-row"><span class="space-tag">32px</span><div class="space-bar" style="width:32px"></div></div>
+  </section>
+
+  <!-- 4. RADIUS -->
+  <section class="section" id="radius">
+    <div class="section-head">
+      <span class="section-num">4</span>
+      <h2 class="section-title">Radius</h2>
+      <span class="section-sub">Corner system</span>
+    </div>
+    <div class="radius-grid">
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:6px"><span>6</span></div>
+        <div class="radius-cap"><b>6px</b>Tight</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:10px"><span>10</span></div>
+        <div class="radius-cap"><b>10px · --radius</b>Standard</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:16px"><span>16</span></div>
+        <div class="radius-cap"><b>16px · --radius-lg</b>Cards</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:20px"><span>20</span></div>
+        <div class="radius-cap"><b>20px · pill</b>Badges</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. ELEVATION -->
+  <section class="section" id="elevation">
+    <div class="section-head">
+      <span class="section-num">5</span>
+      <h2 class="section-title">Elevation</h2>
+      <span class="section-sub">Three shadow tiers</span>
+    </div>
+    <div class="elev-grid">
+      <div class="elev-card e1">
+        <div class="tier">shadow</div>
+        <div class="val">0 2px 8px rgba(27,67,50,0.08)<br>Resting cards &amp; slots</div>
+      </div>
+      <div class="elev-card e2">
+        <div class="tier">shadow-md</div>
+        <div class="val">0 6px 20px rgba(27,67,50,0.12)<br>Raised panels &amp; hover</div>
+      </div>
+      <div class="elev-card e3">
+        <div class="tier">modal</div>
+        <div class="val">0 20px 60px rgba(0,0,0,0.2)<br>Dialogs &amp; overlays</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. COMPONENTS -->
+  <section class="section" id="components">
+    <div class="section-head">
+      <span class="section-num">6</span>
+      <h2 class="section-title">Components</h2>
+      <span class="section-sub">Real, styled examples</span>
+    </div>
+
+    <!-- buttons -->
+    <div class="comp-block">
+      <p class="subhead">Buttons</p>
+      <div class="comp-row" style="align-items:center">
+        <button class="btn btn-primary">Book</button>
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-sm">Add slot</button>
+      </div>
+    </div>
+
+    <!-- form field -->
+    <div class="comp-block">
+      <p class="subhead">Form Field</p>
+      <div class="comp-row" style="gap:48px">
+        <div class="field">
+          <div class="field-cap">Default</div>
+          <label>Event name</label>
+          <input class="input" type="text" placeholder="e.g. Air Quality Standards Review">
+          <div class="hint">Shown to all registrants</div>
+        </div>
+        <div class="field">
+          <div class="field-cap">Focused</div>
+          <label>Event name</label>
+          <input class="input focused" type="text" value="Air Quality Standards Review">
+          <div class="hint">Max capacity cannot exceed room size</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- badges -->
+    <div class="comp-block">
+      <p class="subhead">Badges &amp; Pills</p>
+      <div class="comp-row" style="align-items:center">
+        <span class="badge badge-reg">Registration</span>
+        <span class="badge badge-lunch">Lunch</span>
+        <span class="badge badge-none">No registration</span>
+      </div>
+    </div>
+
+    <!-- toggle -->
+    <div class="comp-block">
+      <p class="subhead">Toggle Switch</p>
+      <div class="toggle-wrap">
+        <div class="toggle-item">
+          <div class="toggle off"><span class="knob"></span></div>
+          <span class="toggle-lbl">Off</span>
+        </div>
+        <div class="toggle-item">
+          <div class="toggle on"><span class="knob"></span></div>
+          <span class="toggle-lbl">On</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- calendar slots -->
+    <div class="comp-block">
+      <p class="subhead">Calendar Slots</p>
+      <div class="slot-row">
+        <div class="slot slot-avail">
+          <div class="s-title">Available</div>
+          <div class="s-sub">09:00 – 11:00 · tap to book</div>
+        </div>
+        <div class="slot slot-booked">
+          <div class="s-title">Booked</div>
+          <div class="s-sub">Meeting Room A · 11:00 – 12:00</div>
+        </div>
+        <div class="slot slot-mine">
+          <div class="s-title">My booking</div>
+          <div class="s-sub">Meeting Room A · 13:00 – 15:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- heatmap -->
+    <div class="comp-block">
+      <p class="subhead">Heatmap Legend</p>
+      <div class="heat">
+        <div class="heat-cell" style="background:#E8E3DA; color:#5A5A5A">u0</div>
+        <div class="heat-cell" style="background:#c7e9d0; color:#2D6A4F">u1</div>
+        <div class="heat-cell" style="background:#95d5b2; color:#1B4332">u2</div>
+        <div class="heat-cell" style="background:#52b788; color:#fff">u3</div>
+        <div class="heat-cell" style="background:#2d6a4f; color:#fff">u4</div>
+        <div class="heat-cell" style="background:#1b4332; color:#fff">u5</div>
+      </div>
+      <div class="heat-labels"><span>Low</span><span>High utilization</span></div>
+    </div>
+
+    <!-- booking card -->
+    <div class="comp-block">
+      <p class="subhead">Booking Card</p>
+      <div class="bk-card">
+        <span class="accent"></span>
+        <h3 class="bk-name">Air Quality Standards Review</h3>
+        <p class="bk-meta">Meeting Room A · Mar 14, 09:00–11:00</p>
+        <div class="bk-badges">
+          <span class="badge badge-reg">Registration</span>
+          <span class="badge badge-lunch">Lunch</span>
+        </div>
+        <div class="bk-foot">
+          <span class="bk-count"><b>12</b> / 30 registered</span>
+          <button class="btn btn-primary">Manage</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- modal header -->
+    <div class="comp-block">
+      <p class="subhead">Modal Header Bar</p>
+      <div class="modal-head">
+        <span class="m-title">Registrants</span>
+        <span class="m-close">&#10005;</span>
+      </div>
+    </div>
+
+    <!-- sidebar nav -->
+    <div class="comp-block">
+      <p class="subhead">Admin Sidebar Nav</p>
+      <div class="sidenav">
+        <div class="brand">ENVOCC Admin</div>
+        <p class="nav-sec">Manage</p>
+        <div class="nav-item active"><span class="dot"></span>Bookings</div>
+        <div class="nav-item"><span class="dot"></span>Rooms</div>
+        <div class="nav-item"><span class="dot"></span>Reports</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>ENVOCC Conference Room Booking — Locked Visual System v1</span>
+    <span>Generated 2026-06-07 · English reference (production locale: Thai)</span>
+  </footer>
+
+</div>
+</body>
+</html>

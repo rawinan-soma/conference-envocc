@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+/build/
+/.svelte-kit/
+/dist/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.local
+
+# Logs
+*.log
+
+# BAD git worktrees
+/.worktrees/
+
+# Test / coverage output
+/coverage/
+/test-results/
+/playwright-report/
+
+# Local agent tooling (machine-local installs, not project source)
+/.agents/
+/.claude/
+/.opencode/

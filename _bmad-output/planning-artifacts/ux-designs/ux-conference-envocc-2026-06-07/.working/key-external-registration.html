@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — ENVOCC Event</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   KEY SCREEN — EXTERNAL REGISTRATION (surface 8, PUBLIC, fully responsive UXD-009)
+   Governs: EXPERIENCE Flow 2 steps 1-2 · Voice (public = warm/welcoming)
+            DESIGN §4 form-field, select, status · §5 tap targets ≥44px
+            UXD-016/FR-040: branded event block + contact name + phone
+            UXD-017/DEC-020: Title/prefix selector FIRST (Mr/Mrs/Ms/Other→free text)
+            UXD-015/FR-041a: meal-type ONLY shown when catering enabled · FR-032 NO capacity bar
+            FR-046: "registration closed" alternate state
+   Two phone frames: (A) registration form (catering on) · (B) registration closed
+   English placeholder (UXD-004).
+   ========================================================================= */
+:root{
+  --g900:#1B4332;--g700:#2D6A4F;--g500:#40916C;--g200:#95D5B2;--g100:#D8F3DC;
+  --copper:#B5651D;--copper-light:#E8A96A;--copper-bg:#FDF3E7;
+  --cream:#FAFAF7;--cream-100:#F0EDE6;--cream-200:#E8E3DA;--border:#E0DBD3;--white:#FFFFFF;
+  --ink:#1C1C1C;--ink-2:#5A5A5A;--ink-3:#9A9A9A;--danger:#B3261E;--danger-bg:#FBEAE9;
+  --radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-pill:20px;
+  --shadow:0 2px 8px rgba(27,67,50,.08);--shadow-md:0 6px 20px rgba(27,67,50,.12);--shadow-modal:0 20px 60px rgba(0,0,0,.2);
+  --serif:"Noto Serif Thai",Georgia,"Times New Roman",serif;
+  --sans:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--g900);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;padding:36px 20px;}
+.row{display:flex;gap:44px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+.col-cap{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin:0 0 14px;text-align:center;}
+/* phone frame */
+.phone{width:390px;background:#000;border-radius:42px;padding:12px;box-shadow:var(--shadow-modal);}
+.screen{background:var(--cream);border-radius:32px;overflow:hidden;height:780px;overflow-y:auto;}
+.notch{height:30px;display:flex;align-items:center;justify-content:center;}
+.notch .bar{width:120px;height:6px;border-radius:6px;background:#000;opacity:.0;}
+/* event hero (branded) */
+.hero{background:var(--g900);color:#fff;padding:26px 24px 28px;}
+.brandrow{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.mark{width:34px;height:34px;border-radius:9px;background:#fff;color:var(--g900);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:15px;}
+.brandrow b{font-size:13px;font-weight:600;letter-spacing:.04em;}
+.brandrow .org{font-size:11px;color:var(--g200);}
+.hero h1{font-family:var(--serif);font-weight:700;font-size:23px;line-height:1.3;margin:0 0 14px;}
+.meta{display:flex;flex-direction:column;gap:8px;}
+.meta .m{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:rgba(255,255,255,.86);}
+.meta .ic{width:18px;text-align:center;opacity:.8;}
+.contact{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.16);font-size:12.5px;color:rgba(255,255,255,.78);}
+.contact b{color:#fff;}
+/* form body */
+.fbody{padding:24px 24px 36px;}
+.fbody .intro{font-size:14px;color:var(--ink-2);margin:0 0 22px;}
+.field{margin-bottom:17px;}
+label{display:block;font-weight:600;font-size:13.5px;color:var(--ink);margin-bottom:8px;}
+label .req{color:var(--copper);}
+.input,.select{width:100%;font-family:var(--sans);font-size:15px;color:var(--ink);background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:13px 14px;outline:none;min-height:48px;}
+.input::placeholder{color:var(--ink-3);}
+.input.focus{border-color:var(--g500);box-shadow:0 0 0 3px var(--g100);}
+.select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+/* title chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{flex:1;min-width:64px;text-align:center;border:1.5px solid var(--border);background:#fff;border-radius:var(--radius);padding:11px 6px;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer;min-height:46px;display:flex;align-items:center;justify-content:center;}
+.chip.sel{border-color:var(--g500);background:var(--g100);color:var(--g700);}
+.otherbox{margin-top:10px;}
+/* catering group */
+.cater{background:var(--copper-bg);border:1px solid #f0d9bf;border-radius:var(--radius);padding:16px;margin:6px 0 18px;}
+.cater .lab{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--copper);margin-bottom:12px;}
+.meal{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.meal .chip{background:#fff;}
+.meal .chip.sel{border-color:var(--copper);background:#fff;color:var(--copper);box-shadow:0 0 0 2px var(--copper-bg);}
+.btn{font-family:var(--sans);font-weight:600;font-size:15px;border-radius:var(--radius);border:1.5px solid transparent;cursor:pointer;width:100%;padding:15px;min-height:50px;}
+.btn-primary{background:var(--g900);color:#fff;}
+.btn-primary:hover{background:var(--g700);}
+.privacy{font-size:12px;color:var(--ink-3);text-align:center;margin-top:14px;line-height:1.5;}
+/* closed state */
+.closed-wrap{padding:0;}
+.closed-card{padding:40px 28px;text-align:center;}
+.closed-ic{width:60px;height:60px;border-radius:50%;background:var(--cream-200);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:26px;margin:30px auto 20px;}
+.closed-card h2{font-family:var(--serif);font-weight:600;font-size:21px;margin:0 0 10px;}
+.closed-card p{color:var(--ink-2);font-size:14px;margin:0 0 6px;}
+.closed-card .ct{margin-top:22px;padding-top:18px;border-top:1px solid var(--cream-200);font-size:13px;color:var(--ink-3);}
+.closed-card .ct b{color:var(--ink-2);}
+</style>
+</head>
+<body>
+<div class="row">
+
+  <!-- STATE A: registration form, catering enabled -->
+  <div>
+    <p class="col-cap">State — open · catering enabled</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"><span class="bar"></span></div>
+      <div class="hero">
+        <div class="brandrow"><span class="mark">EV</span><div><b>ENVOCC</b><div class="org">Environmental &amp; Occupational Health</div></div></div>
+        <h1>Air Quality Standards Review 2026</h1>
+        <div class="meta">
+          <div class="m"><span class="ic">📅</span><span>Tuesday, 14 March 2026 · 09:00–11:00</span></div>
+          <div class="m"><span class="ic">📍</span><span>Meeting Room A, 3rd floor · ENVOCC, Nonthaburi</span></div>
+          <div class="m"><span class="ic">📝</span><span>Opening remarks, standards overview, and Q&amp;A.</span></div>
+        </div>
+        <div class="contact">Questions? Contact <b>Anong Srisai</b> · <b>02-298-XXXX</b></div>
+      </div>
+      <div class="fbody">
+        <p class="intro">You’re registering for this event. It takes about a minute — no account needed.</p>
+
+        <div class="field">
+          <label>Title <span class="req">*</span></label>
+          <div class="chips">
+            <span class="chip">Mr</span>
+            <span class="chip sel">Mrs</span>
+            <span class="chip">Ms</span>
+            <span class="chip">Other</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="row2">
+            <div><label>First name <span class="req">*</span></label><input class="input" type="text" value="Pranee"></div>
+            <div><label>Last name <span class="req">*</span></label><input class="input" type="text" value="Kittisak"></div>
+          </div>
+        </div>
+        <div class="field"><label>Organization <span class="req">*</span></label><input class="input" type="text" value="Provincial Health Office, Chiang Mai"></div>
+        <div class="field"><label>Email <span class="req">*</span></label><input class="input focus" type="email" value="pranee.k@example.go.th"></div>
+
+        <div class="cater">
+          <div class="lab">🍽 Lunch is provided — pick your meal</div>
+          <div class="meal">
+            <span class="chip sel">Normal</span>
+            <span class="chip">Vegetarian</span>
+            <span class="chip">Muslim</span>
+            <span class="chip">Other</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary">Complete registration</button>
+        <p class="privacy">We’ll email your confirmation and a link to cancel if your plans change.</p>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- STATE B: registration closed (FR-046) -->
+  <div>
+    <p class="col-cap">State — registration closed</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"><span class="bar"></span></div>
+      <div class="hero">
+        <div class="brandrow"><span class="mark">EV</span><div><b>ENVOCC</b><div class="org">Environmental &amp; Occupational Health</div></div></div>
+        <h1>Noise Exposure Workshop</h1>
+        <div class="meta">
+          <div class="m"><span class="ic">📅</span><span>Thursday, 16 March 2026 · 13:00–15:00</span></div>
+          <div class="m"><span class="ic">📍</span><span>Meeting Room A, 3rd floor · ENVOCC, Nonthaburi</span></div>
+        </div>
+        <div class="contact">Questions? Contact <b>Anong Srisai</b> · <b>02-298-XXXX</b></div>
+      </div>
+      <div class="closed-card">
+        <div class="closed-ic">🔒</div>
+        <h2>Registration has closed</h2>
+        <p>This event is no longer accepting new registrations.</p>
+        <p>If you already registered, your spot is still saved.</p>
+        <div class="ct">Need help? Contact <b>Anong Srisai · 02-298-XXXX</b></div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

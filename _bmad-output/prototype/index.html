@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room Availability — ConfRoom</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --g900: #1B4332; --g700: #2D6A4F; --g500: #40916C; --g200: #95D5B2; --g100: #D8F3DC;
+      --copper: #B5651D; --copper-light: #E8A96A; --copper-bg: #FDF3E7;
+      --cream: #FAFAF7; --cream-100: #F0EDE6; --cream-200: #E8E3DA;
+      --white: #FFFFFF; --ink: #1C1C1C; --ink-2: #5A5A5A; --ink-3: #9A9A9A;
+      --border: #E0DBD3; --radius: 10px; --radius-lg: 16px;
+      --shadow: 0 2px 8px rgba(27,67,50,0.08); --shadow-md: 0 6px 20px rgba(27,67,50,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      background: var(--g900); color: white; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between; height: 60px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand-icon {
+      width: 32px; height: 32px; background: var(--copper); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .nav-brand-name { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link {
+      padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: 500;
+      color: rgba(255,255,255,0.75); text-decoration: none; transition: all 0.2s;
+    }
+    .nav-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-link.active { background: rgba(255,255,255,0.15); color: white; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-user {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      padding: 6px 12px; border-radius: 8px; transition: background 0.2s;
+    }
+    .nav-user:hover { background: rgba(255,255,255,0.1); }
+    .avatar {
+      width: 30px; height: 30px; background: var(--copper); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;
+    }
+    .nav-user-name { font-size: 14px; color: rgba(255,255,255,0.9); font-weight: 500; }
+
+    /* MAIN */
+    .main { padding: 28px 32px; max-width: 1300px; margin: 0 auto; }
+
+    /* PAGE HEADER */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--g900); }
+    .page-subtitle { font-size: 14px; color: var(--ink-2); margin-top: 2px; }
+
+    /* WEEK NAVIGATOR */
+    .week-nav {
+      display: flex; align-items: center; gap: 12px;
+      background: white; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 8px 16px; box-shadow: var(--shadow);
+    }
+    .week-nav-btn {
+      width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px;
+      background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--ink-2); transition: all 0.2s;
+    }
+    .week-nav-btn:hover { background: var(--g100); border-color: var(--g500); color: var(--g900); }
+    .week-range { font-size: 15px; font-weight: 600; color: var(--ink); min-width: 200px; text-align: center; }
+    .today-btn {
+      padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+      background: white; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink-2);
+      font-family: 'Outfit', sans-serif; transition: all 0.2s;
+    }
+    .today-btn:hover { background: var(--g900); color: white; border-color: var(--g900); }
+
+    /* LEGEND */
+    .legend {
+      display: flex; gap: 20px; align-items: center;
+      margin-bottom: 16px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+    .legend-available { background: var(--cream-100); border: 1.5px dashed var(--border); }
+    .legend-booked { background: var(--g700); }
+    .legend-mine { background: var(--copper); }
+
+    /* CALENDAR WRAPPER */
+    .calendar-wrapper {
+      background: white; border-radius: var(--radius-lg); border: 1px solid var(--border);
+      box-shadow: var(--shadow-md); overflow: hidden;
+    }
+    .calendar-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    thead { background: var(--g900); }
+    thead th {
+      padding: 12px 8px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85);
+      text-align: center; letter-spacing: 0.05em; text-transform: uppercase; border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    thead th.room-header { text-align: left; padding-left: 20px; min-width: 180px; width: 180px; }
+    thead th.day-header { min-width: 110px; }
+    .day-header-date { font-size: 18px; font-weight: 700; color: white; font-family: 'DM Serif Display', serif; }
+    .day-header-day { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    thead th.today-col .day-header-date { color: var(--copper-light); }
+
+    tbody tr { border-bottom: 1px solid var(--cream-200); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(27,67,50,0.02); }
+    .room-cell {
+      padding: 16px 20px; border-right: 2px solid var(--cream-200);
+      vertical-align: top; background: var(--cream);
+    }
+    .room-name { font-weight: 600; font-size: 14px; color: var(--g900); }
+    .room-cap { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+    .room-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .room-tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 20px;
+      background: var(--g100); color: var(--g700); font-weight: 500;
+    }
+
+    .slot-cell { padding: 6px; border-right: 1px solid var(--cream-200); vertical-align: top; position: relative; }
+    .slot-available {
+      height: 70px; border-radius: 6px; background: var(--cream-100);
+      border: 1.5px dashed var(--border); cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .slot-available:hover { background: var(--g100); border-color: var(--g500); }
+    .slot-available:hover::after { content: '+ Book'; font-size: 12px; font-weight: 600; color: var(--g700); }
+    .slot-booked {
+      height: 70px; border-radius: 6px; background: var(--g700);
+      padding: 8px 10px; cursor: default; overflow: hidden;
+    }
+    .slot-booked.mine { background: var(--copper); }
+    .slot-booked.span2 { position: relative; }
+    .slot-event-name { font-size: 12px; font-weight: 600; color: white; line-height: 1.3; }
+    .slot-event-time { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+    .slot-event-count { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+    a.book-link { text-decoration: none; display: block; height: 70px; }
+
+    /* STATS STRIP */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: white; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 20px; box-shadow: var(--shadow);
+    }
+    .stat-label { font-size: 12px; color: var(--ink-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-value { font-size: 28px; font-family: 'DM Serif Display', serif; color: var(--g900); margin-top: 4px; }
+    .stat-sub { font-size: 12px; color: var(--g500); margin-top: 2px; font-weight: 500; }
+
+    /* PROTO NAV */
+    .proto-nav {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--g900); color: white; border-radius: 50px;
+      padding: 10px 20px; display: flex; align-items: center; gap: 8px;
+      font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 999;
+    }
+    .proto-nav-label { color: rgba(255,255,255,0.5); font-size: 11px; margin-right: 4px; }
+    .proto-nav a {
+      color: rgba(255,255,255,0.7); text-decoration: none; padding: 4px 10px; border-radius: 20px;
+      font-weight: 500; transition: all 0.2s; font-size: 12px;
+    }
+    .proto-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+    .proto-nav a.current { background: var(--copper); color: white; }
+    .proto-nav-divider { color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; }
+      .nav-links { display: none; }
+      .nav-user-name { display: none; }
+      .main { padding: 16px 16px 100px; }
+      .stats-strip { grid-template-columns: 1fr; gap: 10px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .week-nav { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+      .week-range { min-width: unset; font-size: 14px; }
+      .legend { flex-wrap: wrap; gap: 12px; }
+      .calendar-wrapper { border-radius: var(--radius); }
+      .room-cell { min-width: 130px; padding: 12px 14px; }
+      .room-tags { display: none; }
+      .slot-cell { padding: 4px; }
+      .slot-available, .slot-booked, a.book-link { height: 54px; }
+      .slot-event-name { font-size: 11px; }
+      .slot-event-time { font-size: 10px; }
+      .slot-event-count { display: none; }
+      .proto-nav { gap: 4px; padding: 8px 12px; width: calc(100% - 32px); justify-content: center; flex-wrap: wrap; }
+      .proto-nav a { padding: 4px 7px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-icon">🏢</div>
+    <span class="nav-brand-name">ConfRoom</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Room Availability</a>
+    <a href="dashboard.html" class="nav-link">My Bookings</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-user">
+      <div class="avatar">RS</div>
+      <span class="nav-user-name">Rawinan S.</span>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-label">Available Today</div>
+      <div class="stat-value">4</div>
+      <div class="stat-sub">of 5 rooms free right now</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">My Upcoming</div>
+      <div class="stat-value">3</div>
+      <div class="stat-sub">bookings this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Registrants</div>
+      <div class="stat-value">47</div>
+      <div class="stat-sub">across all my events</div>
+    </div>
+  </div>
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Room Availability</div>
+      <div class="page-subtitle">Click any available slot to begin booking</div>
+    </div>
+    <div class="week-nav">
+      <button class="week-nav-btn">‹</button>
+      <span class="week-range">9 – 13 June 2026</span>
+      <button class="week-nav-btn">›</button>
+      <button class="today-btn">Today</button>
+    </div>
+  </div>
+
+  <div class="legend" style="margin-bottom:16px;">
+    <div class="legend-item"><div class="legend-dot legend-available"></div> Available</div>
+    <div class="legend-item"><div class="legend-dot legend-booked"></div> Booked by others</div>
+    <div class="legend-item"><div class="legend-dot legend-mine"></div> Your booking</div>
+  </div>
+
+  <div class="calendar-wrapper">
+    <div class="calendar-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="room-header">Room</th>
+            <th class="day-header"><div class="day-header-day">MON</div><div class="day-header-date">9</div></th>
+            <th class="day-header today-col"><div class="day-header-day">TUE</div><div class="day-header-date">10</div></th>
+            <th class="day-header"><div class="day-header-day">WED</div><div class="day-header-date">11</div></th>
+            <th class="day-header"><div class="day-header-day">THU</div><div class="day-header-date">12</div></th>
+            <th class="day-header"><div class="day-header-day">FRI</div><div class="day-header-date">13</div></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="room-cell">
+              <div class="room-name">Horizon Suite</div>
+              <div class="room-cap">Cap: 20 pax</div>
+              <div class="room-tags">
+                <span class="room-tag">Projector</span>
+                <span class="room-tag">Video Conf</span>
+                <span class="room-tag">Whiteboard</span>
+              </div>
+            </td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">Budget Review</div>
+                <div class="slot-event-time">09:00–11:00</div>
+                <div class="slot-event-count">👥 14 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">Design Review</div>
+                <div class="slot-event-time">14:00–16:00</div>
+                <div class="slot-event-count">👥 9 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell">
+              <div class="slot-booked mine">
+                <div class="slot-event-name">Strategic Planning</div>
+                <div class="slot-event-time">09:00–11:00</div>
+                <div class="slot-event-count">👥 12/20 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+          </tr>
+          <tr>
+            <td class="room-cell">
+              <div class="room-name">The Birch Room</div>
+              <div class="room-cap">Cap: 8 pax</div>
+              <div class="room-tags">
+                <span class="room-tag">Whiteboard</span>
+                <span class="room-tag">TV Screen</span>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">Team Sync</div>
+                <div class="slot-event-time">10:00–11:00</div>
+                <div class="slot-event-count">👥 6 registered</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="room-cell">
+              <div class="room-name">Executive Boardroom</div>
+              <div class="room-cap">Cap: 15 pax</div>
+              <div class="room-tags">
+                <span class="room-tag">Projector</span>
+                <span class="room-tag">Video Conf</span>
+                <span class="room-tag">Catering</span>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">Client Presentation</div>
+                <div class="slot-event-time">10:00–12:00</div>
+                <div class="slot-event-count">👥 11 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">Finance Review</div>
+                <div class="slot-event-time">15:00–16:00</div>
+                <div class="slot-event-count">👥 8 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+          </tr>
+          <tr>
+            <td class="room-cell">
+              <div class="room-name">Cedar Hall</div>
+              <div class="room-cap">Cap: 50 pax</div>
+              <div class="room-tags">
+                <span class="room-tag">Projector</span>
+                <span class="room-tag">PA System</span>
+                <span class="room-tag">Stage</span>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">All-Hands Meeting</div>
+                <div class="slot-event-time">13:00–17:00</div>
+                <div class="slot-event-count">👥 43 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked mine">
+                <div class="slot-event-name">Town Hall Q2</div>
+                <div class="slot-event-time">14:00–16:00</div>
+                <div class="slot-event-count">👥 5/50 registered</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="room-cell">
+              <div class="room-name">Innovation Lab</div>
+              <div class="room-cap">Cap: 12 pax</div>
+              <div class="room-tags">
+                <span class="room-tag">Whiteboards ×4</span>
+                <span class="room-tag">Standing Desks</span>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell">
+              <div class="slot-booked">
+                <div class="slot-event-name">Sprint Planning</div>
+                <div class="slot-event-time">09:00–10:30</div>
+                <div class="slot-event-count">👥 7 registered</div>
+              </div>
+            </td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+            <td class="slot-cell"><a href="booking-form.html" class="book-link"><div class="slot-available"></div></a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="proto-nav">
+  <span class="proto-nav-label">🧪 Prototype</span>
+  <a href="index.html" class="current">1 · Calendar</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="booking-form.html">2 · Booking Form</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="dashboard.html">3 · My Bookings</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="registration.html">4 · Registration</a>
+  <span class="proto-nav-divider">|</span>
+  <a href="admin.html">5 · Admin</a>
+</div>
+
+</body>
+</html>
