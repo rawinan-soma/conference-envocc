@@ -1,11 +1,11 @@
 /**
  * ATDD Red-Phase Scaffolds — Story 1.1: Scaffold the Project
  *
- * TDD RED PHASE: All tests are marked test() and will remain skipped
+ * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
  * until the developer activates them task-by-task during implementation.
  *
  * Activation guide:
- *   1. Remove `test(` → `test(` for the current task's test.
+ *   1. Remove `test.skip(` → `test(` for the current task's test.
  *   2. Run: `bun run test` — verify it FAILS first (red).
  *   3. Implement the feature.
  *   4. Run again — verify it PASSES (green).
