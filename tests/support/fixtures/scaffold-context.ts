@@ -30,11 +30,15 @@ export interface ScaffoldCheckResult {
  * Navigate to the dev server root and collect any console errors.
  * Used by E2E smoke tests (Story 1.1).
  *
+ * Uses a relative path ('/' by default) so Playwright resolves it against
+ * the baseURL configured in playwright.config.ts — avoids hardcoding
+ * http://localhost:PORT which breaks when the config port changes.
+ *
  * RED PHASE: The dev server does not exist yet. This helper is a placeholder.
  */
 export async function navigateToDevRoot(
 	page: Page,
-	port = 5173
+	path = '/'
 ): Promise<{ status: number | null; consoleErrors: string[] }> {
 	const consoleErrors: string[] = [];
 
@@ -44,7 +48,7 @@ export async function navigateToDevRoot(
 		}
 	});
 
-	const response = await page.goto(`http://localhost:${port}`);
+	const response = await page.goto(path);
 
 	return {
 		status: response?.status() ?? null,
@@ -89,6 +93,7 @@ export const REQUIRED_SCAFFOLD_PATHS: readonly string[] = [
 	'src/app.css',
 	'src/app.d.ts',
 	'src/hooks.server.ts',
+	'src/hooks.ts',
 	'src/routes/+page.svelte',
 	'src/routes/+layout.svelte'
 ] as const;

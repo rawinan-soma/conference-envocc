@@ -168,7 +168,10 @@ describe('Story 1.1 — Scaffold Acceptance Tests (ATDD Red Phase)', () => {
 	test.skip('[P1] 1.1-UNIT-003d — vitest exits 0 (scaffold placeholder tests pass)', () => {
 		// THIS TEST WILL FAIL — vitest and placeholder tests do not exist yet.
 		// sv create generates placeholder Vitest tests; they must pass clean.
-		const result = runCmd('bun run test', PROJECT_ROOT);
+		// NOTE: Use 'bunx vitest run' (not 'bun run test') to avoid infinite recursion —
+		// 'bun run test' re-invokes the currently running vitest process, causing an
+		// unbounded child-process tree when this test is activated.
+		const result = runCmd('bunx vitest run', PROJECT_ROOT);
 
 		expect(result.exitCode).toBe(0);
 	});
