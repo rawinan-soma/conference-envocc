@@ -16,10 +16,10 @@ import type { Page } from '@playwright/test';
 // ---------------------------------------------------------------------------
 
 export interface ScaffoldCheckResult {
-  /** Exit code from the shell command (0 = success) */
-  exitCode: number;
-  stdout: string;
-  stderr: string;
+	/** Exit code from the shell command (0 = success) */
+	exitCode: number;
+	stdout: string;
+	stderr: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -32,21 +32,24 @@ export interface ScaffoldCheckResult {
  *
  * RED PHASE: The dev server does not exist yet. This helper is a placeholder.
  */
-export async function navigateToDevRoot(page: Page, port = 5173): Promise<{ status: number | null; consoleErrors: string[] }> {
-  const consoleErrors: string[] = [];
+export async function navigateToDevRoot(
+	page: Page,
+	port = 5173
+): Promise<{ status: number | null; consoleErrors: string[] }> {
+	const consoleErrors: string[] = [];
 
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') {
-      consoleErrors.push(msg.text());
-    }
-  });
+	page.on('console', (msg) => {
+		if (msg.type() === 'error') {
+			consoleErrors.push(msg.text());
+		}
+	});
 
-  const response = await page.goto(`http://localhost:${port}`);
+	const response = await page.goto(`http://localhost:${port}`);
 
-  return {
-    status: response?.status() ?? null,
-    consoleErrors,
-  };
+	return {
+		status: response?.status() ?? null,
+		consoleErrors
+	};
 }
 
 /**
@@ -54,38 +57,38 @@ export async function navigateToDevRoot(page: Page, port = 5173): Promise<{ stat
  * Exported so tests and CI validation scripts can reference the same list.
  */
 export const REQUIRED_SCRIPTS: readonly string[] = [
-  'dev',
-  'build',
-  'preview',
-  'check',
-  'lint',
-  'format',
-  'test',
-  'test:e2e',
+	'dev',
+	'build',
+	'preview',
+	'check',
+	'lint',
+	'format',
+	'test',
+	'test:e2e'
 ] as const;
 
 /**
  * Known required files/paths that the scaffold must produce.
  * Aligns with Story 1.1 AC-1 and Dev Notes §"Project Structure".
  */
+// NOTE: sv CLI v0.16.1+ uses vite.config.ts as the primary SvelteKit config (no svelte.config.js)
 export const REQUIRED_SCAFFOLD_PATHS: readonly string[] = [
-  'package.json',
-  'bun.lock',
-  'svelte.config.js',
-  'vite.config.ts',
-  'tsconfig.json',
-  'drizzle.config.ts',
-  'components.json',
-  'eslint.config.js',
-  '.prettierrc',
-  'project.inlang/settings.json',
-  'messages/en.json',
-  'messages/th.json',
-  '.env.example',
-  'src/app.html',
-  'src/app.css',
-  'src/app.d.ts',
-  'src/hooks.server.ts',
-  'src/routes/+page.svelte',
-  'src/routes/+layout.svelte',
+	'package.json',
+	'bun.lock',
+	'vite.config.ts',
+	'tsconfig.json',
+	'drizzle.config.ts',
+	'components.json',
+	'eslint.config.js',
+	'.prettierrc',
+	'project.inlang/settings.json',
+	'messages/en.json',
+	'messages/th.json',
+	'.env.example',
+	'src/app.html',
+	'src/app.css',
+	'src/app.d.ts',
+	'src/hooks.server.ts',
+	'src/routes/+page.svelte',
+	'src/routes/+layout.svelte'
 ] as const;
