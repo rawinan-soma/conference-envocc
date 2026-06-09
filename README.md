@@ -1,32 +1,32 @@
-# sv
+# conference-envocc
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit + Bun application. This project uses **Bun exclusively** as the runtime and package manager — do not use npm, yarn, or pnpm.
 
-## Creating a project
+## Setup
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+Install dependencies:
 
 ```sh
-# recreate this project
-npx sv@0.16.1 create --template minimal --types ts --add prettier eslint vitest="usages:unit" playwright tailwindcss="plugins:none" drizzle="database:postgresql+postgresql:postgres.js+docker:yes" paraglide="languageTags:en,th+demo:no" --no-install .
+bun install
 ```
+
+Start the local Postgres database (Docker):
+
+```sh
+bun run db:start
+```
+
+Copy `.env.example` to `.env` and adjust values as needed.
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Start the development server (serves on port 5173):
 
 ```sh
-npm run dev
+bun run dev
 
 # or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun run dev -- --open
 ```
 
 ## Building
@@ -34,9 +34,17 @@ npm run dev -- --open
 To create a production version of your app:
 
 ```sh
-npm run build
+bun run build
 ```
 
-You can preview the production build with `npm run preview`.
+You can preview the production build with `bun run preview`. The production build is a standalone Bun server bundle produced via [`svelte-adapter-bun`](https://github.com/gornostay25/svelte-adapter-bun).
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Quality gates
+
+```sh
+bun run lint        # ESLint
+bun run format      # Prettier (check)
+bun run check       # svelte-check (TypeScript + Svelte types)
+bun run test        # Vitest
+bun run test:e2e    # Playwright
+```
