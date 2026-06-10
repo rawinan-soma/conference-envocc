@@ -57,17 +57,26 @@ export default defineConfig(
 							}
 						},
 						create(context) {
+							// Allowlist for non-UI text content (per Story 1.4 Task 4.3):
+							// empty/whitespace-only, route paths, and punctuation/symbol-only text.
+							const ROUTE_PATH = /^\/[\w/-]*$/;
+							const PUNCTUATION_ONLY = /^[^\p{L}\p{N}]+$/u;
 							return {
 								SvelteText(node) {
-									// Only flag non-whitespace text nodes
-									const text = node.value;
-									if (/\S/.test(text)) {
-										context.report({
-											node,
-											messageId: 'hardcoded',
-											data: { text: text.trim() }
-										});
+									const trimmed = node.value.trim();
+									// Skip empty/whitespace, route paths, and punctuation-only text.
+									if (
+										trimmed === '' ||
+										ROUTE_PATH.test(trimmed) ||
+										PUNCTUATION_ONLY.test(trimmed)
+									) {
+										return;
 									}
+									context.report({
+										node,
+										messageId: 'hardcoded',
+										data: { text: trimmed }
+									});
 								}
 							};
 						}

@@ -4,7 +4,7 @@ baseline_commit: 1aac108
 
 # Story 1.4: Internationalization Setup
 
-Status: review
+Status: done
 
 ## Story
 
@@ -276,9 +276,18 @@ claude-sonnet-4-6
 - `package.json` — added `eslint-plugin-no-hardcoded-strings` devDependency (installed but not used in final config)
 - `bun.lock` — updated with new dependency
 
+### Review Findings
+
+Code review 2026-06-10 (bmad-code-review). Outcome: 2 patch (applied), 1 defer, 1 dismissed.
+
+- [x] [Review][Patch] Add allowlist to `no-raw-svelte-text` ESLint rule [eslint.config.js:57] — Task 4.3 requires an allowlist for non-UI strings (route paths, punctuation/symbol-only, empty). Rule originally flagged any non-whitespace SvelteText. Added `ROUTE_PATH` and `PUNCTUATION_ONLY` exclusions; empty/whitespace already skipped. Verified: `/rooms`, `—`, `:` pass; real UI text still fires.
+- [x] [Review][Patch] Remove dead devDependency `eslint-plugin-no-hardcoded-strings` [package.json:39] — installed during Option A exploration, never imported (Option C inline rule shipped instead). Removed from package.json and bun.lock.
+- [x] [Review][Defer] `no-raw-svelte-text` does not catch hardcoded text in attributes (`title`, `placeholder`, `aria-label`) — deferred. AC-3 scopes the guard to inline text content and TS string literals, not attribute values; extending to attributes is scope expansion with high false-positive risk. Documented as a known limitation.
+
 ## Change Log
 
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-06-10 | Story created via bmad-create-story workflow | claude-sonnet-4-6 |
 | 2026-06-10 | Implemented all tasks: message keys, page.svelte, ESLint guard, quality gates | claude-sonnet-4-6 |
+| 2026-06-10 | Code review: added ESLint rule allowlist, removed dead devDependency; 1 finding deferred | claude-opus-4-8 |
