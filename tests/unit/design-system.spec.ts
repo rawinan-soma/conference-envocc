@@ -1,15 +1,7 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 1.2: Design System & Thai Typography
+ * ATDD Tests — Story 1.2: Design System & Thai Typography
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
- * until the developer activates them task-by-task during implementation.
- *
- * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test.
- *   2. Run: `bun run test` — verify it FAILS first (red).
- *   3. Implement the feature.
- *   4. Run again — verify it PASSES (green).
- *   5. Commit passing tests.
+ * All tests activated (green phase) after implementation.
  *
  * Scenario IDs align with acceptance criteria in story 1-2-design-system-thai-typography.md.
  * No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
@@ -53,7 +45,7 @@ const PROJECT_ROOT = path.resolve(process.cwd());
 // ---------------------------------------------------------------------------
 
 describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () => {
-	test.skip('[P0] 1.2-UNIT-001 — src/app.css defines Forest & Copper raw color tokens', () => {
+	test('[P0] 1.2-UNIT-001 — src/app.css defines Forest & Copper raw color tokens', () => {
 		// THIS TEST WILL FAIL — color tokens not yet replaced in app.css.
 		// Activate after Task 1 (Wire DESIGN.md color tokens) is complete.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -61,31 +53,34 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		expect(existsSync(appCssPath), 'src/app.css not found').toBe(true);
 
 		const content = readFileSync(appCssPath, 'utf-8');
+		// Normalize content to lowercase for case-insensitive hex comparison (Prettier lowercases hex)
+		const contentLower = content.toLowerCase();
 
 		// Raw Forest & Copper palette — all must be present as named CSS custom properties
+		// Hex values stored in lowercase to match Prettier's output
 		const requiredRawTokens: [string, string][] = [
-			['--green-900', '#1B4332'],
-			['--green-700', '#2D6A4F'],
-			['--green-500', '#40916C'],
-			['--green-200', '#95D5B2'],
-			['--green-100', '#D8F3DC'],
-			['--copper', '#B5651D'],
-			['--copper-light', '#E8A96A'],
-			['--copper-bg', '#FDF3E7'],
-			['--cream', '#FAFAF7'],
-			['--cream-100', '#F0EDE6'],
-			['--cream-200', '#E8E3DA'],
-			['--ink', '#1C1C1C'],
-			['--ink-2', '#5A5A5A'],
-			['--ink-3', '#9A9A9A']
+			['--green-900', '#1b4332'],
+			['--green-700', '#2d6a4f'],
+			['--green-500', '#40916c'],
+			['--green-200', '#95d5b2'],
+			['--green-100', '#d8f3dc'],
+			['--copper', '#b5651d'],
+			['--copper-light', '#e8a96a'],
+			['--copper-bg', '#fdf3e7'],
+			['--cream', '#fafaf7'],
+			['--cream-100', '#f0ede6'],
+			['--cream-200', '#e8e3da'],
+			['--ink', '#1c1c1c'],
+			['--ink-2', '#5a5a5a'],
+			['--ink-3', '#9a9a9a']
 		];
 
 		for (const [token, value] of requiredRawTokens) {
-			expect(content, `Missing raw token: ${token}: ${value}`).toContain(`${token}: ${value}`);
+			expect(contentLower, `Missing raw token: ${token}: ${value}`).toContain(`${token}: ${value}`);
 		}
 	});
 
-	test.skip('[P0] 1.2-UNIT-002 — src/app.css maps shadcn semantic variables to Forest & Copper tokens', () => {
+	test('[P0] 1.2-UNIT-002 — src/app.css maps shadcn semantic variables to Forest & Copper tokens', () => {
 		// THIS TEST WILL FAIL — semantic mappings not yet added.
 		// Activate after Task 1.3 (map semantic shadcn roles) is complete.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -95,34 +90,31 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		const content = readFileSync(appCssPath, 'utf-8');
 
 		// AC-1 specific checks: the four key shadcn semantic vars
-		// --primary must reference green-700 (#2D6A4F) — either directly or via var(--green-700)
-		expect(
-			content,
-			'--primary must map to green-700 (#2D6A4F) or var(--green-700)'
-		).toMatch(/--primary\s*:\s*(var\(--green-700\)|#2D6A4F)/);
+		// Use case-insensitive matching because Prettier lowercases hex values
+		// --primary must reference green-700 (#2D6A4F / #2d6a4f) — either directly or via var(--green-700)
+		expect(content, '--primary must map to green-700 (#2D6A4F) or var(--green-700)').toMatch(
+			/--primary\s*:\s*(var\(--green-700\)|#[2][dD][6][aA][4][fF])/i
+		);
 
 		// --background must reference cream (#FAFAF7) or var(--cream)
-		expect(
-			content,
-			'--background must map to cream (#FAFAF7) or var(--cream)'
-		).toMatch(/--background\s*:\s*(var\(--cream\)|#FAFAF7)/);
+		expect(content, '--background must map to cream (#FAFAF7) or var(--cream)').toMatch(
+			/--background\s*:\s*(var\(--cream\)|#fafaf7)/i
+		);
 
-		// --card must map to #FFFFFF
-		expect(content, '--card must map to #FFFFFF').toMatch(/--card\s*:\s*#FFFFFF/);
+		// --card must map to #FFFFFF (or lowercase)
+		expect(content, '--card must map to #FFFFFF').toMatch(/--card\s*:\s*#(FFFFFF|ffffff)/i);
 
 		// --border must reference #E0DBD3 or var(--border-color)
-		expect(
-			content,
-			'--border must map to #E0DBD3 or var(--border-color)'
-		).toMatch(/--border\s*:\s*(var\(--border-color\)|#E0DBD3)/);
+		expect(content, '--border must map to #E0DBD3 or var(--border-color)').toMatch(
+			/--border\s*:\s*(var\(--border-color\)|#e0dbd3)/i
+		);
 
 		// Must NOT contain oklch() for the primary/background/card/border vars
 		// (this story replaces oklch with hex-based tokens)
 		const primarySection = content.match(/--primary\s*:[^;]+/)?.[0] ?? '';
-		expect(
-			primarySection,
-			'--primary must not use oklch() after this story'
-		).not.toContain('oklch');
+		expect(primarySection, '--primary must not use oklch() after this story').not.toContain(
+			'oklch'
+		);
 	});
 
 	// ---------------------------------------------------------------------------
@@ -131,7 +123,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 	// Then: available as CSS variables for use throughout the app.
 	// ---------------------------------------------------------------------------
 
-	test.skip('[P0] 1.2-UNIT-003 — src/app.css has explicit DESIGN.md radius tokens (not calc offsets)', () => {
+	test('[P0] 1.2-UNIT-003 — src/app.css has explicit DESIGN.md radius tokens (not calc offsets)', () => {
 		// THIS TEST WILL FAIL — radius tokens not yet set to explicit values.
 		// Activate after Task 2.1 (update radius vars) is complete.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -154,7 +146,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		expect(radiusMdSection, '--radius-md must not use calc()').not.toContain('calc(');
 	});
 
-	test.skip('[P0] 1.2-UNIT-004 — src/app.css has green-tinted shadow tokens', () => {
+	test('[P0] 1.2-UNIT-004 — src/app.css has green-tinted shadow tokens', () => {
 		// THIS TEST WILL FAIL — shadow tokens not yet added.
 		// Activate after Task 2.2 (add shadow vars) is complete.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -184,7 +176,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 	//       and in src/app.css as --font-sans and --font-serif.
 	// ---------------------------------------------------------------------------
 
-	test.skip('[P0] 1.2-UNIT-005 — src/app.html has Google Fonts preconnect and stylesheet links', () => {
+	test('[P0] 1.2-UNIT-005 — src/app.html has Google Fonts preconnect and stylesheet links', () => {
 		// THIS TEST WILL FAIL — font links not yet added to app.html.
 		// Activate after Task 3.1 and 3.2 (Google Fonts CDN links) are complete.
 		const appHtmlPath = path.join(PROJECT_ROOT, 'src/app.html');
@@ -208,10 +200,12 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		expect(content, 'Must load Noto Sans Thai from Google Fonts').toContain('Noto+Sans+Thai');
 		expect(content, 'Must load Noto Serif Thai from Google Fonts').toContain('Noto+Serif+Thai');
 		expect(content, 'Google Fonts link must use display=swap').toContain('display=swap');
-		expect(content, 'Font link must be rel="stylesheet"').toMatch(/rel="stylesheet"[^>]*Noto|Noto[^>]*rel="stylesheet"/);
+		expect(content, 'Font link must be rel="stylesheet"').toMatch(
+			/rel="stylesheet"[^>]*Noto|Noto[^>]*rel="stylesheet"/
+		);
 	});
 
-	test.skip('[P0] 1.2-UNIT-006 — src/app.css @theme sets --font-sans and --font-serif to Noto Thai fonts', () => {
+	test('[P0] 1.2-UNIT-006 — src/app.css @theme sets --font-sans and --font-serif to Noto Thai fonts', () => {
 		// THIS TEST WILL FAIL — font vars not yet updated in app.css.
 		// Activate after Task 3.3 (update @theme font vars) is complete.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -241,7 +235,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 	// Then: shadcn Button component installed and used.
 	// ---------------------------------------------------------------------------
 
-	test.skip('[P1] 1.2-UNIT-007 — shadcn Button component files exist in src/lib/components/ui/button/', () => {
+	test('[P1] 1.2-UNIT-007 — shadcn Button component files exist in src/lib/components/ui/button/', () => {
 		// THIS TEST WILL FAIL — Button component not yet installed.
 		// Activate after Task 4.1 (bunx shadcn-svelte@latest add button) is complete.
 		const buttonDir = path.join(PROJECT_ROOT, 'src/lib/components/ui/button');
@@ -259,7 +253,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		expect(hasIndex, 'Button component must have index.js or index.ts entry point').toBe(true);
 	});
 
-	test.skip('[P1] 1.2-UNIT-008 — src/routes/+page.svelte imports and renders a Button component', () => {
+	test('[P1] 1.2-UNIT-008 — src/routes/+page.svelte imports and renders a Button component', () => {
 		// THIS TEST WILL FAIL — +page.svelte not yet updated with Button.
 		// Activate after Task 4.2 (update page.svelte) is complete.
 		const pagePath = path.join(PROJECT_ROOT, 'src/routes/+page.svelte');
@@ -290,7 +284,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 	// Then: line-height >= 1.65 and min font-size 14px.
 	// ---------------------------------------------------------------------------
 
-	test.skip('[P0] 1.2-UNIT-009 — src/app.css enforces Thai body typography rules (line-height and font-size)', () => {
+	test('[P0] 1.2-UNIT-009 — src/app.css enforces Thai body typography rules (line-height and font-size)', () => {
 		// THIS TEST WILL FAIL — Thai typography rules not yet in app.css.
 		// Activate after Task 4.3 (Thai body styles) is complete.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -325,7 +319,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		).toBe(true);
 	});
 
-	test.skip('[P1] 1.2-UNIT-010 — src/routes/+page.svelte sample text has Thai typography classes applied', () => {
+	test('[P1] 1.2-UNIT-010 — src/routes/+page.svelte sample text has Thai typography classes applied', () => {
 		// THIS TEST WILL FAIL — +page.svelte not yet updated with typography demo.
 		// Activate after Task 4.3 is complete.
 		const pagePath = path.join(PROJECT_ROOT, 'src/routes/+page.svelte');
@@ -349,9 +343,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 
 		// Must also have a text-sm or text-base class (font-size >= 14px = UXD-008 floor)
 		const hasFontSizeClass =
-			content.includes('text-sm') ||
-			content.includes('text-base') ||
-			content.includes('thai-body');
+			content.includes('text-sm') || content.includes('text-base') || content.includes('thai-body');
 
 		expect(
 			hasFontSizeClass,
@@ -363,44 +355,35 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 	// AC-6: Quality gates — bun run check, lint, format all exit 0
 	// ---------------------------------------------------------------------------
 
-	test.skip('[P1] 1.2-UNIT-011 — bun run check (svelte-check) exits 0 after design system changes', () => {
+	test('[P1] 1.2-UNIT-011 — bun run check (svelte-check) exits 0 after design system changes', () => {
 		// THIS TEST WILL FAIL — svelte-check likely fails before implementation.
 		// Activate after Tasks 1-4 are complete and checked for type errors.
 		const result = runCmd('bun run check', PROJECT_ROOT);
 
-		expect(
-			result.exitCode,
-			`svelte-check failed:\n${result.stdout}\n${result.stderr}`
-		).toBe(0);
+		expect(result.exitCode, `svelte-check failed:\n${result.stdout}\n${result.stderr}`).toBe(0);
 	});
 
-	test.skip('[P1] 1.2-UNIT-012 — bun run lint (ESLint) exits 0 after design system changes', () => {
+	test('[P1] 1.2-UNIT-012 — bun run lint (ESLint) exits 0 after design system changes', () => {
 		// THIS TEST WILL FAIL — ESLint may fail before page.svelte is updated.
 		// Activate after Tasks 1-4 are complete.
 		const result = runCmd('bun run lint', PROJECT_ROOT);
 
-		expect(
-			result.exitCode,
-			`ESLint failed:\n${result.stdout}\n${result.stderr}`
-		).toBe(0);
+		expect(result.exitCode, `ESLint failed:\n${result.stdout}\n${result.stderr}`).toBe(0);
 	});
 
-	test.skip('[P1] 1.2-UNIT-013 — bun run format (Prettier check) exits 0 after design system changes', () => {
+	test('[P1] 1.2-UNIT-013 — bun run format (Prettier check) exits 0 after design system changes', () => {
 		// THIS TEST WILL FAIL — Prettier may fail before files are formatted.
 		// Activate after Tasks 1-4 are complete.
 		const result = runCmd('bun run format', PROJECT_ROOT);
 
-		expect(
-			result.exitCode,
-			`Prettier check failed:\n${result.stdout}\n${result.stderr}`
-		).toBe(0);
+		expect(result.exitCode, `Prettier check failed:\n${result.stdout}\n${result.stderr}`).toBe(0);
 	});
 
 	// ---------------------------------------------------------------------------
 	// Structural guard: no tailwind.config.js must be created (Tailwind v4 is CSS-only)
 	// ---------------------------------------------------------------------------
 
-	test.skip('[P2] 1.2-UNIT-014 — no tailwind.config.js created (Tailwind v4 is CSS-only)', () => {
+	test('[P2] 1.2-UNIT-014 — no tailwind.config.js created (Tailwind v4 is CSS-only)', () => {
 		// THIS TEST WILL FAIL if tailwind.config.js is mistakenly created.
 		// Activate after any task that touches CSS/theme configuration.
 		const legacyConfig = path.join(PROJECT_ROOT, 'tailwind.config.js');
@@ -415,7 +398,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		expect(existsSync(legacyConfigTs), 'tailwind.config.ts must NOT exist').toBe(false);
 	});
 
-	test.skip('[P2] 1.2-UNIT-015 — src/app.css preserves @import tailwindcss and @theme block structure', () => {
+	test('[P2] 1.2-UNIT-015 — src/app.css preserves @import tailwindcss and @theme block structure', () => {
 		// THIS TEST WILL FAIL until app.css is updated correctly.
 		// Guards against accidentally destroying the Tailwind v4 CSS structure.
 		const appCssPath = path.join(PROJECT_ROOT, 'src/app.css');
@@ -426,9 +409,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 
 		// Must preserve Tailwind imports
 		expect(content, "Must preserve @import 'tailwindcss'").toContain("@import 'tailwindcss'");
-		expect(content, "Must preserve @import 'tw-animate-css'").toContain(
-			"@import 'tw-animate-css'"
-		);
+		expect(content, "Must preserve @import 'tw-animate-css'").toContain("@import 'tw-animate-css'");
 
 		// Must preserve @theme block (Tailwind v4 theming)
 		expect(content, 'Must preserve @theme { ... } block').toMatch(/@theme\s*\{/);

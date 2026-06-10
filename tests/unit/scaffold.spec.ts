@@ -18,10 +18,7 @@ import { test, expect, describe } from 'vitest';
 import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
-import {
-	REQUIRED_SCRIPTS,
-	REQUIRED_SCAFFOLD_PATHS
-} from '../support/fixtures/scaffold-context';
+import { REQUIRED_SCRIPTS, REQUIRED_SCAFFOLD_PATHS } from '../support/fixtures/scaffold-context';
 
 // ---------------------------------------------------------------------------
 // Helpers
