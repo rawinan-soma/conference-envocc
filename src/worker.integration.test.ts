@@ -72,7 +72,6 @@ describe('Story 1.5 — Worker Integration Tests (AC-1, AC-2, AC-3, AC-4)', () =
 	let boss: any;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let enqueueJob: (queue: string, data: unknown, options: { key: string }) => Promise<any>;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let QUEUE: Record<string, string>;
 
 	beforeAll(async () => {

@@ -185,6 +185,10 @@ describe('Story 1.5 — smokeEmailHandler error propagation (AC-4)', () => {
 		sendMailSpy.mockClear();
 	});
 
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
 	test('[P1] 1.5-UNIT-006 — smokeEmailHandler propagates sendMail errors (enables pg-boss dead-letter)', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		//

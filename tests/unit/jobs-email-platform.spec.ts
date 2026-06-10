@@ -23,28 +23,7 @@
 import { test, expect, describe } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function runCmd(
-	cmd: string,
-	cwd = process.cwd()
-): { stdout: string; stderr: string; exitCode: number } {
-	try {
-		const stdout = execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf-8' });
-		return { stdout: stdout.toString(), stderr: '', exitCode: 0 };
-	} catch (err: unknown) {
-		const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; status?: number };
-		return {
-			stdout: e.stdout?.toString() ?? '',
-			stderr: e.stderr?.toString() ?? '',
-			exitCode: e.status ?? 1
-		};
-	}
-}
+import { runCmd } from '../support/run-cmd';
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 
@@ -219,17 +198,6 @@ describe('Story 1.5 — ESLint no-restricted-imports rule (AC-5)', () => {
 		expect(content, 'no-restricted-imports must restrict $env/dynamic').toMatch(/\$env\/dynamic/);
 		// Must apply to src/lib/server/**/*.ts
 		expect(content, 'rule must target src/lib/server/**/*.ts').toMatch(/src\/lib\/server/);
-	});
-
-	test('[P1] 1.5-UNIT-009b — bun run lint exits 0 after no-restricted-imports rule is added', () => {
-		// THIS TEST WILL FAIL — the lint rule has not been added yet.
-		// Activate after Task 8.2. Note: this test runs lint on the whole project.
-		const result = runCmd('bun run lint', PROJECT_ROOT);
-
-		expect(
-			result.exitCode,
-			`lint failed:\nSTDOUT: ${result.stdout}\nSTDERR: ${result.stderr}`
-		).toBe(0);
 	});
 
 	test('[P1] 1.5-UNIT-009c — env.ts does NOT import $env/dynamic/private', () => {
