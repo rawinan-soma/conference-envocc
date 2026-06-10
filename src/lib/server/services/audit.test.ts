@@ -1,16 +1,6 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 1.6: Audit-log write-hook foundation
+ * Story 1.6: Audit-log write-hook foundation
  * Module: src/lib/server/services/audit.ts — writeAuditLog helper (unit tests)
- *
- * TDD RED PHASE: Tests use test.skip() and will fail until the service module
- * is created. Activate task-by-task during implementation.
- *
- * Activation guide (Task 3 — create audit.ts service):
- *   1. Remove `test.skip(` → `test(` for the tests in this file.
- *   2. Run: `bun run test` — verify tests FAIL first (red).
- *   3. Implement src/lib/server/services/audit.ts with writeAuditLog.
- *   4. Run again — verify tests PASS (green).
- *   5. Commit passing tests.
  *
  * Strategy: Mock the Drizzle transaction (tx) object with vi.fn() spies.
  * No real database connection needed — pure unit test.
@@ -22,6 +12,8 @@
  */
 
 import { describe, test, expect, vi } from 'vitest';
+import { writeAuditLog } from './audit.js';
+import { auditLog } from '../db/schema/audit-log.js';
 
 // ---------------------------------------------------------------------------
 // Mock factory for Drizzle transaction
@@ -50,15 +42,6 @@ function createMockTx() {
 
 describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 	test('[P1] 1.6-UNIT-002 — writeAuditLog calls tx.insert(auditLog).values with correct args (actorId=user)', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
-		// Activate after Task 3 (audit.ts created with writeAuditLog).
-		const { writeAuditLog } = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-		const { auditLog } = await import('../db/schema/audit-log.js').catch(() => {
-			throw new Error('audit-log.ts not implemented yet — red phase');
-		});
-
 		const mockTx = createMockTx();
 
 		await writeAuditLog(mockTx as never, {
@@ -80,15 +63,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 	});
 
 	test('[P1] 1.6-UNIT-002b — writeAuditLog calls tx.insert with actorId=null (system action)', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-2 + AC-4: actorId=null is valid for system-initiated mutations.
-		const { writeAuditLog } = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-		const { auditLog } = await import('../db/schema/audit-log.js').catch(() => {
-			throw new Error('audit-log.ts not implemented yet — red phase');
-		});
-
 		const mockTx = createMockTx();
 
 		await writeAuditLog(mockTx as never, {
@@ -107,12 +82,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 	});
 
 	test('[P1] 1.6-UNIT-002c — writeAuditLog passes diff payload to tx.insert when provided', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-2 + AC-4: diff is optional — when provided it must be forwarded to .values().
-		const { writeAuditLog } = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-
 		const mockTx = createMockTx();
 		const diffPayload = { before: { status: 'active' }, after: { status: 'cancelled' } };
 
@@ -128,12 +98,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 	});
 
 	test('[P1] 1.6-UNIT-002d — writeAuditLog passes null diff when diff is omitted', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-4: diff is optional — when omitted it must be stored as null (not undefined).
-		const { writeAuditLog } = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-
 		const mockTx = createMockTx();
 
 		await writeAuditLog(mockTx as never, {
@@ -149,12 +114,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 	});
 
 	test('[P1] 1.6-UNIT-002e — writeAuditLog returns Promise<void> (awaitable, no return value)', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-4: return type is Promise<void> — must be awaitable and resolve to undefined.
-		const { writeAuditLog } = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-
 		const mockTx = createMockTx();
 
 		const result = await writeAuditLog(mockTx as never, {
@@ -167,12 +127,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 	});
 
 	test('[P2] 1.6-UNIT-002f — writeAuditLog does not mutate the entry object', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// Defensive: writeAuditLog must not mutate its input argument.
-		const { writeAuditLog } = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-
 		const mockTx = createMockTx();
 		const entry = {
 			actorId: 'user-123',
@@ -195,15 +150,9 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 1.6 — AuditLogEntry type export (AC-4)', () => {
-	test('[P1] 1.6-UNIT-003 — audit.ts exports AuditLogEntry type (module-level existence check)', async () => {
-		// THIS TEST WILL FAIL — audit.ts does not exist yet.
+	test('[P1] 1.6-UNIT-003 — audit.ts exports AuditLogEntry type (module-level existence check)', () => {
 		// AuditLogEntry is a TypeScript type — verified at compile time.
-		// This test verifies that audit.ts exports both writeAuditLog and can be imported.
-		const auditModule = await import('./audit.js').catch(() => {
-			throw new Error('audit.ts not implemented yet — red phase');
-		});
-
 		// writeAuditLog must be a callable function
-		expect(typeof auditModule.writeAuditLog).toBe('function');
+		expect(typeof writeAuditLog).toBe('function');
 	});
 });

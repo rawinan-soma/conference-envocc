@@ -1,25 +1,20 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 1.6: Audit-log write-hook foundation
+ * Story 1.6: Audit-log write-hook foundation
  * Integration Test: writeAuditLog commit + rollback atomicity
  *
- * TDD RED PHASE: ALL tests in this file use test.skip() and will remain
- * skipped until Story 1.8 (Test Harness & CI) wires real Postgres
+ * These tests require a real Postgres connection at DATABASE_URL.
+ * They are skipped until Story 1.8 (Test Harness & CI) wires Postgres
  * into the CI environment.
  *
  * Activation guide (Story 1.8+):
  *   1. Remove `test.skip(` → `test(` for each test below.
  *   2. Ensure Postgres is running (via docker compose or CI services).
  *   3. Set DATABASE_URL in the test environment.
- *   4. Run: `bun run test` — verify tests FAIL first (red).
- *   5. Implement src/lib/server/services/audit.ts and DB module.
- *   6. Run again — verify tests PASS (green).
+ *   4. Run: `bun run test` — verify tests PASS (green).
  *
  * AC Coverage:
  *   - AC-2: audit_log row is written atomically in the same transaction
  *   - AC-3: audit_log row is NOT persisted when the transaction rolls back
- *
- * Note: This file follows the test.skip pattern established in story 1.5.
- * Real Postgres connectivity at DATABASE_URL is required for these tests to pass.
  */
 
 import { describe, test, expect } from 'vitest';
@@ -100,7 +95,7 @@ describe('writeAuditLog integration', () => {
 		});
 
 		// Use a unique actorId for this test to isolate cleanup
-		const testActorId = `rollback-test-${Date.now()}`;
+		const testActorId = `rollback-test-${crypto.randomUUID()}`;
 		let capturedId: string | undefined;
 
 		try {
@@ -153,7 +148,7 @@ describe('writeAuditLog integration', () => {
 			throw new Error('drizzle-orm not installed — red phase');
 		});
 
-		const testActorId = `diff-test-${Date.now()}`;
+		const testActorId = `diff-test-${crypto.randomUUID()}`;
 		const diffPayload = {
 			before: { status: 'pending', capacity: 50 },
 			after: { status: 'confirmed', capacity: 50 }
