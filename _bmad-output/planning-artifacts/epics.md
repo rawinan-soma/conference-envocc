@@ -228,7 +228,7 @@ Stand up a deployable, themed, Thai-capable SvelteKit shell that proves every ha
 
 ### Epic 2: Identity & Access
 Internal staff sign in via Authentik, complete a self-service profile, and the app enforces roles & ownership — with the authorization patterns later epics inherit.
-**Includes:** Better Auth + Authentik OIDC (AR-03); self-service profile **schema sized for E6 prefill** (title/name/phone/email/org); roles (organizer default, admin assignable); **guard dispatcher pattern** in `hooks.server.ts` (`requireUser`/`requireAdmin`/`assertOwner`); **IDOR negative-test pattern** seeded here (exercised in E5); audit write-hook consumed on mutations.
+**Includes:** Better Auth + Authentik OIDC (AR-03); self-service profile **schema sized for E6 prefill** (title/first-name/last-name/phone/email-from-OIDC/org); roles (organizer default, admin assignable); **guard dispatcher pattern** in `hooks.server.ts` (`requireUser`/`requireAdmin`/`assertOwner`); **IDOR negative-test pattern** seeded here (exercised in E5); audit write-hook consumed on mutations.
 **FRs:** FR-090, FR-091, FR-093, FR-094, FR-095, FR-073 (write-hook). **NFR:** 001.
 
 ### Epic 3: Room Inventory
@@ -268,6 +268,8 @@ Stand up a deployable, themed, Thai-capable SvelteKit shell that proves every ha
 
 ### Story 1.1: Scaffold the project
 
+**GH Issue:** #1
+
 As a developer,
 I want the SvelteKit + Bun project scaffolded with the agreed tooling,
 So that all later work starts from the locked stack.
@@ -281,6 +283,8 @@ So that all later work starts from the locked stack.
 
 ### Story 1.2: Design system & Thai typography
 
+**GH Issue:** #2
+
 As a developer,
 I want the DESIGN.md tokens and Thai fonts wired into the shadcn-svelte theme,
 So that every component renders in the locked visual identity.
@@ -293,6 +297,8 @@ So that every component renders in the locked visual identity.
 **And** Thai sample text renders with line-height ≥ 1.6 and never below 14px.
 
 ### Story 1.3: Database & migration setup with bare EXCLUDE constraint
+
+**GH Issue:** #3
 
 As a developer,
 I want Drizzle + node-postgres configured with per-domain schema modules and the booking EXCLUDE constraint,
@@ -308,6 +314,8 @@ So that conflict-free booking is enforced at the data layer.
 
 ### Story 1.4: Internationalization setup
 
+**GH Issue:** #4
+
 As a developer,
 I want Paraglide configured with English source + Thai locale and a no-hardcoded-strings guard,
 So that all user-facing text is translatable and Thai-ready.
@@ -320,6 +328,8 @@ So that all user-facing text is translatable and Thai-ready.
 **And** committing a hardcoded UI string fails the lint check.
 
 ### Story 1.5: Jobs & email platform
+
+**GH Issue:** #5
 
 As a developer,
 I want a pg-boss worker process and a nodemailer transport (Mailpit in dev),
@@ -335,6 +345,8 @@ So that later epics can enqueue durable jobs and send email reliably.
 
 ### Story 1.6: Audit-log write-hook foundation
 
+**GH Issue:** #6
+
 As a developer,
 I want an `audit_log` table and a transactional audit-write helper,
 So that every later mutation can record actor/entity/action/diff in the same transaction.
@@ -347,6 +359,8 @@ So that every later mutation can record actor/entity/action/diff in the same tra
 **And** a rolled-back transaction writes no audit row.
 
 ### Story 1.7: Docker & deployment skeleton
+
+**GH Issue:** #7
 
 As an operator,
 I want web + worker images and a compose stack with nginx and Postgres,
@@ -361,6 +375,8 @@ So that the app deploys on-prem with migrations applied on start.
 
 ### Story 1.8: Test harness & CI
 
+**GH Issue:** #8
+
 As a developer,
 I want a real-Postgres integration tier and quality gates in CI,
 So that critical invariants are verified from day one.
@@ -374,6 +390,8 @@ So that critical invariants are verified from day one.
 **And** an axe-core check runs against a rendered page.
 
 ### Story 1.9: Walking-skeleton vertical slice
+
+**GH Issue:** #9
 
 As a developer,
 I want one route that threads every foundation layer end-to-end,
@@ -395,6 +413,8 @@ Internal staff sign in via Authentik, complete a self-service profile, and the a
 
 ### Story 2.1: Sign in with Authentik (OIDC)
 
+**GH Issue:** #10
+
 As an internal user,
 I want to log in through the organization's Authentik,
 So that I can access the booking app with my org identity.
@@ -407,6 +427,8 @@ So that I can access the booking app with my org identity.
 **And** an unauthenticated request to an `(app)` route redirects to login.
 
 ### Story 2.2: Local dev auth bypass
+
+**GH Issue:** #11
 
 As a developer,
 I want an env-gated dev login bypass,
@@ -421,6 +443,8 @@ So that I can work locally without an Authentik instance.
 
 ### Story 2.3: Self-service profile
 
+**GH Issue:** #12
+
 As an internal user,
 I want to complete my profile on first login,
 So that my details are available for booking contact and registration prefill.
@@ -428,11 +452,13 @@ So that my details are available for booking contact and registration prefill.
 **Acceptance Criteria:**
 
 **Given** a first-time authenticated user with an incomplete profile
-**When** I am routed to the profile form and submit title, name, phone, email, organization
-**Then** the app-owned profile is saved (schema sized for FR-101 prefill) and I can edit it later
+**When** I am routed to the profile form, where email is pre-filled read-only from the Authentik OIDC claim, and I submit title, first name, last name, phone, organization
+**Then** the app-owned profile is saved (schema sized for FR-101 prefill) with the read-only email from the IdP and I can edit the other fields later
 **And** I cannot reach the main app until required profile fields are complete.
 
 ### Story 2.4: Roles & assignment model
+
+**GH Issue:** #13
 
 As the system,
 I want every internal user to default to organizer with admin as the only assignable role,
@@ -447,6 +473,8 @@ So that access matches the agreed model.
 
 ### Story 2.5: Authorization guard dispatcher
 
+**GH Issue:** #14
+
 As the system,
 I want server-side guards with a reusable dispatcher pattern,
 So that later epics append rules instead of rewriting the hook.
@@ -460,6 +488,8 @@ So that later epics append rules instead of rewriting the hook.
 
 ### Story 2.6: Fixed session timeout
 
+**GH Issue:** #15
+
 As the system,
 I want internal sessions to expire after 30 minutes of inactivity,
 So that unattended sessions are protected.
@@ -472,6 +502,8 @@ So that unattended sessions are protected.
 **And** the timeout is not exposed as a configurable setting.
 
 ### Story 2.7: Authorization negative-test pattern & audit on mutations
+
+**GH Issue:** #16
 
 As a developer,
 I want an IDOR/authorization negative-test template and audit wired to mutations,
@@ -492,6 +524,8 @@ Admins maintain the rooms (and blocked times) organizers will book.
 
 ### Story 3.1: Create and edit rooms
 
+**GH Issue:** #17
+
 As an admin,
 I want to add and edit rooms,
 So that organizers have an accurate room catalog to book.
@@ -504,6 +538,8 @@ So that organizers have an accurate room catalog to book.
 **And** validation rejects an empty name.
 
 ### Story 3.2: Room photo upload
+
+**GH Issue:** #18
 
 As an admin,
 I want to attach an optional photo to a room,
@@ -518,6 +554,8 @@ So that organizers can recognize the space.
 
 ### Story 3.3: Deactivate a room
 
+**GH Issue:** #19
+
 As an admin,
 I want to deactivate a room,
 So that it can no longer be booked.
@@ -530,6 +568,8 @@ So that it can no longer be booked.
 **And** it is retained in records (not deleted). *(Cascade behavior for rooms with future bookings is delivered in E7.)*
 
 ### Story 3.4: Block time slots
+
+**GH Issue:** #20
 
 As an admin,
 I want to block time on a room,
@@ -550,6 +590,8 @@ An organizer finds a free room, books conflict-free, gets a shareable registrati
 
 ### Story 4.1: Conflict translation & EXCLUDE predicate
 
+**GH Issue:** #21
+
 As a developer,
 I want booking writes to refine the EXCLUDE predicate and translate violations,
 So that conflicts surface as clean localized errors, not 500s.
@@ -564,6 +606,8 @@ So that conflicts surface as clean localized errors, not 500s.
 
 ### Story 4.2: Room calendar read-model
 
+**GH Issue:** #22
+
 As a developer,
 I want a single booking read-model for the week view,
 So that calendar and dashboard share one query.
@@ -576,6 +620,8 @@ So that calendar and dashboard share one query.
 **And** the query is index-backed and returns within the performance budget.
 
 ### Story 4.3: Room Calendar view
+
+**GH Issue:** #23
 
 As an organizer,
 I want a weekly room calendar,
@@ -590,6 +636,8 @@ So that I can scan availability and start a booking.
 
 ### Story 4.4: Create a booking (conflict-free)
 
+**GH Issue:** #24
+
 As an organizer,
 I want to book a room via a single unified form,
 So that I can reserve a room and set up registration in one pass.
@@ -602,6 +650,8 @@ So that I can reserve a room and set up registration in one pass.
 **And** there is no headcount/capacity field; catering is on/off only.
 
 ### Story 4.5: Booking confirmation, link, token & QR
+
+**GH Issue:** #25
 
 As an organizer,
 I want a confirmation with a registration link and QR,
@@ -616,6 +666,8 @@ So that I can share the event for registration.
 
 ### Story 4.6: Booking confirmation email
 
+**GH Issue:** #26
+
 As an organizer,
 I want an email confirming my booking,
 So that I have a record off-app.
@@ -629,6 +681,8 @@ So that I have a record off-app.
 
 ### Story 4.7: Edit, cancel, and duplicate a booking
 
+**GH Issue:** #27
+
 As an organizer,
 I want to edit, cancel, or duplicate my bookings,
 So that I can manage changes efficiently.
@@ -641,6 +695,8 @@ So that I can manage changes efficiently.
 **And** I cannot edit a booking I do not own.
 
 ### Story 4.8: Organizer dashboard
+
+**GH Issue:** #28
 
 As an organizer,
 I want a dashboard of my upcoming bookings,
@@ -661,6 +717,8 @@ External attendees self-register via a branded token link, and the organizer can
 
 ### Story 5.1: Branded public registration page
 
+**GH Issue:** #29
+
 As an external attendee,
 I want to open the event's registration page,
 So that I can see the event and register.
@@ -675,6 +733,8 @@ So that I can see the event and register.
 
 ### Story 5.2: Submit a registration
 
+**GH Issue:** #30
+
 As an external attendee,
 I want to fill and submit the registration form,
 So that I am registered for the event.
@@ -687,6 +747,8 @@ So that I am registered for the event.
 **And** the form is fully usable on both mobile and desktop, completing in ≤ 2 minutes.
 
 ### Story 5.3: Confirmation email with self-cancel link
+
+**GH Issue:** #31
 
 As an external attendee,
 I want a confirmation email,
@@ -701,6 +763,8 @@ So that I have proof and a way to cancel.
 
 ### Story 5.4: Self-cancel a registration
 
+**GH Issue:** #32
+
 As an external attendee,
 I want to cancel via my link,
 So that I can withdraw without an account.
@@ -713,6 +777,8 @@ So that I can withdraw without an account.
 **And** the token is single-use and a forged token cannot cancel another's registration.
 
 ### Story 5.5: Resend a lost link
+
+**GH Issue:** #33
 
 As an external attendee,
 I want to re-request my confirmation link by email,
@@ -727,6 +793,8 @@ So that I can recover access if I lost the email.
 
 ### Story 5.6: Registration open/close rules
 
+**GH Issue:** #34
+
 As the system,
 I want registration to honor closing rules,
 So that it opens and closes correctly.
@@ -740,6 +808,8 @@ So that it opens and closes correctly.
 
 ### Story 5.7: Catering aggregation
 
+**GH Issue:** #35
+
 As an organizer,
 I want meal-type counts aggregated,
 So that I can plan catering.
@@ -752,6 +822,8 @@ So that I can plan catering.
 **And** counts update as registrations and cancellations change.
 
 ### Story 5.8: Registrant list & dashboard headcount
+
+**GH Issue:** #36
 
 As an organizer,
 I want to see who registered,
@@ -772,6 +844,8 @@ Organizers run their registrants end-to-end; internal staff register to attend.
 
 ### Story 6.1: Sign-in sheet PDF
 
+**GH Issue:** #37
+
 As an organizer,
 I want a downloadable sign-in sheet,
 So that I can take attendance on-site.
@@ -784,6 +858,8 @@ So that I can take attendance on-site.
 **And** Thai names render correctly (no tofu) — asserted in the production container image.
 
 ### Story 6.2: One-day reminder sweeper
+
+**GH Issue:** #38
 
 As an attendee/organizer,
 I want a reminder one day before the event,
@@ -798,6 +874,8 @@ So that I don't forget to attend.
 
 ### Story 6.3: Cancellation notifies attendees
 
+**GH Issue:** #39
+
 As an attendee,
 I want to be told if an event I registered for is cancelled,
 So that I don't show up to nothing.
@@ -810,6 +888,8 @@ So that I don't show up to nothing.
 **And** the sends are enqueued (retryable), not synchronous.
 
 ### Story 6.4: Event Detail & Register to attend (internal)
+
+**GH Issue:** #40
 
 As an internal user,
 I want to register to attend an event from inside the app,
@@ -824,6 +904,8 @@ So that I don't re-type details the app already has.
 
 ### Story 6.5: Internal registrant counted & confirmed in-app
 
+**GH Issue:** #41
+
 As the system,
 I want an internal registration to behave like any registration,
 So that counts and lists are consistent.
@@ -836,6 +918,8 @@ So that counts and lists are consistent.
 **And** they still receive cancellation/reminder emails as a registered attendee.
 
 ### Story 6.6: Internal self-cancel & close rules
+
+**GH Issue:** #42
 
 As an internal user,
 I want to cancel my attendance in-app,
@@ -856,6 +940,8 @@ Admins configure the system, oversee utilization, export data, review the audit 
 
 ### Story 7.1: Room deactivation cascade
 
+**GH Issue:** #43
+
 As an admin,
 I want deactivating a room with future bookings to cascade safely,
 So that affected people are notified.
@@ -868,6 +954,8 @@ So that affected people are notified.
 **And** rooms with no future bookings deactivate without the warning.
 
 ### Story 7.2: Utilization heatmap
+
+**GH Issue:** #44
 
 As an admin,
 I want a room × month utilization heatmap,
@@ -882,6 +970,8 @@ So that I can read utilization at a glance.
 
 ### Story 7.3: Bulk calendar
 
+**GH Issue:** #45
+
 As an admin,
 I want a calendar of all bookings across rooms,
 So that I have org-wide visibility.
@@ -894,6 +984,8 @@ So that I have org-wide visibility.
 **And** I cannot create/approve/edit bookings from here.
 
 ### Story 7.4: CSV export
+
+**GH Issue:** #46
 
 As an admin,
 I want to export booking and registrant data,
@@ -908,6 +1000,8 @@ So that I can report and analyze offline.
 
 ### Story 7.5: Audit log view
 
+**GH Issue:** #47
+
 As an admin,
 I want to review the audit trail,
 So that I can see who changed what.
@@ -920,6 +1014,8 @@ So that I can see who changed what.
 **And** the view is read-only and filterable by entity/actor/date.
 
 ### Story 7.6: Admin settings — SMTP & role assignment
+
+**GH Issue:** #48
 
 As an admin,
 I want to configure SMTP and assign the admin role,

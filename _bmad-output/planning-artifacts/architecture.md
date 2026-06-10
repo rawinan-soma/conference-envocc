@@ -212,9 +212,11 @@ implementation story.
   session. (Internal users only; external registrants are never Better Auth users.)
 - **Profile sourcing (OQ-3 — RESOLVED: self-service):** Authentik is used for
   **authentication only**. On first login the user completes an **app-owned
-  profile** (title, name, phone, email, organization); the app does not depend on
-  IdP claims for profile data (email may be pre-populated from the OIDC claim as a
-  convenience but remains app-owned/editable). FR-101 prefill reads this profile.
+  profile** (title, first name, last name, phone, organization); the app does not
+  depend on IdP claims for the user-entered fields. **Email is the exception: it is
+  taken from the OIDC `email` claim and stored read-only** (authoritative from the
+  IdP, not user-editable); all other profile fields are user-entered and
+  app-owned/editable. FR-101 prefill reads this profile.
 - **Authorization (FR-091/094):** role on the user record — `organizer` is the
   default for every internal user, `admin` is assigned (set via settings).
   Enforcement is server-side in hooks + per-route `load`/actions: organizers
