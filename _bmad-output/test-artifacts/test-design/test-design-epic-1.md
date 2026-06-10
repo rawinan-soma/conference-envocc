@@ -27,7 +27,7 @@ inputDocuments:
 
 **Date:** 2026-06-10
 **Author:** Rawinan
-**Status:** Draft (v2 — updated post Story 1.1 completion)
+**Status:** Draft (v3 — updated post Stories 1.2, 1.4, 1.5, 1.7 completion)
 **Mode:** Epic-Level Test Design
 
 ---
@@ -41,14 +41,44 @@ Epic 1 establishes the entire technical foundation: the SvelteKit + Bun scaffold
 **Why this epic is high-stakes for testing:**
 All later epics build on the foundations set here. A misconfigured EXCLUDE constraint, a missing migration step, or a broken Paraglide pipeline discovered in Epic 3 is far more expensive to fix than discovering it now. The goal of this test design is to ensure the walking skeleton *fails fast and loudly* if any foundation layer is misconfigured.
 
-**Story 1.1 Status Update (2026-06-10):**
-Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that affect downstream test scenarios:
-- Adapter is wired in `vite.config.ts` (not `svelte.config.js`) — both are valid and equivalent
-- Compose file is `compose.yaml` (not `docker-compose.yml`) — test scripts must reference the correct filename
-- Test directory structure: `tests/unit/`, `tests/e2e/`, `tests/support/fixtures/` — all created with RED-phase ATDD stubs
-- `bun run test:unit -- --run` (16 tests, all `test.skip()` / 1 pass) — Vitest configured
-- `bun run test:e2e` (Playwright, 4 tests, all skipped) — Playwright configured
-- Build warning `[UNRESOLVED_IMPORT] async_hooks` is expected and benign (Bun runtime handles it)
+**Implementation Status Update (v3, 2026-06-10):**
+Stories 1.1, 1.2, 1.3, 1.4, 1.5, and 1.7 are **done**. Stories 1.6, 1.8, and 1.9 are backlog.
+
+Key implementation nuances from done stories that affect test scenarios:
+
+**Story 1.1 (Scaffold — done 2026-06-09):**
+- Adapter wired in `vite.config.ts` (not `svelte.config.js`) — artifact location: `build/index.js`
+- Dev compose file is `compose.yaml` (db + mailpit only — no web/worker services in dev compose)
+- Test directory structure: `tests/unit/`, `tests/e2e/`, `tests/support/fixtures/` — all created
+- Build warning `[UNRESOLVED_IMPORT] async_hooks` is expected and benign
+
+**Story 1.2 (Design System — done):**
+- Tailwind v4 CSS-only config (NO `tailwind.config.js`) — all theming inside `@theme {}` block in `src/app.css`
+- Thai body line-height is `leading-[1.65]` (≥1.65, not 1.6) per DESIGN.md — **test scenario 1.2-COMP-002 threshold is ≥1.65**
+- ATDD stubs generated: `tests/unit/design-system.spec.ts` (15 tests, RED), `tests/e2e/design-system-theme.spec.ts` (10 tests, RED)
+- shadcn-svelte with Tailwind v4 uses hex values (not oklch) for the Forest & Copper palette
+
+**Story 1.3 (Database migration + EXCLUDE constraint — done):**
+- No implementation artifact file created; story marked done in sprint-status.yaml
+- EXCLUDE constraint and schema splits confirmed done; btree_gist extension required
+
+**Story 1.4 (Internationalization — done):**
+- `eslint-plugin-no-hardcoded-strings` is the actual ESLint plugin used — **NOT** `svelte/no-raw-text` (that rule does not exist in eslint-plugin-svelte v3.19.0)
+- Canonical message keys: `app_name` and `home_title` in `messages/en.json`; `messages/th.json` uses English placeholder values (not Thai — per project rule)
+- ATDD stubs generated: `tests/unit/i18n-messages.spec.ts` (6 tests, GREEN), `tests/unit/i18n-config.spec.ts` (5 tests, GREEN), `tests/e2e/i18n-setup.spec.ts` (5 tests, skipped)
+- `src/hooks.server.ts` uses `paraglideMiddleware` with `transformPageChunk` replacing `%paraglide.lang%` and `%paraglide.dir%`
+
+**Story 1.5 (Jobs & Email — done):**
+- `src/lib/server/env.ts` created with Valibot-based `validateEnv()` — validates DATABASE_URL, PORT, HOST at startup; `process.exit(1)` on failure
+- `compose.yaml` (dev) updated to include `mailpit` service (SMTP 1025, web UI 8025)
+- ESLint `no-restricted-imports` rule scoped to `src/worker.ts` + `src/lib/server/**/*.ts` — blocks `$app/*` and `$env/dynamic*`
+- ATDD stubs generated: `src/lib/server/jobs/queues.test.ts` (17, RED), `src/lib/server/email/mailer.test.ts` (7, RED), `src/lib/server/jobs/handlers/smoke-email.test.ts` (6, RED), `src/worker.integration.test.ts` (4, RED — Story 1.8 gate), `tests/unit/jobs-email-platform.spec.ts` (44, RED)
+
+**Story 1.7 (Docker — done):**
+- **Production compose file is `docker-compose.prod.yml`** (not `docker-compose.yml` nor `compose.yaml`) — Docker smoke tests for R-002/R-006 must target `docker-compose.prod.yml`
+- Web container command: `sh -c "bunx drizzle-kit migrate && bun run build/index.js"` — migration pre-start confirmed
+- `src/lib/server/env.ts` with `validateEnv()` already exists from Story 1.5 — Story 1.7 extended it with HOST/PORT defaults
+- ATDD stubs generated: `src/lib/server/env.test.ts` (6, RED), `tests/unit/docker-deployment.spec.ts` (16, RED), `tests/support/fixtures/docker-context.ts`
 
 **Risk Summary:**
 
@@ -87,7 +117,7 @@ Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that
 | R-001 | DATA | `btree_gist` EXCLUDE constraint absent or misconfigured — overlapping bookings for same room accepted silently; every later booking write is unsafe | 3 | 3 | **9** | Dedicated integration test asserts `23P01` is raised on overlap insert; separate test asserts constraint exists in migrated schema; slice fails build if constraint missing | Dev / QA | Before Story 1.3 done |
 | R-002 | OPS | `drizzle-kit migrate` not executed pre-start in Docker — app starts with stale or missing schema | 3 | 3 | **9** | Docker Compose spec test: `docker compose up`, assert web container healthy, assert migrations have run (query `information_schema.tables`) | Dev / Ops | Before Story 1.7 done |
 | R-003 | DATA | Audit-log write not atomic with the change — a rolled-back business transaction may still write an audit row, or a committed change may lack an audit row | 2 | 3 | **6** | Integration test: invoke audit helper inside a transaction, roll back, assert zero audit rows written; then commit, assert one row | Dev / QA | Before Story 1.6 done |
-| R-004 | BUS | Thai locale not active or Paraglide messages missing — user-facing strings render as keys or English in production locale | 2 | 3 | **6** | Integration + E2E test: request page with `lang=th`, assert rendered HTML contains Paraglide-rendered Thai string, not raw key; axe-core checks Thai line-height ≥1.6 | Dev / QA | Before Story 1.4 done |
+| R-004 | BUS | Thai locale not active or Paraglide messages missing — user-facing strings render as keys or English in production locale | 2 | 3 | **6** | Integration + E2E test: request page with `lang=th`, assert rendered HTML contains Paraglide-rendered Thai string, not raw key; axe-core checks Thai line-height ≥1.65 (DESIGN.md value) | Dev / QA | Story 1.4 **done** |
 | R-005 | BUS | pg-boss job processed but email never sent / lands in dead-letter unnoticed — foundation broken silently | 2 | 3 | **6** | Integration test: enqueue smoke job, poll worker, assert Mailpit inbox contains expected email within timeout; assert dead-letter count is zero | Dev / QA | Before Story 1.5 done |
 | R-006 | SEC | Runtime secrets missing at startup — app starts with `undefined` env values, potentially exposing defaults or crashing unpredictably | 2 | 3 | **6** | E2E/Ops test: start Docker Compose with a missing required env var, assert app container exits with non-zero code and a clear error message (fail-fast) | Dev / Ops | Before Story 1.7 done |
 | R-007 | OPS | `bun run build` / image build failure undetected — CI pipeline does not enforce build gate | 2 | 3 | **6** | CI job runs `bun run build` and Docker image build; build failure fails the PR gate | Dev / CI | Story 1.8 |
@@ -130,7 +160,7 @@ Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that
 | **Reliability (jobs)** | Smoke job processed, email delivered; failed send → dead-letter (not lost) | R-005 | Integration test against Mailpit in Docker | Test pass report; Mailpit inbox assertion |
 | **Maintainability** | ESLint + Prettier + svelte-check run clean; no hardcoded UI strings | R-009, R-010 | CI lint + typecheck gates | CI run log |
 | **Accessibility (baseline)** | axe-core reports zero violations on rendered page | — | axe-core CI check (Story 1.8) | axe-core HTML report |
-| **i18n / Thai** | Paraglide messages compile; Thai locale renders strings (line-height ≥1.6, ≥14px) | R-004 | Integration + visual snapshot (Story 1.4, 1.9) | Page HTML snapshot; visual diff |
+| **i18n / Thai** | Paraglide messages compile; Thai locale renders strings (line-height ≥1.65 per DESIGN.md `leading-[1.65]`, font-size ≥14px) | R-004 | Integration + visual snapshot (Story 1.4 done, Story 1.9) | Page HTML snapshot; visual diff |
 | **Deployment** | `docker compose up` brings all services healthy; drizzle migrate runs pre-start | R-002, R-007 | Docker smoke test (Story 1.7) | Container health logs |
 
 **Unknown thresholds:**
@@ -142,12 +172,17 @@ Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that
 ## Entry Criteria
 
 - [ ] Story acceptance criteria agreed by Dev and QA
-- [ ] Local Docker Compose stack (PostgreSQL + Mailpit) reachable (`compose.yaml`)
-- [x] `bun install` succeeds (Story 1.1 **complete** — 2026-06-09)
-- [x] Test directory structure in place (`tests/unit/`, `tests/e2e/`, `tests/support/`) — Story 1.1 complete
-- [ ] drizzle-kit configured and migrations run (Story 1.3 complete) before integration tests for DB
-- [ ] pg-boss worker process runs (Story 1.5 complete) before job/email tests
-- [ ] Story 1.8 (test harness) merged before full CI gate enforcement
+- [x] Local Docker Compose stack (PostgreSQL + Mailpit) reachable (`compose.yaml`) — mailpit added in Story 1.5
+- [x] `bun install` succeeds (Story 1.1 **done** — 2026-06-09)
+- [x] Test directory structure in place (`tests/unit/`, `tests/e2e/`, `tests/support/`) — Story 1.1 done
+- [x] Design system tokens and Thai fonts wired (Story 1.2 **done**)
+- [x] drizzle-kit configured and migrations run + EXCLUDE constraint live (Story 1.3 **done**)
+- [x] Paraglide i18n configured, ESLint no-hardcoded-strings guard active (Story 1.4 **done**)
+- [x] pg-boss worker process and nodemailer transport running; `src/lib/server/env.ts` present (Story 1.5 **done**)
+- [x] Docker images (Dockerfile, Dockerfile.worker) build; `docker-compose.prod.yml` functional (Story 1.7 **done**)
+- [ ] Story 1.6 (audit log write hook) complete before audit atomicity integration tests (P0: 1.6-INT-001/002)
+- [ ] Story 1.8 (test harness + CI) merged before full CI gate enforcement
+- [ ] Story 1.9 (walking skeleton vertical slice) complete before 1.9-INT-* tests
 
 ## Exit Criteria
 
@@ -206,9 +241,11 @@ Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that
 ### R-004: Thai Locale Broken (Score: 6 — MITIGATE)
 
 **Mitigation Strategy:**
-1. Integration test: GET `/` with `Accept-Language: th` (or `?lang=th`); assert response HTML contains at least one Paraglide-compiled Thai string (`m.key()` output, not the raw key).
-2. E2E (Playwright) smoke: render page, assert `lang="th"` attribute on `<html>`, assert text is not the English source key.
-3. axe-core check in CI (Story 1.8) will catch line-height violations.
+1. Integration test: GET `/` with `Accept-Language: th`; assert response HTML contains at least one Paraglide-compiled string (`m.key()` output, not the raw key); `src/hooks.server.ts` `paraglideMiddleware` sets `lang`/`dir` attributes.
+2. E2E (Playwright) smoke: render page, assert `lang="th"` on `<html>` tag; assert text is not the raw message key.
+3. CSS computed-style test: assert Thai text element `line-height ≥ 1.65` (DESIGN.md `leading-[1.65]` class) and `font-size ≥ 14px`.
+4. ESLint guard: `eslint-plugin-no-hardcoded-strings` (NOT `svelte/no-raw-text` — that rule does not exist in eslint-plugin-svelte v3.19.0) — lint test fires on inline strings; `bun run lint` exits 0 on clean codebase.
+5. axe-core CI check (Story 1.8) will catch gross typography violations.
 
 **Owner:** Dev (Paraglide config) + QA (test)
 **Timeline:** Merged with Story 1.4 + Story 1.8
@@ -265,14 +302,42 @@ Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that
 
 `1.{story}-{LEVEL}-{SEQ}` — e.g., `1.3-INT-001` = Epic 1, Story 3, Integration test, sequence 001.
 
-### Story 1.1 (Done) — ATDD Stubs Already Generated
+### Done Stories — ATDD Stubs Generated (RED Phase)
 
-Story 1.1 is **complete**. ATDD test stubs exist in RED phase at:
-- `tests/unit/scaffold.spec.ts` — 13 unit tests (`test.skip()`), covering P1 scenarios 1.1-UNIT-001 through 1.1-UNIT-005
-- `tests/e2e/scaffold-smoke.spec.ts` — 4 E2E tests (`test.skip()`), covering P1 scenarios 1.1-E2E-001 through 1.1-E2E-004
-- `tests/support/fixtures/scaffold-context.ts` — fixture stubs
+**Story 1.1 (done):**
+- `tests/unit/scaffold.spec.ts` — 13 unit tests; `tests/e2e/scaffold-smoke.spec.ts` — 4 E2E tests; `tests/support/fixtures/scaffold-context.ts`
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md`
 
-These stubs are activated task-by-task during Story 1.1 implementation per `_bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md`. **Note:** Story 1.1 is already done — these should be activated/green.
+**Story 1.2 (done):**
+- `tests/unit/design-system.spec.ts` — 15 tests (P0: 8, P1: 5, P2: 2, all RED/skipped)
+- `tests/e2e/design-system-theme.spec.ts` — 10 tests (P0: 6, P1: 4, all RED/skipped)
+- `tests/support/fixtures/design-system-context.ts`
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-2-design-system-thai-typography.md`
+
+**Story 1.4 (done):**
+- `tests/unit/i18n-messages.spec.ts` — 6 tests (**GREEN — passing**)
+- `tests/unit/i18n-config.spec.ts` — 5 tests (**GREEN — passing**)
+- `tests/e2e/i18n-setup.spec.ts` — 5 tests (skipped — requires running dev server)
+- `tests/support/helpers/cmd-helpers.ts` — shared helper
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-4-internationalization-setup.md`
+
+**Story 1.5 (done):**
+- `src/lib/server/jobs/queues.test.ts` — 17 tests (RED)
+- `src/lib/server/email/mailer.test.ts` — 7 tests (RED)
+- `src/lib/server/jobs/handlers/smoke-email.test.ts` — 6 tests (RED)
+- `src/worker.integration.test.ts` — 4 tests (RED — gated on Story 1.8)
+- `tests/unit/jobs-email-platform.spec.ts` — 44 tests (RED)
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-5-jobs-email-platform.md`
+
+**Story 1.7 (done):**
+- `src/lib/server/env.test.ts` — 6 tests (P0: 3, P1: 3, RED)
+- `tests/unit/docker-deployment.spec.ts` — 16 tests (P0: 5, P1: 8, P2: 1, P3: 1, RED — requires Docker)
+- `tests/support/fixtures/docker-context.ts`
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-7-docker-deployment-skeleton.md`
+
+**Total ATDD stubs generated across done stories:** ~150 tests (mix of GREEN unit tests and RED skipped stubs)
+
+---
 
 ---
 
@@ -311,10 +376,10 @@ These stubs are activated task-by-task during Story 1.1 implementation per `_bma
 | 1.1-UNIT-002 | 1.1 | `bun run build` produces Bun server bundle without errors | Unit/Build | R-007 | **ATDD stub generated**; build uses `vite.config.ts` + `svelte-adapter-bun` |
 | 1.1-UNIT-003 | 1.1 | ESLint + Prettier + svelte-check run clean | Unit/Lint | R-010 | **ATDD stub generated** |
 | 1.2-COMP-001 | 1.2 | shadcn-svelte component renders with Forest & Copper palette CSS vars applied | Component | — | Playwright component snapshot or visual check |
-| 1.2-COMP-002 | 1.2 | Thai sample text renders at line-height ≥1.6 and font-size ≥14px | Component | R-004 | Playwright + CSS computed style assertion |
+| 1.2-COMP-002 | 1.2 | Thai sample text renders at line-height ≥1.65 (`leading-[1.65]`) and font-size ≥14px | Component | R-004 | **ATDD stub in `tests/e2e/design-system-theme.spec.ts`**; Playwright + CSS computed style assertion |
 | 1.4-UNIT-001 | 1.4 | Paraglide messages compile without errors | Unit | R-004 | `bun run build` includes Paraglide; assert no build errors |
 | 1.4-UNIT-002 | 1.4 | Page renders Paraglide message via `m.key()` (not raw key string) | Integration | R-004 | GET page, assert rendered text ≠ raw key |
-| 1.4-UNIT-003 | 1.4 | Hardcoded UI string in `.svelte` file fails lint check | Unit/Lint | R-009 | Add test file with hardcoded string; assert lint exits non-zero |
+| 1.4-UNIT-003 | 1.4 | Hardcoded UI string in `.svelte` file fails lint check (`eslint-plugin-no-hardcoded-strings`) | Unit/Lint | R-009 | **ATDD stub in `tests/unit/i18n-messages.spec.ts`**; assert `bun run lint` exits non-zero (uses eslint-plugin-no-hardcoded-strings, NOT svelte/no-raw-text) |
 | 1.5-INT-003 | 1.5 | Smoke job has idempotency key — re-enqueueing same key does not double-deliver | Integration | R-005 | Enqueue same idempotency key twice; assert Mailpit receives 1 email |
 | 1.5-UNIT-001 | 1.5 | Job handler does not import `$app/*` or `$env/dynamic` | Unit/Static | R-012 | Import graph / AST check or grep assertion |
 | 1.7-INT-004 | 1.7 | nginx propagates `X-Forwarded-For` and `X-Forwarded-Proto` headers | Integration | R-011 | curl request through nginx; assert headers in response |
