@@ -15,33 +15,10 @@
  */
 
 import { test, expect, describe } from 'vitest';
-import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { REQUIRED_SCRIPTS, REQUIRED_SCAFFOLD_PATHS } from '../support/fixtures/scaffold-context';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Run a shell command synchronously and return { stdout, exitCode }.
- *  Never throws — caller asserts on exitCode / stdout. */
-function runCmd(
-	cmd: string,
-	cwd = process.cwd()
-): { stdout: string; stderr: string; exitCode: number } {
-	try {
-		const stdout = execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf-8' });
-		return { stdout: stdout.toString(), stderr: '', exitCode: 0 };
-	} catch (err: unknown) {
-		const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; status?: number };
-		return {
-			stdout: e.stdout?.toString() ?? '',
-			stderr: e.stderr?.toString() ?? '',
-			exitCode: e.status ?? 1
-		};
-	}
-}
+import { runCmd } from '../support/helpers/run-cmd';
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 

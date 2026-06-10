@@ -8,31 +8,10 @@
  */
 
 import { test, expect, describe } from 'vitest';
-import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Run a shell command synchronously and return { stdout, stderr, exitCode }. Never throws. */
-function runCmd(
-	cmd: string,
-	cwd = process.cwd()
-): { stdout: string; stderr: string; exitCode: number } {
-	try {
-		const stdout = execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf-8' });
-		return { stdout: stdout.toString(), stderr: '', exitCode: 0 };
-	} catch (err: unknown) {
-		const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; status?: number };
-		return {
-			stdout: e.stdout?.toString() ?? '',
-			stderr: e.stderr?.toString() ?? '',
-			exitCode: e.status ?? 1
-		};
-	}
-}
+import { REQUIRED_RAW_TOKENS } from '../support/fixtures/design-system-context';
+import { runCmd } from '../support/helpers/run-cmd';
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 
@@ -56,27 +35,12 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		// Normalize content to lowercase for case-insensitive hex comparison (Prettier lowercases hex)
 		const contentLower = content.toLowerCase();
 
-		// Raw Forest & Copper palette — all must be present as named CSS custom properties
-		// Hex values stored in lowercase to match Prettier's output
-		const requiredRawTokens: [string, string][] = [
-			['--green-900', '#1b4332'],
-			['--green-700', '#2d6a4f'],
-			['--green-500', '#40916c'],
-			['--green-200', '#95d5b2'],
-			['--green-100', '#d8f3dc'],
-			['--copper', '#b5651d'],
-			['--copper-light', '#e8a96a'],
-			['--copper-bg', '#fdf3e7'],
-			['--cream', '#fafaf7'],
-			['--cream-100', '#f0ede6'],
-			['--cream-200', '#e8e3da'],
-			['--ink', '#1c1c1c'],
-			['--ink-2', '#5a5a5a'],
-			['--ink-3', '#9a9a9a']
-		];
-
-		for (const [token, value] of requiredRawTokens) {
-			expect(contentLower, `Missing raw token: ${token}: ${value}`).toContain(`${token}: ${value}`);
+		// Use REQUIRED_RAW_TOKENS from fixture as single source of truth for design token values.
+		// Fixture stores uppercase hex (#1B4332); Prettier lowercases hex in CSS — lowercase before check.
+		for (const [token, value] of REQUIRED_RAW_TOKENS) {
+			expect(contentLower, `Missing raw token: ${token}: ${value}`).toContain(
+				`${token}: ${value.toLowerCase()}`
+			);
 		}
 	});
 

@@ -23,6 +23,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { getCssCustomProperty } from '../support/fixtures/design-system-context';
 
 // ---------------------------------------------------------------------------
 // AC-1 + AC-2: Forest & Copper CSS custom properties applied to the page
@@ -39,19 +40,11 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		// Activate after Task 1 (color tokens) is complete and dev server is running.
 		await page.goto('/');
 
-		// Evaluate computed CSS custom properties on :root
-		const primaryColor = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()
-		);
-		const backgroundColor = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--background').trim()
-		);
-		const cardColor = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--card').trim()
-		);
-		const borderColor = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--border').trim()
-		);
+		// Evaluate computed CSS custom properties on :root via shared helper
+		const primaryColor = await getCssCustomProperty(page, '--primary');
+		const backgroundColor = await getCssCustomProperty(page, '--background');
+		const cardColor = await getCssCustomProperty(page, '--card');
+		const borderColor = await getCssCustomProperty(page, '--border');
 
 		// AC-1: --primary → green-700 (#2D6A4F)
 		// The computed value may resolve through var(--green-700) so check the final hex
@@ -80,18 +73,10 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		// Activate after Task 2.1 (update radius vars) is complete.
 		await page.goto('/');
 
-		const radiusSm = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--radius-sm').trim()
-		);
-		const radiusMd = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--radius-md').trim()
-		);
-		const radiusLg = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--radius-lg').trim()
-		);
-		const radiusXl = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--radius-xl').trim()
-		);
+		const radiusSm = await getCssCustomProperty(page, '--radius-sm');
+		const radiusMd = await getCssCustomProperty(page, '--radius-md');
+		const radiusLg = await getCssCustomProperty(page, '--radius-lg');
+		const radiusXl = await getCssCustomProperty(page, '--radius-xl');
 
 		// DESIGN.md: sm=6px, md=10px, lg=16px, xl=20px
 		expect(radiusSm, '--radius-sm must be 0.375rem (6px)').toBe('0.375rem');
@@ -141,9 +126,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		// Activate after Task 3.3 (update @theme font vars) is complete.
 		await page.goto('/');
 
-		const fontSans = await page.evaluate(() =>
-			getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim()
-		);
+		const fontSans = await getCssCustomProperty(page, '--font-sans');
 
 		expect(fontSans, "--font-sans must include 'Noto Sans Thai'").toContain('Noto Sans Thai');
 	});
