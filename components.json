@@ -1,8 +1,7 @@
 {
-	"$schema": "https://shadcn-svelte.com/schema/config-1.0.0.json",
-	"registry": "https://shadcn-svelte.com/registry/vega",
-	"style": "vega",
-	"typescript": "tsconfig.json",
+	"$schema": "https://shadcn-svelte.com/schema.json",
+	"style": "default",
+	"typescript": true,
 	"tailwind": {
 		"css": "src/app.css",
 		"baseColor": "neutral"
@@ -10,9 +9,9 @@
 	"iconLibrary": "lucide",
 	"aliases": {
 		"utils": "$lib/utils",
-		"components": "$lib/registry/components",
-		"ui": "$lib/registry/ui",
-		"hooks": "$lib/registry/hooks",
+		"components": "$lib/components",
+		"ui": "$lib/components/ui",
+		"hooks": "$lib/hooks",
 		"lib": "$lib"
 	}
 }
