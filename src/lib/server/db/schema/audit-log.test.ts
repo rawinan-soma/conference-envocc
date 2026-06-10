@@ -27,7 +27,7 @@ import { describe, test, expect } from 'vitest';
 // ---------------------------------------------------------------------------
 
 describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
-	test.skip('[P1] 1.6-UNIT-001 — auditLog table name is "audit_log"', async () => {
+	test('[P1] 1.6-UNIT-001 — auditLog table name is "audit_log"', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1 (audit-log.ts created with pgTable('audit_log', ...)).
 		const { getTableConfig } = await import('drizzle-orm/pg-core').catch(() => {
@@ -41,7 +41,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(config.name).toBe('audit_log');
 	});
 
-	test.skip('[P1] 1.6-UNIT-001b — auditLog table has exactly 6 columns', async () => {
+	test('[P1] 1.6-UNIT-001b — auditLog table has exactly 6 columns', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		const { getTableConfig } = await import('drizzle-orm/pg-core').catch(() => {
@@ -64,7 +64,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(columnNames).toContain('diff');
 	});
 
-	test.skip('[P1] 1.6-UNIT-001c — id column is uuid and is the primary key', async () => {
+	test('[P1] 1.6-UNIT-001c — id column is uuid and is the primary key', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		const { getTableConfig } = await import('drizzle-orm/pg-core').catch(() => {
@@ -83,7 +83,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(idCol!.primary).toBe(true);
 	});
 
-	test.skip('[P1] 1.6-UNIT-001d — created_at column is timestamptz, not null, has default', async () => {
+	test('[P1] 1.6-UNIT-001d — created_at column is timestamptz, not null, has default', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		const { getTableConfig } = await import('drizzle-orm/pg-core').catch(() => {
@@ -105,7 +105,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(createdAtCol!.hasDefault).toBe(true);
 	});
 
-	test.skip('[P1] 1.6-UNIT-001e — actor_id column is text and nullable', async () => {
+	test('[P1] 1.6-UNIT-001e — actor_id column is text and nullable', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		// actor_id is nullable — null = system action (no authenticated user).
@@ -125,7 +125,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(actorIdCol!.notNull).toBe(false);
 	});
 
-	test.skip('[P1] 1.6-UNIT-001f — entity column is text and not null', async () => {
+	test('[P1] 1.6-UNIT-001f — entity column is text and not null', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		const { getTableConfig } = await import('drizzle-orm/pg-core').catch(() => {
@@ -143,7 +143,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(entityCol!.notNull).toBe(true);
 	});
 
-	test.skip('[P1] 1.6-UNIT-001g — action column is text and not null', async () => {
+	test('[P1] 1.6-UNIT-001g — action column is text and not null', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		const { getTableConfig } = await import('drizzle-orm/pg-core').catch(() => {
@@ -161,7 +161,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(actionCol!.notNull).toBe(true);
 	});
 
-	test.skip('[P1] 1.6-UNIT-001h — diff column is jsonb and nullable', async () => {
+	test('[P1] 1.6-UNIT-001h — diff column is jsonb and nullable', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		// diff is nullable — null is valid for creates/deletes where diff is implicit.
@@ -181,7 +181,7 @@ describe('Story 1.6 — audit-log schema shape (AC-1)', () => {
 		expect(diffCol!.notNull).toBe(false);
 	});
 
-	test.skip('[P1] 1.6-UNIT-001i — AuditLogInsert type is exported from audit-log.ts', async () => {
+	test('[P1] 1.6-UNIT-001i — AuditLogInsert type is exported from audit-log.ts', async () => {
 		// THIS TEST WILL FAIL — audit-log.ts does not exist yet.
 		// Activate after Task 2.1.
 		// TypeScript type check: AuditLogInsert must be exported and inferrable.

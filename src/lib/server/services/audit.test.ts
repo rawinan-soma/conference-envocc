@@ -49,7 +49,7 @@ function createMockTx() {
 // ---------------------------------------------------------------------------
 
 describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
-	test.skip('[P1] 1.6-UNIT-002 — writeAuditLog calls tx.insert(auditLog).values with correct args (actorId=user)', async () => {
+	test('[P1] 1.6-UNIT-002 — writeAuditLog calls tx.insert(auditLog).values with correct args (actorId=user)', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// Activate after Task 3 (audit.ts created with writeAuditLog).
 		const { writeAuditLog } = await import('./audit.js').catch(() => {
@@ -79,7 +79,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 		expect(insertedValues.action).toBe('create');
 	});
 
-	test.skip('[P1] 1.6-UNIT-002b — writeAuditLog calls tx.insert with actorId=null (system action)', async () => {
+	test('[P1] 1.6-UNIT-002b — writeAuditLog calls tx.insert with actorId=null (system action)', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-2 + AC-4: actorId=null is valid for system-initiated mutations.
 		const { writeAuditLog } = await import('./audit.js').catch(() => {
@@ -106,7 +106,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 		expect(insertedValues.action).toBe('deactivate');
 	});
 
-	test.skip('[P1] 1.6-UNIT-002c — writeAuditLog passes diff payload to tx.insert when provided', async () => {
+	test('[P1] 1.6-UNIT-002c — writeAuditLog passes diff payload to tx.insert when provided', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-2 + AC-4: diff is optional — when provided it must be forwarded to .values().
 		const { writeAuditLog } = await import('./audit.js').catch(() => {
@@ -127,7 +127,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 		expect(insertedValues.diff).toEqual(diffPayload);
 	});
 
-	test.skip('[P1] 1.6-UNIT-002d — writeAuditLog passes null diff when diff is omitted', async () => {
+	test('[P1] 1.6-UNIT-002d — writeAuditLog passes null diff when diff is omitted', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-4: diff is optional — when omitted it must be stored as null (not undefined).
 		const { writeAuditLog } = await import('./audit.js').catch(() => {
@@ -148,7 +148,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 		expect(insertedValues.diff).toBeNull();
 	});
 
-	test.skip('[P1] 1.6-UNIT-002e — writeAuditLog returns Promise<void> (awaitable, no return value)', async () => {
+	test('[P1] 1.6-UNIT-002e — writeAuditLog returns Promise<void> (awaitable, no return value)', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AC-4: return type is Promise<void> — must be awaitable and resolve to undefined.
 		const { writeAuditLog } = await import('./audit.js').catch(() => {
@@ -166,7 +166,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 		expect(result).toBeUndefined();
 	});
 
-	test.skip('[P2] 1.6-UNIT-002f — writeAuditLog does not mutate the entry object', async () => {
+	test('[P2] 1.6-UNIT-002f — writeAuditLog does not mutate the entry object', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// Defensive: writeAuditLog must not mutate its input argument.
 		const { writeAuditLog } = await import('./audit.js').catch(() => {
@@ -195,7 +195,7 @@ describe('Story 1.6 — writeAuditLog helper (AC-2, AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 1.6 — AuditLogEntry type export (AC-4)', () => {
-	test.skip('[P1] 1.6-UNIT-003 — audit.ts exports AuditLogEntry type (module-level existence check)', async () => {
+	test('[P1] 1.6-UNIT-003 — audit.ts exports AuditLogEntry type (module-level existence check)', async () => {
 		// THIS TEST WILL FAIL — audit.ts does not exist yet.
 		// AuditLogEntry is a TypeScript type — verified at compile time.
 		// This test verifies that audit.ts exports both writeAuditLog and can be imported.

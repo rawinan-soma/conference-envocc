@@ -67,6 +67,7 @@
 		"pg-boss": "^12.18.2",
 		"pino": "^10.3.1",
 		"tailwind-merge": "^3.6.0",
+		"uuidv7": "^1.2.1",
 		"valibot": "^1.4.1"
 	},
 	"trustedDependencies": [
