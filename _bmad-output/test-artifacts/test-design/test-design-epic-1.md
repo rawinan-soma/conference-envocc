@@ -9,14 +9,25 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-09'
+lastSaved: '2026-06-10'
+inputDocuments:
+  - _bmad-output/planning-artifacts/epics.md
+  - _bmad-output/planning-artifacts/architecture.md
+  - _bmad-output/implementation-artifacts/sprint-status.yaml
+  - _bmad-output/implementation-artifacts/1-1-scaffold-the-project.md
+  - _bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md
+  - _bmad/tea/config.yaml
+  - .claude/skills/bmad-testarch-test-design/resources/knowledge/risk-governance.md
+  - .claude/skills/bmad-testarch-test-design/resources/knowledge/probability-impact.md
+  - .claude/skills/bmad-testarch-test-design/resources/knowledge/test-levels-framework.md
+  - .claude/skills/bmad-testarch-test-design/resources/knowledge/test-priorities-matrix.md
 ---
 
 # Test Design: Epic 1 — Foundation & Walking Skeleton
 
-**Date:** 2026-06-09
+**Date:** 2026-06-10
 **Author:** Rawinan
-**Status:** Draft
+**Status:** Draft (v2 — updated post Story 1.1 completion)
 **Mode:** Epic-Level Test Design
 
 ---
@@ -29,6 +40,15 @@ Epic 1 establishes the entire technical foundation: the SvelteKit + Bun scaffold
 
 **Why this epic is high-stakes for testing:**
 All later epics build on the foundations set here. A misconfigured EXCLUDE constraint, a missing migration step, or a broken Paraglide pipeline discovered in Epic 3 is far more expensive to fix than discovering it now. The goal of this test design is to ensure the walking skeleton *fails fast and loudly* if any foundation layer is misconfigured.
+
+**Story 1.1 Status Update (2026-06-10):**
+Story 1.1 (Scaffold) is **done** as of 2026-06-09. Key implementation notes that affect downstream test scenarios:
+- Adapter is wired in `vite.config.ts` (not `svelte.config.js`) — both are valid and equivalent
+- Compose file is `compose.yaml` (not `docker-compose.yml`) — test scripts must reference the correct filename
+- Test directory structure: `tests/unit/`, `tests/e2e/`, `tests/support/fixtures/` — all created with RED-phase ATDD stubs
+- `bun run test:unit -- --run` (16 tests, all `test.skip()` / 1 pass) — Vitest configured
+- `bun run test:e2e` (Playwright, 4 tests, all skipped) — Playwright configured
+- Build warning `[UNRESOLVED_IMPORT] async_hooks` is expected and benign (Bun runtime handles it)
 
 **Risk Summary:**
 
@@ -50,9 +70,9 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 | Item | Reasoning | Mitigation |
 | ---- | --------- | ---------- |
 | **Authentication / OIDC** | Epic 2 concern | Auth tested in Epic 2 test design |
-| **Booking conflict UI flows** | Epic 4 concern | EXCLUDE constraint is tested here at DB level |
-| **Email content / template rendering** | Only smoke delivery tested here | Content tested in relevant later epics |
-| **PDF / QR generation** | Epic 7 concern | Not set up in Epic 1 |
+| **Booking conflict UI flows** | Epic 4 concern | EXCLUDE constraint tested here at DB level only |
+| **Email content / template rendering** | Only smoke delivery tested here | Full content tested in relevant later epics |
+| **PDF / QR generation** | Epic 6/7 concern | Not set up in Epic 1 |
 | **Performance / load testing** | No user load in foundation epic | Defer to Epic 4+ test design |
 | **Accessibility full audit** | axe-core smoke is in scope; full audit is Epic 4+ | axe-core CI check validates baseline |
 
@@ -88,6 +108,15 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 | ------- | -------- | ----------- | ---- | ------ | ----- | ------ |
 | R-013 | BUS | Thai fonts render below 14px minimum on some viewport sizes — typography rule violated | 1 | 2 | 2 | Monitor — axe-core + visual snapshot catches gross violations; full typography audit deferred to Epic 4 |
 
+### Risk Category Legend
+
+- **TECH**: Technical/Architecture (flaws, integration, scalability)
+- **SEC**: Security (access controls, auth, data exposure)
+- **PERF**: Performance (SLA violations, degradation, resource limits)
+- **DATA**: Data Integrity (loss, corruption, inconsistency)
+- **BUS**: Business Impact (UX harm, logic errors, revenue)
+- **OPS**: Operations (deployment, config, monitoring)
+
 ---
 
 ## NFR Planning
@@ -113,8 +142,9 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 ## Entry Criteria
 
 - [ ] Story acceptance criteria agreed by Dev and QA
-- [ ] Local Docker Compose stack (PostgreSQL + Mailpit) reachable
-- [ ] `bun install` succeeds (Story 1.1 complete)
+- [ ] Local Docker Compose stack (PostgreSQL + Mailpit) reachable (`compose.yaml`)
+- [x] `bun install` succeeds (Story 1.1 **complete** — 2026-06-09)
+- [x] Test directory structure in place (`tests/unit/`, `tests/e2e/`, `tests/support/`) — Story 1.1 complete
 - [ ] drizzle-kit configured and migrations run (Story 1.3 complete) before integration tests for DB
 - [ ] pg-boss worker process runs (Story 1.5 complete) before job/email tests
 - [ ] Story 1.8 (test harness) merged before full CI gate enforcement
@@ -147,7 +177,7 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 
 ### R-002: Migration Not Run Pre-Start (Score: 9 — BLOCK)
 
-**Mitigation Strategy:** Docker smoke test:
+**Mitigation Strategy:** Docker smoke test (using `compose.yaml`):
 1. Run `docker compose up -d` (cold start — no pre-existing volumes).
 2. Poll until web container reports healthy.
 3. Query `information_schema.tables` inside the running Postgres container — assert that `bookings`, `audit_log`, and Better Auth tables exist.
@@ -190,7 +220,7 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 ### R-005: Job/Email Platform Silent Failure (Score: 6 — MITIGATE)
 
 **Mitigation Strategy:**
-1. Integration test (against Mailpit API): enqueue the smoke job; poll `recurse` pattern until worker picks up job (max 10s); call Mailpit `/api/v1/messages`; assert at least one message with expected subject/sender.
+1. Integration test (against Mailpit API): enqueue the smoke job; poll recurse pattern until worker picks up job (max 10s); call Mailpit `/api/v1/messages`; assert at least one message with expected subject/sender.
 2. Assert `pg_boss.dead_letter` has zero entries after the smoke run.
 
 **Owner:** Dev
@@ -204,7 +234,7 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 
 **Mitigation Strategy:**
 1. Docker test: launch `docker compose up web` with `DATABASE_URL` unset; assert container exits with non-zero code within 10s; assert stderr contains a meaningful error (not silent undefined).
-2. Document in `docker-compose.yml` which env vars are required (fail-fast guard in app startup code).
+2. Document in `compose.yaml` which env vars are required (fail-fast guard in app startup code).
 
 **Owner:** Dev / Ops
 **Timeline:** Merged with Story 1.7
@@ -235,6 +265,15 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 
 `1.{story}-{LEVEL}-{SEQ}` — e.g., `1.3-INT-001` = Epic 1, Story 3, Integration test, sequence 001.
 
+### Story 1.1 (Done) — ATDD Stubs Already Generated
+
+Story 1.1 is **complete**. ATDD test stubs exist in RED phase at:
+- `tests/unit/scaffold.spec.ts` — 13 unit tests (`test.skip()`), covering P1 scenarios 1.1-UNIT-001 through 1.1-UNIT-005
+- `tests/e2e/scaffold-smoke.spec.ts` — 4 E2E tests (`test.skip()`), covering P1 scenarios 1.1-E2E-001 through 1.1-E2E-004
+- `tests/support/fixtures/scaffold-context.ts` — fixture stubs
+
+These stubs are activated task-by-task during Story 1.1 implementation per `_bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md`. **Note:** Story 1.1 is already done — these should be activated/green.
+
 ---
 
 ### P0 (Critical)
@@ -251,7 +290,7 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 | 1.6-INT-002 | 1.6 | Committed transaction writes exactly one audit row with correct fields | Integration | R-003 | Commit + schema assertion (timestamp, actor, entity, action, diff) |
 | 1.5-INT-001 | 1.5 | Smoke job enqueued + worker processes it + Mailpit receives email | Integration | R-005 | Poll Mailpit API; 10s timeout; recurse pattern |
 | 1.5-INT-002 | 1.5 | Dead-letter queue is empty after successful smoke job | Integration | R-005 | Query `pg_boss.dead_letter` |
-| 1.7-INT-001 | 1.7 | `docker compose up` cold start: all services healthy, migrations applied | Integration/Ops | R-002 | `information_schema.tables` assertion inside container |
+| 1.7-INT-001 | 1.7 | `docker compose up` cold start: all services healthy, migrations applied | Integration/Ops | R-002 | `information_schema.tables` assertion inside container; uses `compose.yaml` |
 | 1.7-INT-002 | 1.7 | App reachable through nginx; HTTP 200 on health endpoint | Integration/Ops | R-002 | curl through nginx port; assert status 200 |
 | 1.7-INT-003 | 1.7 | Missing required env var causes web container to exit non-zero (fail-fast) | Integration/Ops | R-006 | Docker run without `DATABASE_URL`; assert exit code ≠ 0 |
 | 1.9-INT-001 | 1.9 | Vertical slice: page renders themed page with Thai Paraglide string | E2E/Integration | R-004 | Playwright: assert `lang="th"` + Thai string visible |
@@ -268,9 +307,9 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 
 | Scenario ID | Story | Acceptance Criterion | Test Level | Risk Link | Notes |
 | ----------- | ----- | -------------------- | ---------- | --------- | ----- |
-| 1.1-UNIT-001 | 1.1 | `bun install` succeeds and `bun run dev` serves (smoke) | Unit/Smoke | — | CI step; assertion is non-zero exit = fail |
-| 1.1-UNIT-002 | 1.1 | `bun run build` produces Bun server bundle without errors | Unit/Build | R-007 | CI build step |
-| 1.1-UNIT-003 | 1.1 | ESLint + Prettier + svelte-check run clean | Unit/Lint | R-010 | CI lint step; zero errors required |
+| 1.1-UNIT-001 | 1.1 | `bun install` succeeds and `bun run dev` serves (smoke) | Unit/Smoke | — | **ATDD stub generated** in `tests/unit/scaffold.spec.ts` |
+| 1.1-UNIT-002 | 1.1 | `bun run build` produces Bun server bundle without errors | Unit/Build | R-007 | **ATDD stub generated**; build uses `vite.config.ts` + `svelte-adapter-bun` |
+| 1.1-UNIT-003 | 1.1 | ESLint + Prettier + svelte-check run clean | Unit/Lint | R-010 | **ATDD stub generated** |
 | 1.2-COMP-001 | 1.2 | shadcn-svelte component renders with Forest & Copper palette CSS vars applied | Component | — | Playwright component snapshot or visual check |
 | 1.2-COMP-002 | 1.2 | Thai sample text renders at line-height ≥1.6 and font-size ≥14px | Component | R-004 | Playwright + CSS computed style assertion |
 | 1.4-UNIT-001 | 1.4 | Paraglide messages compile without errors | Unit | R-004 | `bun run build` includes Paraglide; assert no build errors |
@@ -300,7 +339,7 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 | 1.6-INT-003 | 1.6 | Audit log row contains correct diff field (before/after values) | Integration | R-003 | Field-level diff assertion |
 | 1.2-COMP-003 | 1.2 | Font tokens (Noto Serif Thai / Noto Sans Thai) loaded in rendered document | Component | R-004 | Playwright: `document.fonts` loaded assertion |
 | 1.7-INT-006 | 1.7 | Worker container restarts cleanly after crash (pg-boss reconnects) | Integration/Ops | R-005 | `docker compose restart worker`; assert job processing resumes |
-| 1.1-UNIT-004 | 1.1 | `svelte-adapter-bun` produces standalone server bundle (not node adapter) | Unit | — | Bundle output inspection |
+| 1.1-UNIT-004 | 1.1 | `svelte-adapter-bun` produces standalone server bundle (not node adapter) | Unit | — | Bundle output inspection under `.svelte-kit/adapter-bun/` |
 | 1.5-INT-005 | 1.5 | pg-boss worker handles multiple concurrent jobs without duplicate delivery | Integration | R-005 | Enqueue 3 jobs simultaneously; assert 3 emails, no duplicates |
 
 **Total P2:** 7 scenarios, ~5–8 hours
@@ -316,7 +355,7 @@ All later epics build on the foundations set here. A misconfigured EXCLUDE const
 | 1.2-COMP-004 | 1.2 | Visual snapshot baseline: shadcn button in Forest & Copper theme | Component | For future visual regression baseline |
 | 1.7-INT-007 | 1.7 | Docker image size within reasonable bound (<500MB) | Ops | `docker image inspect`; informational |
 | 1.9-INT-004 | 1.9 | Walking skeleton responds within 2s under single-user load (baseline) | E2E | No SLA set — informational only |
-| 1.1-UNIT-005 | 1.1 | HMR (`bun run dev`) responds to file change within 1s | Manual/Smoke | Developer DX smoke — not automated |
+| 1.1-UNIT-005 | 1.1 | HMR (`bun run dev`) responds to file change within 1s | Manual/Smoke | Developer DX smoke — not automated; **ATDD stub noted as manual** |
 | 1.4-UNIT-004 | 1.4 | Adding a new Paraglide locale compiles correctly | Unit | Future-readiness check |
 
 **Total P3:** 5 scenarios, ~3–6 hours
@@ -360,22 +399,25 @@ Scenarios with expensive setup or non-deterministic timing:
 | Priority | Count | Avg Hours/Test | Total Hours | Notes |
 | -------- | ----- | -------------- | ----------- | ----- |
 | P0 | 14 | 2.0–2.5 | 28–38 | DB/Docker integration setup heavy |
-| P1 | 16 | 1.25–1.75 | 20–28 | Lint/CI steps lighter; component tests moderate |
+| P1 | 16 | 1.25–1.75 | 20–28 | Lint/CI steps lighter; component tests moderate; 3 ATDD stubs already generated (Story 1.1) |
 | P2 | 7 | 0.75–1.25 | 5–8 | Edge cases; reuse P0/P1 fixtures |
 | P3 | 5 | 0.5–1.0 | 3–6 | Visual baselines, manual |
 | **Total** | **42** | — | **~56–80** | **~7–10 engineering days** |
+
+**Savings from Story 1.1 completion:** ~3–4 hours of P1 test authoring offset by existing ATDD stubs in `tests/unit/scaffold.spec.ts` and `tests/e2e/scaffold-smoke.spec.ts`.
 
 ### Prerequisites
 
 **Test Data / Fixtures:**
 - `pgFactory` — Drizzle-backed fixture for seeding rooms + bookings rows (with auto-cleanup via transaction rollback or truncate)
-- `dockerComposeFixture` — spins up Postgres + Mailpit for integration tier; tears down after suite
+- `dockerComposeFixture` — spins up Postgres + Mailpit for integration tier; tears down after suite; references `compose.yaml`
 - `mailpitClient` — thin HTTP client wrapping Mailpit `/api/v1/messages` for inbox assertions
+- `scaffold-context.ts` — already created at `tests/support/fixtures/scaffold-context.ts` (Story 1.1)
 
 **Tooling:**
 - Vitest (unit + integration) with Testcontainers or CI Postgres service for DB tests
 - Playwright (E2E + component) with axe-core plugin
-- Docker Compose CLI (called from test setup or CI shell steps)
+- Docker Compose CLI (called from test setup or CI shell steps; compose file: `compose.yaml`)
 - `bun audit` or `npm audit` for dependency scanning
 
 **Environment:**
@@ -405,7 +447,7 @@ Scenarios with expensive setup or non-deterministic timing:
 
 - [ ] All P0 tests pass (zero failures) before Epic 1 is marked done
 - [ ] R-001 (EXCLUDE constraint) — constraint-exists AND conflict-rejection tests both green
-- [ ] R-002 (migration pre-start) — Docker smoke test green
+- [ ] R-002 (migration pre-start) — Docker smoke test green (`compose.yaml`)
 - [ ] CI pipeline enforced: lint + typecheck + Vitest + Playwright + build + image all green on PR
 - [ ] axe-core CI check reports zero violations
 - [ ] No high-risk items (score ≥6) remaining OPEN without a mitigation plan
@@ -416,16 +458,19 @@ Scenarios with expensive setup or non-deterministic timing:
 
 ### Assumptions
 
-1. No implementation code exists yet — all stories are in `backlog` state. Tests will be authored alongside implementation (TDD-friendly), not after.
+1. Story 1.1 (scaffold) is **done** — test infrastructure exists at `tests/unit/`, `tests/e2e/`, `tests/support/`. All other stories (1.2–1.9) are in `backlog` state; tests will be authored alongside implementation (TDD-friendly), not after.
 2. A CI runner with Docker daemon access is available (required for Docker Compose smoke tests and image build gate).
-3. Mailpit is available in the Docker Compose stack for email assertions (arch confirmed: Mailpit in dev).
+3. Mailpit is available in the Docker Compose stack (`compose.yaml`) for email assertions (arch confirmed: Mailpit in dev).
 4. The EXCLUDE constraint predicate (excludes `cancelled` bookings) is implemented exactly as described in architecture.md — if the predicate changes, R-001 test cases must be updated.
 5. Paraglide source locale is `en`, production locale is `th`. No Thai text is hardcoded in code or mocks (per project memory rule — Rawinan handles all translations).
 6. `bun audit` or equivalent provides dependency/CVE scanning output parseable in CI.
+7. The compose file is `compose.yaml` (confirmed from Story 1.1) — all Docker test references must use this filename, not `docker-compose.yml`.
+8. Build warning `[UNRESOLVED_IMPORT] async_hooks` is benign — Bun handles this at runtime. Tests must not flag this as a failure.
+9. `svelte-adapter-bun` is wired via `vite.config.ts` (not a separate `svelte.config.js`) — build artifact output is under `.svelte-kit/adapter-bun/`.
 
 ### Dependencies
 
-1. **Story 1.1 (scaffold)** — must be complete before any test infrastructure can be set up. Required before all other stories.
+1. **Story 1.1 (scaffold)** — COMPLETE. Test infrastructure exists.
 2. **Story 1.3 (schema + constraint)** — P0 constraint tests depend on this story. Required for R-001 mitigation.
 3. **Story 1.7 (Docker)** — Docker smoke tests depend on compose stack. Required for R-002/R-006 mitigation.
 4. **Story 1.8 (test harness + CI)** — CI gate enforcement depends on this story. Required before Epic 1 exit.
@@ -452,7 +497,7 @@ Scenarios with expensive setup or non-deterministic timing:
 | **Audit log write hook** | Every mutation in Epic 3–7 will call this helper | P0 atomicity tests must remain green; any schema change to `audit_log` triggers re-run |
 | **pg-boss worker** | Email sending (Epic 4–6), reminders (Epic 6), auto-close (Epic 5) | Smoke job test must remain green; new job handler additions inherit the no-`$app/*` import rule |
 | **Paraglide i18n** | All user-facing pages and email templates across all epics | No-hardcoded-string lint rule must remain enforced; Thai locale test must remain green |
-| **Docker Compose stack** | Developer setup + CI integration tests for all epics | Migration pre-start test must remain green; any `docker-compose.yml` change triggers Docker smoke re-run |
+| **Docker Compose stack (`compose.yaml`)** | Developer setup + CI integration tests for all epics | Migration pre-start test must remain green; any `compose.yaml` change triggers Docker smoke re-run |
 | **nginx proxy** | Session security (Better Auth cookie forwarding) — Critical for Epic 2 | `X-Forwarded-*` header test must remain green |
 
 ---
@@ -460,7 +505,7 @@ Scenarios with expensive setup or non-deterministic timing:
 ## Follow-on Workflows
 
 - Run `*atdd` to generate failing P0 tests (acceptance-test-driven) for R-001 and R-003 before Story 1.3 / 1.6 implementation begins.
-- Run `*automate` for P1 test generation once Story 1.1–1.4 scaffold is merged.
+- Run `*automate` for P1 test generation once Story 1.2–1.5 scaffold is merged.
 - After Epic 1 is complete, run `*nfr-assess` with evidence (CI report, axe-core report, Docker logs) to produce the first NFR PASS/CONCERNS/FAIL assessment.
 
 ---
@@ -490,6 +535,8 @@ Scenarios with expensive setup or non-deterministic timing:
 - **Epics:** `_bmad-output/planning-artifacts/epics.md` (Epic 1, lines 265–407)
 - **Architecture:** `_bmad-output/planning-artifacts/architecture.md`
 - **Sprint Status:** `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- **Story 1.1 (done):** `_bmad-output/implementation-artifacts/1-1-scaffold-the-project.md`
+- **ATDD Checklist 1.1:** `_bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md`
 
 ### Risk Score Legend
 
@@ -507,3 +554,4 @@ Scenarios with expensive setup or non-deterministic timing:
 **Version:** 4.0 (BMad v6)
 **Epic:** 1 — Foundation & Walking Skeleton
 **Mode:** Epic-Level
+**Revision:** v2 (2026-06-10) — Updated post Story 1.1 completion; incorporated scaffold nuances (compose.yaml, vite.config.ts adapter, test directory structure, ATDD stubs in RED phase)
