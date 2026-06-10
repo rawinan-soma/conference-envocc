@@ -16,6 +16,11 @@
 	--radius-lg: 1rem;
 	--radius-xl: 1.25rem;
 
+	/* Green-tinted elevation tokens — exposed as Tailwind v4 theme extensions (shadow-1/2/3 utilities) */
+	--shadow-1: 0 1px 2px rgba(27, 67, 50, 0.06);
+	--shadow-2: 0 2px 8px rgba(27, 67, 50, 0.08);
+	--shadow-3: 0 8px 24px rgba(27, 67, 50, 0.12);
+
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -103,11 +108,6 @@
 	--sidebar-accent-foreground: var(--copper);
 	--sidebar-border: var(--border-color);
 	--sidebar-ring: var(--green-500);
-
-	/* ── Shadow tokens ── */
-	--shadow-1: 0 1px 2px rgba(27, 67, 50, 0.06);
-	--shadow-2: 0 2px 8px rgba(27, 67, 50, 0.08);
-	--shadow-3: 0 8px 24px rgba(27, 67, 50, 0.12);
 }
 
 .dark {

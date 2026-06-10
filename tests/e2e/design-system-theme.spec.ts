@@ -200,7 +200,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		expect(
 			lineHeight,
 			`Body text line-height ratio must be >= 1.65 (DESIGN.md Thai body). Got: ${lineHeight.toFixed(3)}`
-		).toBeGreaterThanOrEqual(1.6); // 1.6 tolerance for leading-relaxed (1.625)
+		).toBeGreaterThanOrEqual(1.65); // DESIGN.md Thai body floor (AC5) — page uses leading-[1.65]
 	});
 
 	test('[P0] 1.2-E2E-008 — sample page body text font-size >= 14px (UXD-008: never below 14px)', async ({

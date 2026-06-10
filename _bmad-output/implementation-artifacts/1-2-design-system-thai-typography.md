@@ -4,7 +4,7 @@ baseline_commit: 1aac108
 
 # Story 1.2: Design System & Thai Typography
 
-Status: review
+Status: done
 
 ## Story
 
@@ -269,6 +269,17 @@ Per DESIGN.md §5 (WCAG 2.1 AA):
 - Paraglide message keys for any UI strings (Story 1.4)
 - Dark mode theme (not in DESIGN.md — product is light-mode only)
 - Automated accessibility/contrast tests (Story 1.8/1.9)
+
+### Review Findings
+
+Code review (2026-06-10) — 3 layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor), all passed.
+
+- [x] [Review][Patch] Button default radius is `lg` (16px) but DESIGN.md §4 / AC4 require `md` (10px) [src/lib/components/ui/button/button.svelte] — added `rounded-md` to `default` and `lg` size variants
+- [x] [Review][Patch] Shadow tokens not bridged into `@theme`; AC2 requires Tailwind theme extensions, so `shadow-1/2/3` utilities were never generated [src/app.css] — moved `--shadow-1/2/3` into `@theme` block
+- [x] [Review][Patch] Button primary lacks DESIGN.md-specified `shadow-1` elevation [src/lib/components/ui/button/button.svelte] — added `shadow-1` to `default` variant (enabled by the @theme bridge fix above)
+- [x] [Review][Patch] E2E line-height assertion tolerance (1.6) looser than AC5 (≥1.65) [tests/e2e/design-system-theme.spec.ts] — tightened to `toBeGreaterThanOrEqual(1.65)`
+
+Dismissed as noise (5): global `.text-sm` line-height override (spec Dev Notes §"Thai Typography CSS Rules" Option A prescribes exactly this); `.dark {}` leftover oklch (spec permits light-only product); structural font-size class check (complemented by computed-value E2E assertion); font CDN fallback (`display=swap` present, self-hosting deferred to Story 1.7 per spec); auto-generated button class ordering (eslint-ignored by design).
 
 ## Dev Agent Record
 
