@@ -1,19 +1,9 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 1.7: Docker & Deployment Skeleton
+ * Story 1.7: Docker & Deployment Skeleton
  * Integration/Ops tests for Docker build, Compose stack, nginx proxy, and env validation.
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
- * until the developer activates them task-by-task during implementation.
- *
- * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test.
- *   2. Run: `bun run test -- tests/unit/docker-deployment.spec.ts`
- *      Verify it FAILS first (red — Dockerfile / docker-compose.prod.yml not created yet).
- *   3. Implement the required files (Dockerfiles, compose, nginx config).
- *   4. Run again — verify it PASSES (green).
- *   5. Commit passing tests.
- *
- * Scenario IDs align with test-design-epic-1.md (Story 1.7 section).
+ * TDD GREEN PHASE: Static/config tests are active and passing.
+ * Docker daemon tests (1.7-INT-001–003) remain test.skip() — designated nightly CI.
  *
  * IMPORTANT: These tests require Docker to be running locally.
  * P0 docker compose tests (1.7-INT-001–003) are long-running (~2–3 min)
@@ -28,7 +18,7 @@
  *   bun run test
  */
 
-import { test, expect, describe } from 'vitest';
+import { test, expect, describe, afterAll } from 'vitest';
 import { spawnSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
@@ -152,6 +142,12 @@ describe('Story 1.7 — Docker Worker Image Build (ATDD Red Phase)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 1.7 — Production Compose Stack (ATDD Red Phase — Nightly)', () => {
+	// Safety net: ensure compose stack is torn down even if a test fails mid-run.
+	// When these tests are activated, this afterAll prevents orphaned containers.
+	afterAll(() => {
+		runCmd(`docker compose -f ${PROD_COMPOSE_FILE} down --volumes --remove-orphans`, PROJECT_ROOT);
+	});
+
 	// -----------------------------------------------------------------------
 	// 1.7-INT-001 (P0): `docker compose up` cold start — all services healthy
 	// AC-1: web, worker, PostgreSQL start successfully; drizzle-kit migrate runs
