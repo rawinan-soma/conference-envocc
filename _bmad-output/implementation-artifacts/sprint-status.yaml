@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-09 22:01:41 +0700
-last_updated: 2026-06-10  # story 1.2 → done (code review clean)
+last_updated: 2026-06-10  # story 1.7 → done (code review clean)
 project: conference-envocc
 project_key: NOKEY
 tracking_system: file-system
@@ -50,7 +50,7 @@ development_status:
   1-4-internationalization-setup: done
   1-5-jobs-email-platform: review
   1-6-audit-log-write-hook-foundation: backlog
-  1-7-docker-deployment-skeleton: review
+  1-7-docker-deployment-skeleton: done
   1-8-test-harness-ci: backlog
   1-9-walking-skeleton-vertical-slice: backlog
   epic-1-retrospective: optional
