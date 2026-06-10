@@ -70,10 +70,7 @@ test.describe('Story 1.4 — Internationalization E2E Tests (ATDD Red Phase)', (
 		).toBe('en');
 
 		// English is LTR — dir must be "ltr"
-		expect(
-			dir,
-			'html[dir] must be set to "ltr" for the "en" locale (left-to-right)'
-		).toBe('ltr');
+		expect(dir, 'html[dir] must be set to "ltr" for the "en" locale (left-to-right)').toBe('ltr');
 	});
 
 	// -------------------------------------------------------------------------
@@ -98,16 +95,10 @@ test.describe('Story 1.4 — Internationalization E2E Tests (ATDD Red Phase)', (
 		const dir = await page.getAttribute('html', 'dir');
 
 		// Paraglide must negotiate "th" from Accept-Language header
-		expect(
-			lang,
-			'html[lang] must be "th" when Accept-Language: th is sent'
-		).toBe('th');
+		expect(lang, 'html[lang] must be "th" when Accept-Language: th is sent').toBe('th');
 
 		// Thai is LTR — dir must be "ltr"
-		expect(
-			dir,
-			'html[dir] must be "ltr" for Thai locale'
-		).toBe('ltr');
+		expect(dir, 'html[dir] must be "ltr" for Thai locale').toBe('ltr');
 	});
 
 	// -------------------------------------------------------------------------

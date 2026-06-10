@@ -4,7 +4,7 @@ baseline_commit: 1aac108
 
 # Story 1.4: Internationalization Setup
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -23,35 +23,35 @@ so that all user-facing text is translatable and Thai-ready.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Verify and finalize Paraglide 2.0 configuration (AC: 1, 2, 5)
-  - [ ] 1.1 Confirm `project.inlang/settings.json` has `baseLocale: "en"`, `locales: ["en", "th"]`, and the correct module URLs (already present from Story 1.1)
-  - [ ] 1.2 Confirm `vite.config.ts` includes `paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' })` (already present from Story 1.1)
-  - [ ] 1.3 Confirm `src/hooks.server.ts` uses `paraglideMiddleware` with `transformPageChunk` replacing `%paraglide.lang%` and `%paraglide.dir%` (already present from Story 1.1 — verify it compiles cleanly after this story's changes)
-  - [ ] 1.4 Confirm `src/app.html` has `<html lang="%paraglide.lang%" dir="%paraglide.dir%">` placeholders
+- [x] Task 1: Verify and finalize Paraglide 2.0 configuration (AC: 1, 2, 5)
+  - [x] 1.1 Confirm `project.inlang/settings.json` has `baseLocale: "en"`, `locales: ["en", "th"]`, and the correct module URLs (already present from Story 1.1)
+  - [x] 1.2 Confirm `vite.config.ts` includes `paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' })` (already present from Story 1.1)
+  - [x] 1.3 Confirm `src/hooks.server.ts` uses `paraglideMiddleware` with `transformPageChunk` replacing `%paraglide.lang%` and `%paraglide.dir%` (already present from Story 1.1 — verify it compiles cleanly after this story's changes)
+  - [x] 1.4 Confirm `src/app.html` has `<html lang="%paraglide.lang%" dir="%paraglide.dir%">` placeholders
 
-- [ ] Task 2: Establish canonical message keys for the walking skeleton (AC: 1, 2)
-  - [ ] 2.1 Replace the scaffold placeholder in `messages/en.json` with a proper initial message set: add key `app_name` = `"Conference Room Booking"` and `home_title` = `"Room Booking System"`; the `hello_world` placeholder key is **not referenced in any test file** (verified) and can be safely removed or replaced
-  - [ ] 2.2 Ensure `messages/th.json` mirrors all keys from `en.json` with placeholder values (e.g., same English strings — Rawinan will provide Thai translations; **never write Thai text in code or mocks**)
-  - [ ] 2.3 Run `bun run build` (or `bun run check`) to trigger Paraglide compilation and confirm `src/lib/paraglide/` is generated
+- [x] Task 2: Establish canonical message keys for the walking skeleton (AC: 1, 2)
+  - [x] 2.1 Replace the scaffold placeholder in `messages/en.json` with a proper initial message set: add key `app_name` = `"Conference Room Booking"` and `home_title` = `"Room Booking System"`; the `hello_world` placeholder key is **not referenced in any test file** (verified) and can be safely removed or replaced
+  - [x] 2.2 Ensure `messages/th.json` mirrors all keys from `en.json` with placeholder values (e.g., same English strings — Rawinan will provide Thai translations; **never write Thai text in code or mocks**)
+  - [x] 2.3 Run `bun run build` (or `bun run check`) to trigger Paraglide compilation and confirm `src/lib/paraglide/` is generated
 
-- [ ] Task 3: Update `+page.svelte` to use Paraglide messages (AC: 2, 3, 4, 6)
-  - [ ] 3.1 Replace the hardcoded strings in `src/routes/+page.svelte` (`<h1>Welcome to SvelteKit</h1>` and the `<p>Visit...` paragraph) with `m.home_title()` and a placeholder message key
-  - [ ] 3.2 Import `* as m from '$lib/paraglide/messages'` at the top of the script block
-  - [ ] 3.3 Verify the page renders via `bun run dev` and the compiled message appears correctly
+- [x] Task 3: Update `+page.svelte` to use Paraglide messages (AC: 2, 3, 4, 6)
+  - [x] 3.1 Replace the hardcoded strings in `src/routes/+page.svelte` (`<h1>Welcome to SvelteKit</h1>` and the `<p>Visit...` paragraph) with `m.home_title()` and a placeholder message key
+  - [x] 3.2 Import `* as m from '$lib/paraglide/messages'` at the top of the script block
+  - [x] 3.3 Verify the page renders via `bun run dev` and the compiled message appears correctly
 
-- [ ] Task 4: Add ESLint rule to guard against hardcoded UI strings in Svelte files (AC: 3, 4)
-  - [ ] 4.1 Try Option A first: `bun add -d eslint-plugin-no-hardcoded-strings` — if the package supports ESLint flat config (eslint v10) and Svelte 5, use it; otherwise fall back to Option C (inline custom rule in `eslint.config.js`) — see Dev Notes for full config snippets
-  - [ ] 4.2 NOTE: Do NOT attempt `svelte/no-raw-text` — that rule does NOT exist in `eslint-plugin-svelte` v3.19.0 (installed version); using it will throw an unknown rule error
-  - [ ] 4.3 Configure the rule in `eslint.config.js` targeting `**/*.svelte` files only; configure allowlist for non-UI strings (class names, href values, aria labels, data-* attributes, empty strings, route paths)
-  - [ ] 4.4 Verify the rule fires: temporarily revert `+page.svelte` to hardcoded `<h1>Welcome to SvelteKit</h1>`, run `bun run lint`, confirm error is reported, then re-apply the fix
-  - [ ] 4.5 Run `bun run lint` on the full codebase and confirm exit 0
+- [x] Task 4: Add ESLint rule to guard against hardcoded UI strings in Svelte files (AC: 3, 4)
+  - [x] 4.1 Try Option A first: `bun add -d eslint-plugin-no-hardcoded-strings` — if the package supports ESLint flat config (eslint v10) and Svelte 5, use it; otherwise fall back to Option C (inline custom rule in `eslint.config.js`) — see Dev Notes for full config snippets
+  - [x] 4.2 NOTE: Do NOT attempt `svelte/no-raw-text` — that rule does NOT exist in `eslint-plugin-svelte` v3.19.0 (installed version); using it will throw an unknown rule error
+  - [x] 4.3 Configure the rule in `eslint.config.js` targeting `**/*.svelte` files only; configure allowlist for non-UI strings (class names, href values, aria labels, data-* attributes, empty strings, route paths)
+  - [x] 4.4 Verify the rule fires: temporarily revert `+page.svelte` to hardcoded `<h1>Welcome to SvelteKit</h1>`, run `bun run lint`, confirm error is reported, then re-apply the fix
+  - [x] 4.5 Run `bun run lint` on the full codebase and confirm exit 0
 
-- [ ] Task 5: Run all quality gates (AC: 1–6)
-  - [ ] 5.1 `bun run lint` → exit 0
-  - [ ] 5.2 `bun run format` → exit 0
-  - [ ] 5.3 `bun run check` (svelte-check) → exit 0
-  - [ ] 5.4 `bun run test:unit -- --run` → exit 0
-  - [ ] 5.5 `bun run build` → exit 0 (confirms Paraglide compilation pipeline)
+- [x] Task 5: Run all quality gates (AC: 1–6)
+  - [x] 5.1 `bun run lint` → exit 0
+  - [x] 5.2 `bun run format` → exit 0
+  - [x] 5.3 `bun run check` (svelte-check) → exit 0
+  - [x] 5.4 `bun run test:unit -- --run` → exit 0
+  - [x] 5.5 `bun run build` → exit 0 (confirms Paraglide compilation pipeline)
 
 ## Dev Notes
 
@@ -249,12 +249,32 @@ claude-sonnet-4-6
 
 ### Debug Log References
 
+- Option A (`eslint-plugin-no-hardcoded-strings`) only handles `JSXText` nodes, not Svelte's `SvelteText` AST. Fell back to Option C: inline custom ESLint rule using `SvelteText` nodes via `eslint-plugin-svelte` parser.
+- Test file `i18n-setup.spec.ts` had a `require('fs')` (ATDD scaffold) that violated `@typescript-eslint/no-require-imports`. Fixed by converting to ESM imports (`mkdirSync`, `writeFileSync`, `unlinkSync` added to the fs import).
+
 ### Completion Notes List
 
+- Task 1: All Paraglide 2.0 wiring verified as correctly set from Story 1.1 — `project.inlang/settings.json`, `vite.config.ts`, `hooks.server.ts`, and `app.html` all confirmed correct.
+- Task 2: `messages/en.json` and `messages/th.json` updated with canonical keys `app_name` and `home_title`. Scaffold `hello_world` key removed. No Thai text written (English placeholders used).
+- Task 3: `src/routes/+page.svelte` updated to import `* as m from '$lib/paraglide/messages'` and use `m.home_title()` and `m.app_name()`. Hardcoded strings removed.
+- Task 4: Added inline `local/no-raw-svelte-text` ESLint rule to `eslint.config.js` targeting `**/*.svelte` files. Uses `SvelteText` AST node. Rule confirmed to fire on hardcoded strings (exit non-zero) and pass on `m.*()` usage (exit 0). `eslint-plugin-no-hardcoded-strings` installed but not used (JSX-only).
+- Task 5: All quality gates pass — lint (exit 0), format (exit 0), svelte-check (0 errors), unit tests (11/11 pass), build (exit 0, Paraglide compiled to `src/lib/paraglide/`).
+- ATDD tests activated: UNIT-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011 (all 11 pass). Remaining skipped tests are E2E (require running dev server, out of scope for this story's unit test phase).
+
 ### File List
+
+- `messages/en.json` — updated with canonical keys `app_name`, `home_title`; removed `hello_world` scaffold
+- `messages/th.json` — updated to mirror `en.json` keys with English placeholder values (no Thai text)
+- `src/routes/+page.svelte` — replaced hardcoded strings with `m.home_title()` and `m.app_name()`
+- `eslint.config.js` — added `local/no-raw-svelte-text` inline ESLint rule for `**/*.svelte` files
+- `tests/unit/i18n-setup.spec.ts` — activated 11 ATDD tests (removed `test.skip`); fixed `require('fs')` → ESM imports
+- `tests/e2e/i18n-setup.spec.ts` — formatted by prettier (no logic changes)
+- `package.json` — added `eslint-plugin-no-hardcoded-strings` devDependency (installed but not used in final config)
+- `bun.lock` — updated with new dependency
 
 ## Change Log
 
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-06-10 | Story created via bmad-create-story workflow | claude-sonnet-4-6 |
+| 2026-06-10 | Implemented all tasks: message keys, page.svelte, ESLint guard, quality gates | claude-sonnet-4-6 |
