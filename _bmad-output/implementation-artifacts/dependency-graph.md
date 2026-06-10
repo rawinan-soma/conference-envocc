@@ -1,17 +1,17 @@
 # Story Dependency Graph
-_Last updated: 2026-06-09T22:00:00+07:00_
+_Last updated: 2026-06-10T11:00:00+07:00_
 
 ## Stories
 
 | Story | Epic | Title | Sprint Status | Issue | PR | PR Status | Dependencies | Ready to Work |
 |-------|------|-------|--------------|-------|----|-----------|--------------|---------------|
-| 1.1 | 1 | Scaffold the project | backlog | #1 | — | — | none | ✅ Yes |
-| 1.2 | 1 | Design system & Thai typography | backlog | #2 | — | — | 1.1 | ❌ No (1.1 not merged) |
-| 1.3 | 1 | Database & migration setup with bare EXCLUDE constraint | backlog | #3 | — | — | 1.1 | ❌ No (1.1 not merged) |
-| 1.4 | 1 | Internationalization setup | backlog | #4 | — | — | 1.1 | ❌ No (1.1 not merged) |
-| 1.5 | 1 | Jobs & email platform | backlog | #5 | — | — | 1.1 | ❌ No (1.1 not merged) |
+| 1.1 | 1 | Scaffold the project | done | #1 | #49 | merged | none | ✅ Yes (done) |
+| 1.2 | 1 | Design system & Thai typography | backlog | #2 | — | — | 1.1 | ✅ Yes |
+| 1.3 | 1 | Database & migration setup with bare EXCLUDE constraint | backlog | #3 | — | — | 1.1 | ✅ Yes |
+| 1.4 | 1 | Internationalization setup | backlog | #4 | — | — | 1.1 | ✅ Yes |
+| 1.5 | 1 | Jobs & email platform | backlog | #5 | — | — | 1.1 | ✅ Yes |
 | 1.6 | 1 | Audit-log write-hook foundation | backlog | #6 | — | — | 1.3 | ❌ No (1.3 not merged) |
-| 1.7 | 1 | Docker & deployment skeleton | backlog | #7 | — | — | 1.1 | ❌ No (1.1 not merged) |
+| 1.7 | 1 | Docker & deployment skeleton | backlog | #7 | — | — | 1.1 | ✅ Yes |
 | 1.8 | 1 | Test harness & CI | backlog | #8 | — | — | 1.3, 1.7 | ❌ No (1.3 not merged) |
 | 1.9 | 1 | Walking-skeleton vertical slice | backlog | #9 | — | — | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ❌ No (1.2 not merged) |
 | 2.1 | 2 | Sign in with Authentik (OIDC) | backlog | #10 | — | — | epic 1 complete | ❌ No (epic 1 not complete) |
