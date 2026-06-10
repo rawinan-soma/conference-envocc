@@ -36,8 +36,56 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
-	}
+		// Hardcoded UI string guard — AC-3 and AC-4 of Story 1.4
+		// Uses the SvelteText AST node exposed by eslint-plugin-svelte's parser.
+		// Fires when non-whitespace raw text appears directly in a Svelte template
+		// (i.e., not wrapped in m.*() or an expression block).
+		files: ['**/*.svelte'],
+		plugins: {
+			local: {
+				rules: {
+					'no-raw-svelte-text': {
+						meta: {
+							type: 'suggestion',
+							docs: {
+								description:
+									'Disallow hardcoded user-facing text in Svelte templates. Use m.*() from $lib/paraglide/messages instead.'
+							},
+							schema: [],
+							messages: {
+								hardcoded: 'Hardcoded UI text "{{text}}" found. Use m.*() for user-facing strings.'
+							}
+						},
+						create(context) {
+							// Allowlist for non-UI text content (per Story 1.4 Task 4.3):
+							// empty/whitespace-only, route paths, and punctuation/symbol-only text.
+							const ROUTE_PATH = /^\/[\w/-]*$/;
+							const PUNCTUATION_ONLY = /^[^\p{L}\p{N}]+$/u;
+							return {
+								SvelteText(node) {
+									const trimmed = node.value.trim();
+									// Skip empty/whitespace, route paths, and punctuation-only text.
+									if (
+										trimmed === '' ||
+										ROUTE_PATH.test(trimmed) ||
+										PUNCTUATION_ONLY.test(trimmed)
+									) {
+										return;
+									}
+									context.report({
+										node,
+										messageId: 'hardcoded',
+										data: { text: trimmed }
+									});
+								}
+							};
+						}
+					}
+				}
+			}
+		},
+		rules: {
+			'local/no-raw-svelte-text': 'error'
+		}
+	},
 );
