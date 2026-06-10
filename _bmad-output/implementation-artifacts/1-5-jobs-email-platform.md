@@ -4,7 +4,7 @@ baseline_commit: 1aac108
 
 # Story 1.5: Jobs & Email Platform
 
-Status: review
+Status: done
 
 ## Story
 
@@ -439,6 +439,11 @@ claude-sonnet-4-6
 - bun.lock (updated by bun install)
 - src/lib/server/jobs/queues.test.ts (activated tests; fixed expectValid helper type for valibot v1 strict TS)
 
+### Review Findings
+
+- [x] [Review][Patch] SMTP_PORT env schema silently accepts invalid values [src/lib/server/env.ts:8] — `v.pipe(v.string(), v.transform(Number), v.number())` lets empty/whitespace strings coerce to `0` and accepts non-integer/negative/zero ports, defeating AC-6 fail-fast intent. FIXED: hardened to `regex(^\d+$) → transform(Number) → integer() → minValue(1) → maxValue(65535)`.
+
 ## Change Log
 
 - 2026-06-10: Implemented Story 1.5 Jobs & Email Platform — pg-boss worker, nodemailer Mailpit transport, Valibot env validation, ESLint boundary rule. 58 unit tests passing. Status: review.
+- 2026-06-10: Code review (Step 5). 1 patch finding applied (SMTP_PORT validation hardened to integer 1–65535), 5 findings dismissed as noise/intended behavior. All quality gates pass. Status: done.
