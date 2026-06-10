@@ -16,10 +16,13 @@ export async function enqueueJob<T>(
 	options: SendOptions & { singletonKey?: string; key?: string }
 ) {
 	const { default: boss } = await import('./boss.js');
-	// Support both `key` (legacy/tests) and `singletonKey` (pg-boss v12 native)
+	// Support both `key` (legacy/tests) and `singletonKey` (pg-boss v12 native).
+	// Destructure out the `key` alias so it is not forwarded to boss.send() as an
+	// unknown field — only the normalised `singletonKey` is passed.
+	const { key, singletonKey: explicitSingletonKey, ...rest } = options;
 	const sendOptions: SendOptions = {
-		...options,
-		singletonKey: options.singletonKey ?? options.key
+		...rest,
+		singletonKey: explicitSingletonKey ?? key
 	};
 	return boss.send(queue, data as object, sendOptions);
 }

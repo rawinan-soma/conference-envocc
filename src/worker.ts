@@ -14,10 +14,11 @@ async function main() {
 	logger.info('pg-boss started');
 
 	// pg-boss v12 WorkHandler passes Job<T>[] which extends our JobLike interface
+	// Await boss.work() so registration errors surface immediately rather than being silently lost.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	boss.work(QUEUE.SMOKE_EMAIL, smokeEmailHandler as any);
+	await boss.work(QUEUE.SMOKE_EMAIL, smokeEmailHandler as any);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	boss.work(QUEUE.SEND_EMAIL, sendEmailHandler as any);
+	await boss.work(QUEUE.SEND_EMAIL, sendEmailHandler as any);
 
 	logger.info('Worker ready, handlers registered');
 
