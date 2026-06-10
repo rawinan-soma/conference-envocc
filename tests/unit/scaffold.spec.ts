@@ -18,7 +18,7 @@ import { test, expect, describe } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { REQUIRED_SCRIPTS, REQUIRED_SCAFFOLD_PATHS } from '../support/fixtures/scaffold-context';
-import { runCmd } from '../support/helpers/run-cmd';
+import { runCmd } from '../support/helpers/cmd-helpers';
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 

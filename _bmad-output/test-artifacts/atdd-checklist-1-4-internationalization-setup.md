@@ -13,18 +13,22 @@ storyKey: 1-4-internationalization-setup
 storyFile: _bmad-output/implementation-artifacts/1-4-internationalization-setup.md
 atddChecklistPath: _bmad-output/test-artifacts/atdd-checklist-1-4-internationalization-setup.md
 generatedTestFiles:
-  - tests/unit/i18n-setup.spec.ts
+  - tests/unit/i18n-messages.spec.ts
+  - tests/unit/i18n-config.spec.ts
   - tests/e2e/i18n-setup.spec.ts
+sharedHelpers:
+  - tests/support/helpers/cmd-helpers.ts
 ---
 
 # ATDD Checklist: Story 1.4 — Internationalization Setup
 
-## TDD Red Phase (Current)
+## TDD Green Phase (Unit Tests)
 
-All red-phase test scaffolds generated. All tests are marked `test.skip()`.
+All unit tests are active and passing. E2E tests remain skipped (require running dev server).
 
-- Unit Tests: 11 tests (all skipped) — `tests/unit/i18n-setup.spec.ts`
-- E2E Tests: 5 tests (all skipped) — `tests/e2e/i18n-setup.spec.ts`
+- Unit Tests (messages + ESLint): 6 tests (all passing) — `tests/unit/i18n-messages.spec.ts`
+- Unit Tests (config verification): 5 tests (all passing) — `tests/unit/i18n-config.spec.ts`
+- E2E Tests: 5 tests (all skipped — dev server required) — `tests/e2e/i18n-setup.spec.ts`
 
 ## Stack Detection
 
@@ -46,7 +50,7 @@ All red-phase test scaffolds generated. All tests are marked `test.skip()`.
 
 ## Test File Index
 
-### Unit Tests: `tests/unit/i18n-setup.spec.ts`
+### Unit Tests (messages + ESLint guard): `tests/unit/i18n-messages.spec.ts`
 
 | Test ID | Description | Task | Priority |
 |---------|-------------|------|----------|
@@ -56,11 +60,20 @@ All red-phase test scaffolds generated. All tests are marked `test.skip()`.
 | 1.4-UNIT-004 | ESLint fires on hardcoded inline UI strings in `.svelte` files | Task 4.1–4.3 | P1 |
 | 1.4-UNIT-005 | `bun run lint` exits 0 after all strings use `m.*()` | Task 4.5 | P1 |
 | 1.4-UNIT-006 | `+page.svelte` imports `* as m` and uses `m.home_title()` | Task 3.1–3.2 | P1 |
+
+### Unit Tests (Paraglide config verification): `tests/unit/i18n-config.spec.ts`
+
+| Test ID | Description | Task | Priority |
+|---------|-------------|------|----------|
 | 1.4-UNIT-007 | `project.inlang/settings.json` has `baseLocale: "en"` and `locales: ["en","th"]` | Task 1.1 | P2 |
 | 1.4-UNIT-008 | `src/app.html` has `%paraglide.lang%` and `%paraglide.dir%` placeholders | Task 1.4 | P2 |
 | 1.4-UNIT-009 | `src/hooks.server.ts` uses Paraglide 2.0 `paraglideMiddleware` + `transformPageChunk` | Task 1.3 | P2 |
 | 1.4-UNIT-010 | `bun run check` (svelte-check) exits 0 | Task 5.3 | P1 |
 | 1.4-UNIT-011 | `vite.config.ts` includes `paraglideVitePlugin` pointing to `project.inlang` | Task 1.2 | P1 |
+
+### Shared Helper: `tests/support/helpers/cmd-helpers.ts`
+
+Extracted `runCmd()` utility — used by `i18n-messages.spec.ts`, `i18n-config.spec.ts`, and `scaffold.spec.ts`.
 
 ### E2E Tests: `tests/e2e/i18n-setup.spec.ts`
 

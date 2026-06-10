@@ -236,8 +236,10 @@ From Story 1.1 review findings:
 ### ATDD Artifacts
 
 - Checklist: `_bmad-output/test-artifacts/atdd-checklist-1-4-internationalization-setup.md`
-- Unit tests: `tests/unit/i18n-setup.spec.ts`
+- Unit tests (messages): `tests/unit/i18n-messages.spec.ts` (UNIT-001..006)
+- Unit tests (config): `tests/unit/i18n-config.spec.ts` (UNIT-007..011)
 - E2E tests: `tests/e2e/i18n-setup.spec.ts`
+- Shared helper: `tests/support/helpers/cmd-helpers.ts`
 
 All tests are red-phase scaffolds (`test.skip()`). Activate task-by-task during implementation.
 
@@ -267,7 +269,9 @@ claude-sonnet-4-6
 - `messages/th.json` — updated to mirror `en.json` keys with English placeholder values (no Thai text)
 - `src/routes/+page.svelte` — replaced hardcoded strings with `m.home_title()` and `m.app_name()`
 - `eslint.config.js` — added `local/no-raw-svelte-text` inline ESLint rule for `**/*.svelte` files
-- `tests/unit/i18n-setup.spec.ts` — activated 11 ATDD tests (removed `test.skip`); fixed `require('fs')` → ESM imports
+- `tests/unit/i18n-messages.spec.ts` — split from i18n-setup.spec.ts; contains UNIT-001..006 (messages + ESLint guard tests)
+- `tests/unit/i18n-config.spec.ts` — split from i18n-setup.spec.ts; contains UNIT-007..011 (config verification tests)
+- `tests/support/helpers/cmd-helpers.ts` — extracted shared runCmd helper (was duplicated in scaffold.spec.ts and i18n-setup.spec.ts)
 - `tests/e2e/i18n-setup.spec.ts` — formatted by prettier (no logic changes)
 - `package.json` — added `eslint-plugin-no-hardcoded-strings` devDependency (installed but not used in final config)
 - `bun.lock` — updated with new dependency
