@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-09 22:01:41 +0700
-last_updated: 2026-06-10  # story 1.4 → done (code review clean)
+last_updated: 2026-06-10  # story 1.2 → done (code review clean)
 project: conference-envocc
 project_key: NOKEY
 tracking_system: file-system
