@@ -28,9 +28,9 @@
  *   bun run test
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { execSync, spawnSync } from 'child_process';
-import { existsSync } from 'fs';
+import { test, expect, describe } from 'vitest';
+import { spawnSync } from 'child_process';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import {
 	PROJECT_ROOT,
@@ -52,7 +52,7 @@ describe('Story 1.7 — Docker Files Exist (ATDD Red Phase)', () => {
 	// -----------------------------------------------------------------------
 	// 1.7-UNIT-PREFLIGHT-001 (P1): required Docker files present in repo
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-PREFLIGHT-001 — all required Docker/infra files are present', () => {
+	test('[P1] 1.7-UNIT-PREFLIGHT-001 — all required Docker/infra files are present', () => {
 		// THIS TEST WILL FAIL — Dockerfile, Dockerfile.worker, etc. do not exist yet.
 		// Activate after all file-creation tasks (Tasks 1–5) are complete.
 		for (const file of REQUIRED_DOCKER_FILES) {
@@ -83,13 +83,13 @@ describe('Story 1.7 — Docker Web Image Build (ATDD Red Phase)', () => {
 	// 1.7-UNIT-BUILD-002 (P1): web image uses oven/bun base (not node)
 	// AC-3 + Dev Notes: "oven/bun:1 base image used (NOT node/alpine)"
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-BUILD-002 — web Docker image is based on oven/bun (not node)', () => {
+	test('[P1] 1.7-UNIT-BUILD-002 — web Docker image is based on oven/bun (not node)', () => {
 		// THIS TEST WILL FAIL — Dockerfile does not exist yet.
 		// Activate after Task 1.
 		const dockerfile = path.join(PROJECT_ROOT, 'Dockerfile');
 		expect(existsSync(dockerfile), 'Dockerfile missing').toBe(true);
 
-		const content = require('fs').readFileSync(dockerfile, 'utf-8');
+		const content = readFileSync(dockerfile, 'utf-8');
 		// Must reference oven/bun as the base image, never node:*
 		expect(content).toMatch(/FROM\s+oven\/bun/);
 		expect(content).not.toMatch(/FROM\s+node:/);
@@ -99,13 +99,13 @@ describe('Story 1.7 — Docker Web Image Build (ATDD Red Phase)', () => {
 	// 1.7-UNIT-BUILD-003 (P1): web image uses multi-stage build
 	// AC-3: "multi-stage build produces a minimal web image ... no dev dependencies"
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-BUILD-003 — web Dockerfile uses multi-stage build (AS builder + AS runtime)', () => {
+	test('[P1] 1.7-UNIT-BUILD-003 — web Dockerfile uses multi-stage build (AS builder + AS runtime)', () => {
 		// THIS TEST WILL FAIL — Dockerfile does not exist yet.
 		// Activate after Task 1.
 		const dockerfile = path.join(PROJECT_ROOT, 'Dockerfile');
 		expect(existsSync(dockerfile), 'Dockerfile missing').toBe(true);
 
-		const content = require('fs').readFileSync(dockerfile, 'utf-8');
+		const content = readFileSync(dockerfile, 'utf-8');
 		expect(content).toMatch(/AS\s+builder/i);
 		expect(content).toMatch(/AS\s+runtime/i);
 	});
@@ -133,13 +133,13 @@ describe('Story 1.7 — Docker Worker Image Build (ATDD Red Phase)', () => {
 	// -----------------------------------------------------------------------
 	// 1.7-UNIT-BUILD-005 (P1): worker Dockerfile uses oven/bun base
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-BUILD-005 — worker Dockerfile is based on oven/bun (not node)', () => {
+	test('[P1] 1.7-UNIT-BUILD-005 — worker Dockerfile is based on oven/bun (not node)', () => {
 		// THIS TEST WILL FAIL — Dockerfile.worker does not exist yet.
 		// Activate after Task 2.
 		const dockerfile = path.join(PROJECT_ROOT, 'Dockerfile.worker');
 		expect(existsSync(dockerfile), 'Dockerfile.worker missing').toBe(true);
 
-		const content = require('fs').readFileSync(dockerfile, 'utf-8');
+		const content = readFileSync(dockerfile, 'utf-8');
 		expect(content).toMatch(/FROM\s+oven\/bun/);
 		expect(content).not.toMatch(/FROM\s+node:/);
 	});
@@ -270,7 +270,7 @@ describe('Story 1.7 — Nginx Proxy Headers (ATDD Red Phase)', () => {
 		const nginxConf = path.join(PROJECT_ROOT, 'nginx', 'conf.d', 'app.conf');
 		expect(existsSync(nginxConf), 'nginx/conf.d/app.conf missing').toBe(true);
 
-		const confContent = require('fs').readFileSync(nginxConf, 'utf-8');
+		const confContent = readFileSync(nginxConf, 'utf-8');
 		expect(confContent).toMatch(/proxy_set_header\s+X-Forwarded-For/);
 		expect(confContent).toMatch(/proxy_set_header\s+X-Forwarded-Proto/);
 		expect(confContent).toMatch(/proxy_set_header\s+X-Forwarded-Host/);
@@ -280,13 +280,13 @@ describe('Story 1.7 — Nginx Proxy Headers (ATDD Red Phase)', () => {
 	// -----------------------------------------------------------------------
 	// 1.7-INT-005 (P1): nginx config exists and listens on port 80
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-INT-005 — nginx conf listens on port 80 and proxies to web:3000', () => {
+	test('[P1] 1.7-INT-005 — nginx conf listens on port 80 and proxies to web:3000', () => {
 		// THIS TEST WILL FAIL — nginx/conf.d/app.conf does not exist yet.
 		// Activate after Task 3 (create nginx/conf.d/app.conf).
 		const nginxConf = path.join(PROJECT_ROOT, 'nginx', 'conf.d', 'app.conf');
 		expect(existsSync(nginxConf), 'nginx/conf.d/app.conf missing').toBe(true);
 
-		const content = require('fs').readFileSync(nginxConf, 'utf-8');
+		const content = readFileSync(nginxConf, 'utf-8');
 		expect(content).toMatch(/listen\s+80/);
 		expect(content).toMatch(/proxy_pass\s+http:\/\/web/);
 	});
@@ -301,13 +301,13 @@ describe('Story 1.7 — Dev Compose (compose.yaml) (ATDD Red Phase)', () => {
 	// 1.7-UNIT-COMPOSE-001 (P1): dev compose.yaml does NOT contain web or worker services
 	// AC-6: "web and worker containers are NOT in the dev compose file"
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-COMPOSE-001 — dev compose.yaml does not include web or worker services', () => {
+	test('[P1] 1.7-UNIT-COMPOSE-001 — dev compose.yaml does not include web or worker services', () => {
 		// THIS TEST WILL FAIL — compose.yaml has not been updated yet to add mailpit / remove web/worker.
 		// Activate after Task 5 (update compose.yaml).
 		const devCompose = path.join(PROJECT_ROOT, 'compose.yaml');
 		expect(existsSync(devCompose), 'compose.yaml missing').toBe(true);
 
-		const content = require('fs').readFileSync(devCompose, 'utf-8');
+		const content = readFileSync(devCompose, 'utf-8');
 		// Must NOT define web or worker services (developers run those locally)
 		expect(content).not.toMatch(/^\s+web:\s*$/m);
 		expect(content).not.toMatch(/^\s+worker:\s*$/m);
@@ -319,13 +319,13 @@ describe('Story 1.7 — Dev Compose (compose.yaml) (ATDD Red Phase)', () => {
 	// 1.7-UNIT-COMPOSE-002 (P1): dev compose.yaml includes mailpit service
 	// Story dev note: "Add Mailpit for dev email testing (story 1.5 uses it)"
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-COMPOSE-002 — dev compose.yaml includes mailpit service', () => {
+	test('[P1] 1.7-UNIT-COMPOSE-002 — dev compose.yaml includes mailpit service', () => {
 		// THIS TEST WILL FAIL — compose.yaml has not been updated yet.
 		// Activate after Task 5.
 		const devCompose = path.join(PROJECT_ROOT, 'compose.yaml');
 		expect(existsSync(devCompose), 'compose.yaml missing').toBe(true);
 
-		const content = require('fs').readFileSync(devCompose, 'utf-8');
+		const content = readFileSync(devCompose, 'utf-8');
 		expect(content).toMatch(/mailpit/);
 		expect(content).toMatch(/axllent\/mailpit/);
 	});
@@ -340,13 +340,13 @@ describe('Story 1.7 — Production Compose Config (ATDD Red Phase)', () => {
 	// 1.7-UNIT-COMPOSE-003 (P1): prod compose has DB healthcheck and service_healthy condition
 	// AC-1: "drizzle-kit migrate runs as a pre-start step"
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-COMPOSE-003 — docker-compose.prod.yml has db healthcheck and web depends on service_healthy', () => {
+	test('[P1] 1.7-UNIT-COMPOSE-003 — docker-compose.prod.yml has db healthcheck and web depends on service_healthy', () => {
 		// THIS TEST WILL FAIL — docker-compose.prod.yml does not exist yet.
 		// Activate after Task 4 (create docker-compose.prod.yml).
 		const prodCompose = path.join(PROJECT_ROOT, PROD_COMPOSE_FILE);
 		expect(existsSync(prodCompose), 'docker-compose.prod.yml missing').toBe(true);
 
-		const content = require('fs').readFileSync(prodCompose, 'utf-8');
+		const content = readFileSync(prodCompose, 'utf-8');
 		expect(content).toMatch(/healthcheck/);
 		expect(content).toMatch(/service_healthy/);
 		expect(content).toMatch(/drizzle-kit migrate/);
@@ -356,13 +356,13 @@ describe('Story 1.7 — Production Compose Config (ATDD Red Phase)', () => {
 	// 1.7-UNIT-COMPOSE-004 (P1): prod compose uses env_file and no hardcoded secrets
 	// AC-1 + Dev Notes: "All secrets loaded from .env file (not hardcoded)"
 	// -----------------------------------------------------------------------
-	test.skip('[P1] 1.7-UNIT-COMPOSE-004 — docker-compose.prod.yml uses env_file and no hardcoded passwords', () => {
+	test('[P1] 1.7-UNIT-COMPOSE-004 — docker-compose.prod.yml uses env_file and no hardcoded passwords', () => {
 		// THIS TEST WILL FAIL — docker-compose.prod.yml does not exist yet.
 		// Activate after Task 4.
 		const prodCompose = path.join(PROJECT_ROOT, PROD_COMPOSE_FILE);
 		expect(existsSync(prodCompose), 'docker-compose.prod.yml missing').toBe(true);
 
-		const content = require('fs').readFileSync(prodCompose, 'utf-8');
+		const content = readFileSync(prodCompose, 'utf-8');
 		expect(content).toMatch(/env_file/);
 		// Ensure no hardcoded passwords (basic check — no common patterns)
 		expect(content).not.toMatch(/password:\s*["']?[a-zA-Z0-9]{8,}/);

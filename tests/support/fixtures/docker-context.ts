@@ -16,7 +16,7 @@ import path from 'path';
 // Project root (resolved relative to the tests/support/fixtures/ directory)
 // ---------------------------------------------------------------------------
 
-export const PROJECT_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..');
+export const PROJECT_ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
 
 // ---------------------------------------------------------------------------
 // Required infrastructure files (checked by 1.7-UNIT-PREFLIGHT-001)
