@@ -20,7 +20,7 @@ export type AuditLogEntry = {
 
 export async function writeAuditLog(tx: DrizzleTransaction, entry: AuditLogEntry): Promise<void> {
 	await tx.insert(auditLog).values({
-		actorId: entry.actorId ?? null,
+		actorId: entry.actorId,
 		entity: entry.entity,
 		action: entry.action,
 		diff: entry.diff ?? null

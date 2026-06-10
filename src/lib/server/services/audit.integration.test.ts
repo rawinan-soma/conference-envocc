@@ -27,7 +27,6 @@ import { describe, test, expect } from 'vitest';
 
 describe('writeAuditLog integration', () => {
 	test.skip('[P1] 1.6-INT-001 — writes audit_log row atomically in committed transaction (AC-2)', async () => {
-		// THIS TEST WILL FAIL — no real Postgres available + modules not implemented.
 		// Activate in Story 1.8 when CI services are wired.
 		//
 		// AC-2: Given a running transaction,
@@ -47,17 +46,19 @@ describe('writeAuditLog integration', () => {
 			throw new Error('drizzle-orm not installed — red phase');
 		});
 
+		// Use a unique actorId to avoid collisions when tests run in parallel or db has prior data
+		const testActorId = `commit-test-${crypto.randomUUID()}`;
 		let insertedId: string | undefined;
 
 		await db.transaction(async (tx) => {
 			await writeAuditLog(tx, {
-				actorId: 'user-123',
+				actorId: testActorId,
 				entity: 'booking',
 				action: 'create'
 			});
 
 			// Row must be visible inside the same transaction before commit
-			const rowsInTx = await tx.select().from(auditLog).where(eq(auditLog.actorId, 'user-123'));
+			const rowsInTx = await tx.select().from(auditLog).where(eq(auditLog.actorId, testActorId));
 			expect(rowsInTx).toHaveLength(1);
 			insertedId = rowsInTx[0].id;
 		});
@@ -74,8 +75,7 @@ describe('writeAuditLog integration', () => {
 	});
 
 	test.skip('[P1] 1.6-INT-002 — no audit_log row persists when transaction rolls back (AC-3)', async () => {
-		// THIS TEST WILL FAIL — no real Postgres available + modules not implemented.
-		// Activate in Story 1.8.
+		// Activate in Story 1.8 when CI services are wired.
 		//
 		// AC-3: Given a transaction that calls writeAuditLog(tx, entry) and is then rolled back,
 		//       When the transaction rolls back,
@@ -129,8 +129,7 @@ describe('writeAuditLog integration', () => {
 	});
 
 	test.skip('[P1] 1.6-INT-003 — writeAuditLog stores diff payload correctly in jsonb column (AC-2, AC-4)', async () => {
-		// THIS TEST WILL FAIL — no real Postgres available + modules not implemented.
-		// Activate in Story 1.8.
+		// Activate in Story 1.8 when CI services are wired.
 		//
 		// AC-2 + AC-4: diff (jsonb, nullable) — when provided, the full JSON object
 		//              is stored and can be retrieved with full fidelity.
