@@ -1,0 +1,3 @@
+# Keeps the drizzle/ migrations directory present in the repo so the Docker
+# build COPY of drizzle/ succeeds even before story 1.3 adds migration SQL.
+# drizzle-kit migrate is a no-op when no migration files are present.

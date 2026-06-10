@@ -4,7 +4,7 @@ baseline_commit: 1aac108
 
 # Story 1.7: Docker & Deployment Skeleton
 
-Status: review
+Status: done
 
 ## Story
 
@@ -537,6 +537,7 @@ Fixed `PROJECT_ROOT` in `tests/support/fixtures/docker-context.ts` — was resol
 - `src/lib/server/env.test.ts` — UPDATED: activated all 6 tests (was test.skip)
 - `tests/unit/docker-deployment.spec.ts` — UPDATED: activated 9 static content tests, fixed lint errors
 - `tests/support/fixtures/docker-context.ts` — UPDATED: fixed PROJECT_ROOT path (3 levels, not 4)
+- `drizzle/.gitkeep` — NEW (code review): keeps `drizzle/` present so Docker COPY succeeds before story 1.3 merges
 
 ## Change Log
 
@@ -545,3 +546,13 @@ Fixed `PROJECT_ROOT` in `tests/support/fixtures/docker-context.ts` — was resol
 | 2026-06-10 | Story created with comprehensive developer guide | claude-sonnet-4-6 |
 | 2026-06-10 | ATDD red-phase test scaffolds generated (22 tests, all test.skip()) | claude-sonnet-4-6 |
 | 2026-06-10 | Full implementation: Dockerfiles, nginx, prod compose, env validation, worker stub, dev compose update | claude-sonnet-4-6 |
+| 2026-06-10 | Code review: fixed Docker build-break (missing drizzle/ dir); applied patches | claude-opus-4-8 |
+
+## Review Findings
+
+Adversarial review (Blind Hunter, Edge Case Hunter, Acceptance Auditor). Note: subagent dispatch was unavailable in this environment, so all three review lenses were applied directly by the reviewer over the scoped story diff (commits `4fd12c9..HEAD`).
+
+- [x] [Review][Patch] Docker build fails when `drizzle/` migrations folder is absent [Dockerfile:19] — `COPY --from=builder /app/drizzle ./drizzle` requires `drizzle/` to exist in the build context. On this branch story 1.3 (which creates `drizzle/`) is not merged, so the directory does not exist and `docker build -f Dockerfile .` would fail. The `docker build` test (1.7-UNIT-BUILD-001) is `test.skip()` (nightly CI), so this latent break is not caught by the active suite. Fix: added a tracked `drizzle/.gitkeep` so the COPY always has a source; `drizzle-kit migrate` is a no-op when no SQL files are present (matches spec: "if 1.3 is not merged, migrate is a no-op").
+- [x] [Review][Dismiss] `nginx depends_on: web` does not wait for web readiness — `depends_on` without a condition waits only for container start, not HTTP readiness. nginx has `restart: unless-stopped`, so it recovers if it starts before web is listening. Acceptable for a deployment skeleton; no web healthcheck is required by the AC. Dismissed as noise.
+- [x] [Review][Dismiss] `env.ts` does not numerically validate `PORT` — schema accepts any string for `PORT`/`HOST`. Spec only requires presence with defaults (`PORT` optional default `'3000'`, `HOST` optional default `'0.0.0.0'`); numeric coercion is out of scope. Dismissed.
+- [x] [Review][Auditor] All 6 acceptance criteria satisfied — multi-stage oven/bun images (AC-3/4), fail-fast Valibot env validation in web + worker (AC-2), nginx X-Forwarded-* propagation (AC-5), prod compose with migrate pre-start and DB healthcheck (AC-1), dev `compose.yaml` excludes web/worker (AC-6). No acceptance violations.
