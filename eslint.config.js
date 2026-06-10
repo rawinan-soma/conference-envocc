@@ -88,9 +88,4 @@ export default defineConfig(
 			'local/no-raw-svelte-text': 'error'
 		}
 	},
-	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
-	}
 );
