@@ -1,0 +1,6 @@
+# GitGuardian configuration
+# Exclude example/template files that intentionally contain placeholder credentials
+ignore-paths:
+  - .env.example
+  - "**/*.example"
+  - "**/*.sample"
