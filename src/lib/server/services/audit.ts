@@ -23,6 +23,6 @@ export async function writeAuditLog(tx: DrizzleTransaction, entry: AuditLogEntry
 		actorId: entry.actorId ?? null,
 		entity: entry.entity,
 		action: entry.action,
-		diff: (entry.diff ?? null) as Record<string, unknown> | null
+		diff: entry.diff ?? null
 	});
 }
