@@ -1,0 +1,15 @@
+# Stage 1: Build — install all dependencies
+FROM oven/bun:1 AS builder
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+COPY . .
+
+# Stage 2: Runtime — worker runs src/worker.ts directly (Bun transpiles TS natively)
+FROM oven/bun:1 AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+# Copy full src/ since worker imports lib/server modules at runtime
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/package.json ./package.json
+CMD ["bun", "run", "src/worker.ts"]

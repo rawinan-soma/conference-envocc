@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+_bmad/
+_bmad-output/
+.git/
+.gitignore
+tests/
+e2e/
+.claude/
+.github/
+*.md
+!README.md
+build/
+.svelte-kit/

@@ -1,7 +1,7 @@
 services:
   db:
-    image: postgres
-    restart: always
+    image: postgres:17
+    restart: unless-stopped
     ports:
       - 5432:5432
     environment:
@@ -9,14 +9,14 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql/data
+
   mailpit:
     image: axllent/mailpit:latest
+    restart: unless-stopped
     ports:
-      - '1025:1025' # SMTP
-      - '8025:8025' # Web UI
-    environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: 'true'
-      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI at http://localhost:8025
+
 volumes:
   pgdata:
