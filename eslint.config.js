@@ -88,4 +88,24 @@ export default defineConfig(
 			'local/no-raw-svelte-text': 'error'
 		}
 	},
+	{
+		// AC-5: Job handlers and server modules must NOT import SvelteKit runtime modules.
+		// The worker process runs outside SvelteKit's runtime — $app/* and $env/dynamic
+		// are unavailable and will throw at import time.
+		files: ['src/worker.ts', 'src/lib/server/**/*.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['$app/*', '$env/dynamic*'],
+							message:
+								'Job handlers and server modules must not import SvelteKit runtime modules. Use src/lib/server/env.ts for environment variables.'
+						}
+					]
+				}
+			]
+		}
+	}
 );

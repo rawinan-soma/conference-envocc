@@ -2,11 +2,11 @@
  * ATDD Red-Phase Scaffolds — Story 1.5: Jobs & Email Platform
  * Module: src/lib/server/jobs/handlers/smoke-email.ts — Smoke Email Handler
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
+ * TDD RED PHASE: All tests are marked test() and will remain skipped
  * until the developer activates them task-by-task during implementation.
  *
  * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test.
+ *   1. Remove `test(` → `test(` for the current task's test.
  *   2. Run: `bun run test` — verify it FAILS first (red).
  *   3. Implement smoke-email.ts handler.
  *   4. Run again — verify it PASSES (green).
@@ -86,7 +86,7 @@ describe('Story 1.5 — smokeEmailHandler (AC-2)', () => {
 		vi.clearAllMocks();
 	});
 
-	test.skip('[P1] 1.5-UNIT-005 — smokeEmailHandler calls sendMail exactly once', async () => {
+	test('[P1] 1.5-UNIT-005 — smokeEmailHandler calls sendMail exactly once', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		// Activate after Task 2.4 (smoke-email handler created).
 		const { smokeEmailHandler } = await import('./smoke-email.js').catch(() => {
@@ -103,7 +103,7 @@ describe('Story 1.5 — smokeEmailHandler (AC-2)', () => {
 		expect(sendMailSpy).toHaveBeenCalledOnce();
 	});
 
-	test.skip('[P1] 1.5-UNIT-005b — smokeEmailHandler passes `to` address to sendMail', async () => {
+	test('[P1] 1.5-UNIT-005b — smokeEmailHandler passes `to` address to sendMail', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		// The handler must pass the job payload `to` to the mailer.
 		const { smokeEmailHandler } = await import('./smoke-email.js').catch(() => {
@@ -121,7 +121,7 @@ describe('Story 1.5 — smokeEmailHandler (AC-2)', () => {
 		expect(callArgs.to).toBe('smoke-recipient@example.com');
 	});
 
-	test.skip('[P1] 1.5-UNIT-005c — smokeEmailHandler sends a non-empty subject', async () => {
+	test('[P1] 1.5-UNIT-005c — smokeEmailHandler sends a non-empty subject', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		// Subject is defined by the smoke template — must be a non-empty string.
 		const { smokeEmailHandler } = await import('./smoke-email.js').catch(() => {
@@ -140,7 +140,7 @@ describe('Story 1.5 — smokeEmailHandler (AC-2)', () => {
 		expect((callArgs.subject as string).length).toBeGreaterThan(0);
 	});
 
-	test.skip('[P1] 1.5-UNIT-005d — smokeEmailHandler sends a non-empty text body', async () => {
+	test('[P1] 1.5-UNIT-005d — smokeEmailHandler sends a non-empty text body', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		const { smokeEmailHandler } = await import('./smoke-email.js').catch(() => {
 			throw new Error('smoke-email.ts not implemented yet — red phase');
@@ -158,7 +158,7 @@ describe('Story 1.5 — smokeEmailHandler (AC-2)', () => {
 		expect((callArgs.text as string).length).toBeGreaterThan(0);
 	});
 
-	test.skip('[P2] 1.5-UNIT-005e — smokeEmailHandler does not call sendMail more than once per job', async () => {
+	test('[P2] 1.5-UNIT-005e — smokeEmailHandler does not call sendMail more than once per job', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		// Ensures the handler does not accidentally call sendMail twice (e.g., duplicate template rendering).
 		const { smokeEmailHandler } = await import('./smoke-email.js').catch(() => {
@@ -185,7 +185,7 @@ describe('Story 1.5 — smokeEmailHandler error propagation (AC-4)', () => {
 		sendMailSpy.mockClear();
 	});
 
-	test.skip('[P1] 1.5-UNIT-006 — smokeEmailHandler propagates sendMail errors (enables pg-boss dead-letter)', async () => {
+	test('[P1] 1.5-UNIT-006 — smokeEmailHandler propagates sendMail errors (enables pg-boss dead-letter)', async () => {
 		// THIS TEST WILL FAIL — smoke-email.ts handler does not exist yet.
 		//
 		// AC-4: When nodemailer encounters a transport error and retries are exhausted,

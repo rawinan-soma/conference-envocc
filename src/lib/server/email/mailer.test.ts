@@ -2,11 +2,11 @@
  * ATDD Red-Phase Scaffolds — Story 1.5: Jobs & Email Platform
  * Module: src/lib/server/email/mailer.ts — Nodemailer Transport
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
+ * TDD RED PHASE: All tests are marked test() and will remain skipped
  * until the developer activates them task-by-task during implementation.
  *
  * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test.
+ *   1. Remove `test(` → `test(` for the current task's test.
  *   2. Run: `bun run test` — verify it FAILS first (red).
  *   3. Implement mailer.ts.
  *   4. Run again — verify it PASSES (green).
@@ -70,7 +70,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		vi.clearAllMocks();
 	});
 
-	test.skip('[P1] 1.5-UNIT-004 — sendMail calls transport with correct `from` field (FR-083)', async () => {
+	test('[P1] 1.5-UNIT-004 — sendMail calls transport with correct `from` field (FR-083)', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		// Activate after Task 3.1 (mailer.ts created).
 		//
@@ -96,7 +96,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		expect(callArgs.from).toMatch(/noreply@conference-envocc\.test/);
 	});
 
-	test.skip('[P1] 1.5-UNIT-004b — sendMail passes `to` field through to transport', async () => {
+	test('[P1] 1.5-UNIT-004b — sendMail passes `to` field through to transport', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		const { sendMail } = await import('./mailer.js').catch(() => {
 			throw new Error('mailer.ts not implemented yet — red phase');
@@ -112,7 +112,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		expect(callArgs.to).toBe('recipient@example.com');
 	});
 
-	test.skip('[P1] 1.5-UNIT-004c — sendMail passes `subject` field through to transport', async () => {
+	test('[P1] 1.5-UNIT-004c — sendMail passes `subject` field through to transport', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		const { sendMail } = await import('./mailer.js').catch(() => {
 			throw new Error('mailer.ts not implemented yet — red phase');
@@ -128,7 +128,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		expect(callArgs.subject).toBe('Conference Registration Confirmation');
 	});
 
-	test.skip('[P1] 1.5-UNIT-004d — sendMail passes `text` field through to transport', async () => {
+	test('[P1] 1.5-UNIT-004d — sendMail passes `text` field through to transport', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		const { sendMail } = await import('./mailer.js').catch(() => {
 			throw new Error('mailer.ts not implemented yet — red phase');
@@ -144,7 +144,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		expect(callArgs.text).toBe('Plain text body content.');
 	});
 
-	test.skip('[P1] 1.5-UNIT-004e — sendMail passes optional `html` field through to transport', async () => {
+	test('[P1] 1.5-UNIT-004e — sendMail passes optional `html` field through to transport', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		const { sendMail } = await import('./mailer.js').catch(() => {
 			throw new Error('mailer.ts not implemented yet — red phase');
@@ -161,7 +161,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		expect(callArgs.html).toBe('<p>HTML body.</p>');
 	});
 
-	test.skip('[P2] 1.5-UNIT-004f — sendMail returns the transport result (messageId available)', async () => {
+	test('[P2] 1.5-UNIT-004f — sendMail returns the transport result (messageId available)', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		const { sendMail } = await import('./mailer.js').catch(() => {
 			throw new Error('mailer.ts not implemented yet — red phase');
@@ -178,7 +178,7 @@ describe('Story 1.5 — mailer.sendMail (AC-2, FR-083)', () => {
 		expect(result).toBeDefined();
 	});
 
-	test.skip('[P2] 1.5-UNIT-004g — sendMail does not send html field when omitted', async () => {
+	test('[P2] 1.5-UNIT-004g — sendMail does not send html field when omitted', async () => {
 		// THIS TEST WILL FAIL — mailer.ts does not exist yet.
 		// When html is not provided, the `html` key should either be absent or undefined.
 		const { sendMail } = await import('./mailer.js').catch(() => {
