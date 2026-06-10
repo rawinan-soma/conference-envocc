@@ -6,3 +6,4 @@ bad:
     runs bmad-create-story, bmad-dev-story, bmad-code-review, and commit/PR in batches,
     driven by the sprint backlog and dependency graph
   version: 1.2.0
+  pr_base_branch: dev
