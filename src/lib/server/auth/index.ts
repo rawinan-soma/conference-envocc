@@ -13,6 +13,8 @@
  */
 import type { RequestEvent } from '@sveltejs/kit';
 
+import { AsyncLocalStorage } from 'async_hooks';
+
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
@@ -21,40 +23,38 @@ import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { db } from '../db/index.js'; // relative — safe for non-SvelteKit context
 import { env } from '../env.js'; // relative — same reason
 
-// Runtime assertion — fail fast if auth env vars are missing at server startup
-// (they are optional in EnvSchema to allow build-time compilation without secrets)
-if (
-	!env.AUTH_SECRET ||
-	!env.AUTHENTIK_CLIENT_ID ||
-	!env.AUTHENTIK_CLIENT_SECRET ||
-	!env.AUTHENTIK_ISSUER
-) {
-	// During `bun run build`, env vars may not be set — skip the check
-	// During server startup, all four must be present
-	const isBuildTime = process.env['NODE_ENV'] === 'production' && !process.env['RUNTIME'];
-	if (!isBuildTime) {
-		const missing = [
-			'AUTH_SECRET',
-			'AUTHENTIK_CLIENT_ID',
-			'AUTHENTIK_CLIENT_SECRET',
-			'AUTHENTIK_ISSUER'
-		].filter((k) => !process.env[k]);
-		if (missing.length > 0) {
-			console.error(`[auth] Missing required environment variables: ${missing.join(', ')}`);
-		}
+// Warn if auth env vars are absent at module load time.
+// env.ts validateEnv() is the primary fail-fast gate (called on import); this warning
+// is a belt-and-suspenders signal for the auth module specifically.
+// Note: during `bun run build` the env vars are genuinely absent — the build CI step
+// provides only DATABASE_URL. This warning is expected and harmless at build time.
+{
+	const missing = [
+		'AUTH_SECRET',
+		'AUTHENTIK_CLIENT_ID',
+		'AUTHENTIK_CLIENT_SECRET',
+		'AUTHENTIK_ISSUER'
+	].filter((k) => !process.env[k]);
+	if (missing.length > 0) {
+		console.warn(
+			`[auth] Missing environment variables: ${missing.join(', ')} — auth flows will not work until these are set`
+		);
 	}
 }
 
 /**
- * Per-request event store for sveltekitCookies plugin.
- * Set by hooks.server.ts before delegating to Better Auth handler.
- * The plugin handles null gracefully (no-op if not set).
+ * Per-request event store for the sveltekitCookies plugin.
+ *
+ * AsyncLocalStorage provides true per-request isolation: each request's call stack
+ * has its own storage slot, so concurrent requests cannot overwrite each other's event
+ * reference. This is the correct alternative to a module-level mutable singleton,
+ * which would be a concurrency hazard (request B could overwrite the singleton between
+ * request A's setRequestEvent() call and the sveltekitCookies hook reading it).
+ *
+ * hooks.server.ts wraps handleBetterAuth in eventStorage.run(event, ...) so the
+ * current RequestEvent is always available within the async call tree of each request.
  */
-let _currentEvent: RequestEvent | null = null;
-
-export function setRequestEvent(event: RequestEvent | null): void {
-	_currentEvent = event;
-}
+export const eventStorage = new AsyncLocalStorage<RequestEvent>();
 
 export const auth = betterAuth({
 	secret: env.AUTH_SECRET ?? 'placeholder-secret-for-build-time-only-not-used-in-production',
@@ -85,8 +85,15 @@ export const auth = betterAuth({
 				}
 			]
 		}),
-		// sveltekitCookies MUST be the last plugin — required by Better Auth
-		sveltekitCookies(() => _currentEvent as RequestEvent)
+		// sveltekitCookies MUST be the last plugin — required by Better Auth.
+		// getRequestEvent is called inside Better Auth's after-hook, within the same async
+		// call tree as handleBetterAuth in hooks.server.ts, so eventStorage.getStore() returns
+		// the correct per-request event with no cross-request contamination.
+		sveltekitCookies(() => {
+			const event = eventStorage.getStore();
+			if (!event) throw new Error('[auth] sveltekitCookies: no RequestEvent in AsyncLocalStorage — ensure handleBetterAuth wraps svelteKitHandler with eventStorage.run()');
+			return event;
+		})
 	]
 });
 

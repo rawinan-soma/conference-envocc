@@ -8,7 +8,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { env } from '$env/dynamic/private';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
-import { auth, setRequestEvent } from '$lib/server/auth';
+import { auth, eventStorage } from '$lib/server/auth';
 import { validateEnv } from '$lib/server/env';
 
 // Validate at module load — fails fast on missing secrets
@@ -32,8 +32,8 @@ export const routeGuards: Array<{
 	{
 		// All (app) routes require authentication.
 		// The SvelteKit route group "/(app)/" maps to URL paths under / (not literally /(app)/).
-		// Public routes explicitly excluded: /login, /auth/**, /r/[token]/**, /, /skeleton (dev probe)
-		pattern: /^\/(?!(?:login|auth\/|r\/|skeleton|$))/,
+		// Public routes explicitly excluded: /login, /auth (bare or with subpath), /r/[token]/**, /, /skeleton (dev probe)
+		pattern: /^\/(?!(?:login|auth(?:\/|$)|r\/|skeleton|$))/,
 		guard: (event) => {
 			const session = event.locals.session;
 			if (!session) {
@@ -47,23 +47,17 @@ export const routeGuards: Array<{
 // Better Auth handler — populates event.locals.session and event.locals.user
 // ---------------------------------------------------------------------------
 
-const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	// Set per-request event for sveltekitCookies plugin
-	setRequestEvent(event);
-
-	// Populate event.locals from Better Auth session (cookie-based)
-	const sessionData = await auth.api.getSession({ headers: event.request.headers });
-	if (sessionData) {
-		// @ts-expect-error — Better Auth session type maps to our Drizzle schema types
-		event.locals.session = sessionData.session;
-		// @ts-expect-error — Better Auth user type maps to our Drizzle schema types
-		event.locals.user = sessionData.user;
-	} else {
-		event.locals.session = null;
-		event.locals.user = null;
-	}
-
-	return svelteKitHandler({ auth, event, resolve, building });
+const handleBetterAuth: Handle = ({ event, resolve }) => {
+	// Wrap the entire request's async call tree in eventStorage.run(event, ...) so the
+	// sveltekitCookies plugin can retrieve the correct RequestEvent via AsyncLocalStorage.
+	// AsyncLocalStorage provides per-request isolation: concurrent requests each have their
+	// own storage slot and cannot overwrite each other — unlike a module-level singleton.
+	//
+	// svelteKitHandler handles:
+	//   - Routing /auth/** requests to Better Auth's handler
+	//   - Populating event.locals.session / event.locals.user for all other requests
+	//     (via the sveltekitCookies plugin's after-hook, which calls getRequestEvent())
+	return eventStorage.run(event, () => svelteKitHandler({ auth, event, resolve, building }));
 };
 
 // ---------------------------------------------------------------------------

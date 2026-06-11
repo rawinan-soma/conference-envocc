@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	import * as m from '$lib/paraglide/messages';
 
-	const hasError = $derived($page.url.searchParams.get('error') === 'provider_unavailable');
+	const hasError = $derived(page.url.searchParams.get('error') === 'provider_unavailable');
 </script>
 
 <svelte:head>
