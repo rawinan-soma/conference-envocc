@@ -70,7 +70,7 @@ export default async function setup(): Promise<() => Promise<void>> {
 	} catch (err: unknown) {
 		const e = err as { stderr?: Buffer; stdout?: Buffer; message?: string };
 		const detail = (e.stderr?.toString() ?? '') || (e.stdout?.toString() ?? '') || String(e.message ?? err);
-		throw new Error(`[integration-setup] drizzle-kit migrate failed:\n${detail}`);
+		throw new Error(`[integration-setup] drizzle-kit migrate failed:\n${detail}`, { cause: err });
 	}
 	console.log('[integration-setup] Migrations applied.');
 
