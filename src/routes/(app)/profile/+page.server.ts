@@ -6,7 +6,7 @@
  * AC-7: Any email field in POST body is silently ignored; stored email remains unchanged.
  * AC-8: Profile update writes an audit_log row atomically in the same transaction.
  */
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 
@@ -23,7 +23,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// userProfile is pre-populated by hooks.server.ts once per request.
 	// The profile guard ensures the user has a complete profile before reaching this route.
-	const userProfile = event.locals.userProfile!;
+	// Defensive check: if the guard is ever misconfigured, redirect gracefully rather than
+	// crashing with a null-dereference TypeError.
+	const userProfile = event.locals.userProfile;
+	if (!userProfile) {
+		redirect(302, '/profile/complete');
+	}
 
 	// Cast the DB title string to the Valibot enum type for superValidate's initial data.
 	// The DB stores only valid enum values (enforced by the create path), so this is safe.
@@ -47,7 +52,13 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
 	default: async (event) => {
 		const user = requireUser(event);
-		const existingProfile = event.locals.userProfile!;
+
+		// Defensive null check: handles the rare TOCTOU case where the profile row is
+		// deleted between the hook populating event.locals and this action executing.
+		const existingProfile = event.locals.userProfile;
+		if (!existingProfile) {
+			redirect(302, '/profile/complete');
+		}
 
 		const form = await superValidate(event.request, valibot(ProfileSchema));
 

@@ -12,10 +12,11 @@ export type ProfileTitle = (typeof PROFILE_TITLES)[number];
 
 export const ProfileSchema = v.object({
 	title: v.picklist(PROFILE_TITLES, 'Please select a title.'),
-	firstName: v.pipe(v.string(), v.minLength(1, 'First name is required.')),
-	lastName: v.pipe(v.string(), v.minLength(1, 'Last name is required.')),
-	phone: v.pipe(v.string(), v.minLength(1, 'Phone is required.')),
-	organization: v.pipe(v.string(), v.minLength(1, 'Organization is required.'))
+	// trim() before minLength so whitespace-only strings (e.g. '   ') are rejected.
+	firstName: v.pipe(v.string(), v.trim(), v.minLength(1, 'First name is required.')),
+	lastName: v.pipe(v.string(), v.trim(), v.minLength(1, 'Last name is required.')),
+	phone: v.pipe(v.string(), v.trim(), v.minLength(1, 'Phone is required.')),
+	organization: v.pipe(v.string(), v.trim(), v.minLength(1, 'Organization is required.'))
 });
 
 export type ProfileInput = v.InferOutput<typeof ProfileSchema>;

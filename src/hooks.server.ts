@@ -89,7 +89,16 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 			event.locals.user = sessionData.user;
 			// Check profile completeness once per request (avoids per-route DB hit).
 			// This is one extra DB query per authenticated request — acceptable for MVP.
-			const profile = await getProfileByUserId(sessionData.user.id);
+			// Try/catch ensures a DB error (timeout, pool exhaustion) degrades gracefully
+			// (treats profile as incomplete → redirect to /profile/complete) rather than
+			// converting every authenticated request into an unhandled 500.
+			let profile = null;
+			try {
+				profile = await getProfileByUserId(sessionData.user.id);
+			} catch {
+				// DB unavailable — fall through with profile = null (profileComplete = false).
+				// The guard will redirect to /profile/complete; the DB error will surface there.
+			}
 			event.locals.userProfile = profile;
 			event.locals.profileComplete = profile !== null;
 		} else {

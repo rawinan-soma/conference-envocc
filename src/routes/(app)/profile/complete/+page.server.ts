@@ -31,12 +31,30 @@ const POST_COMPLETE_DESTINATION = '/dashboard';
 
 /**
  * Resolve a safe local redirect target from an untrusted `redirectTo` query param.
- * Only same-origin absolute paths are allowed (must start with a single "/").
- * This blocks open-redirect attacks via `?redirectTo=https://evil.com` or `//evil.com`.
+ * Only same-origin absolute paths are allowed (must start with a single "/" that is
+ * not followed by "/" or "\").
+ *
+ * Attacks blocked:
+ *   - `https://evil.com`    — does not start with "/"
+ *   - `//evil.com`          — starts with "//"
+ *   - `/\evil.com`          — backslash: some HTTP clients normalize "\" to "/" making
+ *                             this equivalent to "//evil.com" (open redirect)
+ *   - `/%2F%2Fevil.com`     — percent-encoded "//": URL-decoded by some clients before
+ *                             following the Location header, equivalent to "//evil.com"
  */
 function resolveRedirectTarget(raw: string | null): string {
-	if (raw && raw.startsWith('/') && !raw.startsWith('//')) {
-		return raw;
+	if (raw) {
+		// Decode percent-encoding before checking so encoded bypass attempts are caught.
+		let decoded: string;
+		try {
+			decoded = decodeURIComponent(raw);
+		} catch {
+			return POST_COMPLETE_DESTINATION;
+		}
+		// Must start with "/" but not "//" or "/\" (protocol-relative and backslash variants).
+		if (decoded.startsWith('/') && !decoded.startsWith('//') && !decoded.startsWith('/\\')) {
+			return decoded;
+		}
 	}
 	return POST_COMPLETE_DESTINATION;
 }

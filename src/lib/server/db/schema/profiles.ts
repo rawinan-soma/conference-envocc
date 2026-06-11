@@ -8,11 +8,17 @@
  * read-only. It must never be updated via the profile form — only the IdP governs it.
  */
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { uuidv7 } from 'uuidv7';
 
 import { users } from './auth.js';
 
 export const userProfiles = pgTable('user_profiles', {
-	id: text('id').primaryKey(),
+	// $defaultFn ensures the application layer always generates a UUID v7 (time-ordered).
+	// Without this, an insert that omits id falls back to the SQL DEFAULT gen_random_uuid()
+	// which produces a UUID v4, violating the architecture's UUID v7 requirement.
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => uuidv7()),
 	userId: text('userId')
 		.notNull()
 		.unique()
