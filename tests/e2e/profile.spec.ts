@@ -101,22 +101,21 @@ test.describe('Story 2.3 — Profile Form: Field Rendering and Email Read-only (
 		await loginViaDevBypass(page, { profileComplete: false });
 		await page.goto('/profile/complete');
 
-		// Email field — must be pre-filled and read-only
+		// Email field — must be pre-filled and read-only (AC-2)
 		const emailInput = page
 			.locator('input[name="email"], input[type="email"], [data-testid="email-field"]')
 			.first();
-		// Email may be shown as a disabled/readonly input or as static text
-		// Either way it must not be an editable input with the name "email"
-		// We check that if an email input exists, it has readonly or disabled attribute
-		const emailInputCount = await emailInput.count();
-		if (emailInputCount > 0) {
-			const isReadonly = await emailInput.getAttribute('readonly');
-			const isDisabled = await emailInput.getAttribute('disabled');
-			expect(
-				isReadonly !== null || isDisabled !== null,
-				'Email input must be readonly or disabled (not editable)'
-			).toBe(true);
-		}
+		// Email field MUST be present — assert unconditionally (do not skip if absent)
+		await expect(
+			emailInput,
+			'Email field must be present on the profile form (AC-2)'
+		).toBeVisible();
+		const isReadonly = await emailInput.getAttribute('readonly');
+		const isDisabled = await emailInput.getAttribute('disabled');
+		expect(
+			isReadonly !== null || isDisabled !== null,
+			'Email input must be readonly or disabled (not editable) — AC-2'
+		).toBe(true);
 
 		// Title field — must be present (Select component)
 		const titleField = page.locator('[name="title"], [data-testid="title-field"]').first();
@@ -267,21 +266,18 @@ test.describe('Story 2.3 — Profile Form: Field-level Error Messages on Validat
 		// Submit
 		await page.locator('button[type="submit"]').click();
 
-		// Should NOT navigate away (validation fails client-side or server returns 422)
-		await page.waitForTimeout(500); // brief wait for validation rendering
+		// Inline error message should appear near firstName field
+		// sveltekit-superforms renders errors via $errors.firstName
+		// Playwright auto-retries until visible — no hard wait needed
+		await expect(
+			page.locator('text=/required|invalid|First name/i').first(),
+			'An error message referencing firstName or "required" must be visible after submitting empty firstName'
+		).toBeVisible({ timeout: 3000 });
+
+		// URL must not change to /dashboard (check after error is confirmed visible)
 		expect(page.url(), 'URL must not change to /dashboard on validation failure').not.toMatch(
 			/\/dashboard/
 		);
-
-		// Inline error message should appear near firstName field
-		// sveltekit-superforms renders errors via $errors.firstName
-		// At minimum, some error indicator must be visible
-		const errorText = page.locator('text=/required|invalid|First name/i').first();
-		const errorCount = await errorText.count();
-		expect(
-			errorCount,
-			'An error message referencing firstName or "required" must be visible after submitting empty firstName'
-		).toBeGreaterThan(0);
 	});
 });
 
@@ -318,24 +314,30 @@ test.describe('Story 2.3 — Profile Form: Submit Button Loading/Disabled State 
 
 		const submitButton = page.locator('button[type="submit"]');
 
-		// Click and immediately check disabled state
-		const [submitResponse] = await Promise.all([
-			page.waitForResponse((resp) => resp.url().includes('/profile/complete')),
-			submitButton.click()
-		]);
-
-		// During submission (before response), button should be disabled
-		// This checks the optimistic UI state — may need to intercept the network
-		// to reliably test this. The assertion here is best-effort for initial scaffolding.
-		void submitResponse; // response received; check it didn't 500
-
-		// At minimum: after a submit click, no JS errors should occur
+		// Register console error listener BEFORE the action so all errors are captured
 		const consoleLogs: string[] = [];
 		page.on('console', (msg) => {
 			if (msg.type() === 'error') consoleLogs.push(msg.text());
 		});
 
-		await page.waitForTimeout(100);
+		// Intercept the POST to /profile/complete so we can assert disabled state while in-flight
+		// The route intercept pauses the response, allowing us to check the button state
+		// synchronously before the server response resolves.
+		await page.route('**/profile/complete', async (route) => {
+			// Button must be disabled while POST is in-flight (UXD-020)
+			await expect(
+				submitButton,
+				'Submit button must be disabled while form POST is in-flight (UXD-020)'
+			).toBeDisabled();
+			await route.continue();
+		});
+
+		await submitButton.click();
+
+		// Wait for navigation to complete (submit redirects to /dashboard on success)
+		await page.waitForURL(/\/dashboard/, { timeout: 5000 });
+
+		// No JS errors should have occurred during the submit flow
 		expect(
 			consoleLogs.filter((l) => l.includes('TypeError') || l.includes('ReferenceError')).length,
 			'No JS errors should occur during form submission'
@@ -362,19 +364,20 @@ test.describe('Story 2.3 — Profile Edit: Pre-filled Mutable Fields; Email Read
 		await loginViaDevBypass(page, { profileComplete: true });
 		await page.goto('/profile');
 
-		// Email must be readonly/disabled
+		// Email field MUST be present on the edit form — assert unconditionally (AC-6)
 		const emailField = page
 			.locator('input[name="email"], [data-testid="email-field"], input[type="email"]')
 			.first();
-		const emailCount = await emailField.count();
-		if (emailCount > 0) {
-			const isReadonly = await emailField.getAttribute('readonly');
-			const isDisabled = await emailField.getAttribute('disabled');
-			expect(
-				isReadonly !== null || isDisabled !== null,
-				'Email field on profile edit page must be readonly or disabled'
-			).toBe(true);
-		}
+		await expect(
+			emailField,
+			'Email field must be present on the profile edit page (AC-6)'
+		).toBeVisible();
+		const isReadonly = await emailField.getAttribute('readonly');
+		const isDisabled = await emailField.getAttribute('disabled');
+		expect(
+			isReadonly !== null || isDisabled !== null,
+			'Email field on profile edit page must be readonly or disabled — AC-6'
+		).toBe(true);
 
 		// Mutable fields must be present and pre-filled (not empty)
 		const firstNameInput = page.locator('input[name="firstName"]').first();

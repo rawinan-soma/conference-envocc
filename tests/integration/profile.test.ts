@@ -57,6 +57,7 @@
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
+import { randomUUID } from 'node:crypto';
 
 // ---------------------------------------------------------------------------
 // Postgres client — uses DATABASE_URL from environment (set by integration-setup.ts)
@@ -127,8 +128,8 @@ async function seedIncompleteProfileUser(
 	client: pg.PoolClient,
 	opts: { userId?: string; email?: string } = {}
 ): Promise<{ userId: string; email: string }> {
-	const userId = opts.userId ?? `test-user-2-3-${Date.now()}`;
-	const email = opts.email ?? `test-2.3-${Date.now()}@example.com`;
+	const userId = opts.userId ?? `test-user-2-3-${randomUUID().slice(0, 8)}`;
+	const email = opts.email ?? `test-2.3-${randomUUID().slice(0, 8)}@example.com`;
 
 	await client.query(
 		`INSERT INTO users (id, email, "createdAt", "updatedAt")
@@ -148,7 +149,7 @@ async function seedUserSession(
 	client: pg.PoolClient,
 	userId: string
 ): Promise<{ sessionToken: string }> {
-	const sessionToken = `test-session-2.3-${Date.now()}`;
+	const sessionToken = `test-session-2.3-${randomUUID().slice(0, 8)}`;
 	const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min from now
 
 	await client.query(
@@ -535,7 +536,7 @@ describe('Story 2.3 — Email Immutability: POST Body email Override Ignored (AC
 
 		const client = await pool.connect();
 		try {
-			const oidcEmail = `oidc-${Date.now()}@legitimate.org`;
+			const oidcEmail = `oidc-${randomUUID().slice(0, 8)}@legitimate.org`;
 			const attackerEmail = 'attacker@evil.com';
 
 			const { userId } = await seedIncompleteProfileUser(client, { email: oidcEmail });
@@ -617,7 +618,7 @@ describe('Story 2.3 — Profile Edit: Update Mutable Fields, Email Stays Immutab
 
 		const client = await pool.connect();
 		try {
-			const oidcEmail = `oidc-edit-${Date.now()}@example.com`;
+			const oidcEmail = `oidc-edit-${randomUUID().slice(0, 8)}@example.com`;
 			const { userId } = await seedCompletedProfileUser(client, { email: oidcEmail });
 			const { sessionToken } = await seedUserSession(client, userId);
 
