@@ -42,7 +42,7 @@
  * Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
 import { getDevBypassCookie, extractCookiePair } from '../support/helpers/dev-bypass.js';
 
@@ -106,6 +106,11 @@ async function truncateBetterAuthTables(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 describe('Story 2.2 — Dev Bypass: Session Creation (AC-1, AC-4, AC-5)', () => {
+	// Guarantee clean state before every test regardless of prior test outcome.
+	beforeEach(async () => {
+		await truncateBetterAuthTables();
+	});
+
 	test('[P0] 2.2-INT-001 — AUTH_DEV_BYPASS=true, NODE_ENV=test → POST /auth/dev-bypass creates valid session', async () => {
 		// THIS TEST WILL FAIL — src/routes/auth/dev-bypass/+server.ts not yet created (Task 2).
 		// Activate after Task 2 (dev bypass route implementation).
@@ -287,102 +292,81 @@ describe('Story 2.2 — Dev Bypass: Session Creation (AC-1, AC-4, AC-5)', () => 
 // ---------------------------------------------------------------------------
 
 describe('Story 2.2 — Dev Bypass: Production Guard (AC-2, AC-3)', () => {
-	test('[P0] 2.2-INT-002a — AUTH_DEV_BYPASS not set/false → POST /auth/dev-bypass returns 404', async () => {
-		// THIS TEST WILL FAIL — dev bypass route not yet created (Task 2).
-		// Activate after Task 2 (dev bypass route with flag guard).
-		//
-		// AC-2: Given AUTH_DEV_BYPASS is not set (or is false),
-		//       When any request is made to the dev-bypass route,
-		//       Then the route returns 404 — it does not create a session and
-		//       does not reveal its existence.
-		//
-		// Strategy:
-		//   This test depends on the server being started WITHOUT AUTH_DEV_BYPASS=true.
-		//   Since we cannot toggle the server's env mid-test, this test verifies the guard
-		//   by inspecting the source code (see 2.2-UNIT-001) OR by running the server in
-		//   a separate configuration.
-		//
-		// NOTE: In CI, the dev server used for integration tests DOES have AUTH_DEV_BYPASS=true.
-		//   This sub-case (flag=false → 404) is fully covered by 2.2-UNIT-001 static assertion.
-		//   A live server test for this sub-case would require a second server process.
-		//
-		// Fallback: If DEV_SERVER_NO_BYPASS_URL is set (a server without the flag), use it.
-		// Otherwise, skip this live test and rely on 2.2-UNIT-001.
-
-		const noBypassServerUrl = process.env['DEV_SERVER_NO_BYPASS_URL'];
-
-		if (!noBypassServerUrl) {
-			// No secondary server available — this sub-case is verified by 2.2-UNIT-001 (static assertion).
-			// Mark as conditionally passing: the guard logic is asserted statically.
-			// Add a trivial assertion to satisfy requireAssertions: true vitest config.
-			console.log(
-				'[2.2-INT-002a] DEV_SERVER_NO_BYPASS_URL not set — guard verified by 2.2-UNIT-001 static assertion. Skipping live server check.'
-			);
-			expect(
-				true,
-				'Guard logic verified statically by 2.2-UNIT-001 — no live server available for this sub-case'
-			).toBe(true);
-			return;
-		}
-
-		// If a no-bypass server IS available, verify it returns 404
-		const response = await fetch(`${noBypassServerUrl}/auth/dev-bypass`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			redirect: 'manual'
-		});
-
-		expect(
-			response.status,
-			'POST /auth/dev-bypass must return 404 when AUTH_DEV_BYPASS is not set'
-		).toBe(404);
+	// Guarantee clean state before every test regardless of prior test outcome.
+	beforeEach(async () => {
+		await truncateBetterAuthTables();
 	});
 
-	test('[P0] 2.2-INT-002b — AUTH_DEV_BYPASS=true + NODE_ENV=production → POST /auth/dev-bypass returns 404/403', async () => {
-		// THIS TEST WILL FAIL — dev bypass route not yet created (Task 2).
-		// Activate after Task 2 (dev bypass route with production guard).
-		//
-		// AC-3: Given AUTH_DEV_BYPASS=true AND NODE_ENV=production,
-		//       When any request is made to the dev-bypass route,
-		//       Then the route returns 404 (or 403) — the production guard overrides
-		//       the flag regardless of its value.
-		//
-		// Strategy:
-		//   NODE_ENV cannot be changed at runtime during a test run.
-		//   This sub-case (production env → 404) is verified by 2.2-UNIT-001 static assertion.
-		//   A live server test would require a production-mode server process.
-		//
-		// NOTE: The two-condition guard `env.AUTH_DEV_BYPASS !== 'true' || process.env['NODE_ENV'] === 'production'`
-		//   is a source-level check. 2.2-UNIT-001 asserts both conditions exist in the source.
-		//   This is the R-001 mitigation.
+	// AC-2: Given AUTH_DEV_BYPASS is not set (or is false),
+	//       When any request is made to the dev-bypass route,
+	//       Then the route returns 404 — it does not create a session and
+	//       does not reveal its existence.
+	//
+	// Strategy: Requires a server started WITHOUT AUTH_DEV_BYPASS=true.
+	// In standard CI the dev server has AUTH_DEV_BYPASS=true — this live sub-case
+	// is therefore optional. The static assertion in 2.2-UNIT-001 is the primary
+	// R-001 mitigation when DEV_SERVER_NO_BYPASS_URL is not configured.
+	//
+	// Set DEV_SERVER_NO_BYPASS_URL in the test environment to exercise this path.
+	test.skipIf(!process.env['DEV_SERVER_NO_BYPASS_URL'])(
+		'[P0] 2.2-INT-002a — AUTH_DEV_BYPASS not set/false → POST /auth/dev-bypass returns 404',
+		async () => {
+			// THIS TEST WILL FAIL — dev bypass route not yet created (Task 2).
+			// Activate after Task 2 (dev bypass route with flag guard).
+			// Guard logic also verified statically by 2.2-UNIT-001 without a live server.
 
-		const productionServerUrl = process.env['DEV_SERVER_PRODUCTION_URL'];
+			const noBypassServerUrl = process.env['DEV_SERVER_NO_BYPASS_URL']!;
 
-		if (!productionServerUrl) {
-			// No production-mode server available — guard verified by 2.2-UNIT-001 static assertion.
-			// Add a trivial assertion to satisfy requireAssertions: true vitest config.
-			console.log(
-				'[2.2-INT-002b] DEV_SERVER_PRODUCTION_URL not set — production guard verified by 2.2-UNIT-001 static assertion. Skipping live server check.'
-			);
+			const response = await fetch(`${noBypassServerUrl}/auth/dev-bypass`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				redirect: 'manual'
+			});
+
 			expect(
-				true,
-				'Production guard logic verified statically by 2.2-UNIT-001 — no production server available for this sub-case'
-			).toBe(true);
-			return;
+				response.status,
+				'POST /auth/dev-bypass must return 404 when AUTH_DEV_BYPASS is not set'
+			).toBe(404);
 		}
+	);
 
-		const response = await fetch(`${productionServerUrl}/auth/dev-bypass`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			redirect: 'manual'
-		});
+	// AC-3: Given AUTH_DEV_BYPASS=true AND NODE_ENV=production,
+	//       When any request is made to the dev-bypass route,
+	//       Then the route returns 404 (or 403) — the production guard overrides
+	//       the flag regardless of its value.
+	//
+	// Strategy: Requires a server running in NODE_ENV=production.
+	// NODE_ENV cannot be changed at runtime during a test run.
+	// The static assertion in 2.2-UNIT-001 asserts both guard conditions are present
+	// in the handler source — this is the primary R-001 mitigation for this sub-case.
+	//
+	// Set DEV_SERVER_PRODUCTION_URL in the test environment to exercise this path.
+	test.skipIf(!process.env['DEV_SERVER_PRODUCTION_URL'])(
+		'[P0] 2.2-INT-002b — AUTH_DEV_BYPASS=true + NODE_ENV=production → POST /auth/dev-bypass returns 404/403',
+		async () => {
+			// THIS TEST WILL FAIL — dev bypass route not yet created (Task 2).
+			// Activate after Task 2 (dev bypass route with production guard).
+			// Production guard also verified statically by 2.2-UNIT-001.
+			//
+			// NOTE: The two-condition guard `env.AUTH_DEV_BYPASS !== 'true' || process.env['NODE_ENV'] === 'production'`
+			//   is a source-level check. 2.2-UNIT-001 asserts both conditions exist in the source.
+			//   This is the R-001 mitigation.
 
-		// Guard must return 404 or 403 — never 200
-		expect(
-			response.status,
-			'POST /auth/dev-bypass must return 404 or 403 in production environment'
-		).toBeOneOf([404, 403]);
-	});
+			const productionServerUrl = process.env['DEV_SERVER_PRODUCTION_URL']!;
+
+			const response = await fetch(`${productionServerUrl}/auth/dev-bypass`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				redirect: 'manual'
+			});
+
+			// Guard must return 404 or 403 — never 200
+			expect(
+				response.status,
+				'POST /auth/dev-bypass must return 404 or 403 in production environment'
+			).toBeOneOf([404, 403]);
+		}
+	);
 });
 
 // ---------------------------------------------------------------------------
@@ -473,6 +457,10 @@ describe('Story 2.2 — Dev Bypass: Two-Condition Guard Static Assertion (R-001)
 // ---------------------------------------------------------------------------
 
 describe('Story 2.2 — Dev Bypass: Route Allow-Listing via /auth/** (AC-1)', () => {
+	// Guarantee clean state before every test regardless of prior test outcome.
+	beforeEach(async () => {
+		await truncateBetterAuthTables();
+	});
 	test('[P1] 2.2-INT-003 — /auth/dev-bypass is reachable without a session (not blocked by auth guard)', async () => {
 		// THIS TEST WILL FAIL — dev bypass route not yet created (Task 2).
 		// Activate after Task 2 (dev bypass route created AND AUTH_DEV_BYPASS=true in test env).
@@ -503,16 +491,14 @@ describe('Story 2.2 — Dev Bypass: Route Allow-Listing via /auth/** (AC-1)', ()
 		});
 
 		// The response must NOT be 302 to /login — the route is allow-listed via /auth/**
-		if (response.status === 302) {
-			const location = response.headers.get('location') ?? '';
-			expect(
-				location,
-				'/auth/dev-bypass must NOT redirect to /login — it is allow-listed via /auth/** in routeGuards'
-			).not.toMatch(/\/login/);
-		}
-
 		// Acceptable responses: 200 (bypass succeeded), 404 (flag not set), 405 (wrong method)
 		// Unacceptable: 302→/login (means auth guard is blocking the route — hooks.server.ts is wrong)
+		const location = response.status === 302 ? (response.headers.get('location') ?? '') : '';
+		expect(
+			location,
+			'/auth/dev-bypass must NOT redirect to /login — it is allow-listed via /auth/** in routeGuards'
+		).not.toMatch(/\/login/);
+
 		expect(
 			response.status,
 			'/auth/dev-bypass must not return 302 to /login when unauthenticated — it must be allow-listed'
