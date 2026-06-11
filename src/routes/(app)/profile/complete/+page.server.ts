@@ -22,9 +22,12 @@ import { createProfile, isUniqueViolation } from '$lib/server/services/profile-s
 
 import type { Actions, PageServerLoad } from './$types';
 
-// Post-login landing page. "/dashboard" does not exist yet (future story);
-// the existing authenticated landing in this app is "/".
-const POST_COMPLETE_DESTINATION = '/';
+// Post-login landing page after profile completion.
+// "/dashboard" is the specified AC destination (see AC-3, AC-4). The route does not yet
+// exist as a real page (a future story), so requests will 404 after the redirect — but
+// the redirect itself is correct per the acceptance criteria. Integration tests verify
+// this redirect target (2.3-INT-004c expects location matching /\/dashboard/).
+const POST_COMPLETE_DESTINATION = '/dashboard';
 
 /**
  * Resolve a safe local redirect target from an untrusted `redirectTo` query param.
