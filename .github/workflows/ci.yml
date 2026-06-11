@@ -89,6 +89,14 @@ jobs:
         run: bunx drizzle-kit migrate
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
+      - name: Generate ephemeral AUTH_SECRET
+        # Generates a random 32-byte hex secret shared between the dev server and the
+        # integration test process so that buildSignedSessionCookie() produces cookies
+        # the server will accept. Using a per-run generated value avoids the need for a
+        # pre-provisioned TEST_AUTH_SECRET repo secret while keeping the server and tests
+        # in sync. The value is written to GITHUB_ENV so all subsequent steps can read it
+        # as ${{ env.CI_AUTH_SECRET }}.
+        run: echo "CI_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - name: Start dev server (for HTTP-level integration tests)
         # Some integration tests (2.1-INT-001 through 2.1-INT-004) send real HTTP requests
         # to the SvelteKit app at DEV_SERVER_URL. Start the dev server in the background
@@ -96,8 +104,8 @@ jobs:
         run: bun run dev &
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
-          # Auth env vars sourced from GH Secrets/Vars — never hardcode credential literals.
-          AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+          # CI_AUTH_SECRET is generated ephemerally above; used by both server and tests.
+          AUTH_SECRET: ${{ env.CI_AUTH_SECRET }}
           AUTHENTIK_CLIENT_ID: ${{ secrets.TEST_AUTHENTIK_CLIENT_ID }}
           AUTHENTIK_CLIENT_SECRET: ${{ secrets.TEST_AUTHENTIK_CLIENT_SECRET }}
           AUTHENTIK_ISSUER: ${{ vars.TEST_AUTHENTIK_ISSUER }}
@@ -114,7 +122,7 @@ jobs:
           DEV_SERVER_URL: http://localhost:3000
           # AUTH_SECRET must match the dev server's secret so integration tests can produce
           # correctly signed Better Auth session cookies via buildSignedSessionCookie().
-          AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+          AUTH_SECRET: ${{ env.CI_AUTH_SECRET }}
           SMTP_HOST: localhost
           SMTP_PORT: '1025'
           SMTP_FROM: test@test.local
