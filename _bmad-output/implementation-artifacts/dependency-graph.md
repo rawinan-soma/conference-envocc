@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-11T10:45:00+07:00 (reconciled: PRs #103 and #104 confirmed merged)_
+_Last updated: 2026-06-11T15:30:00+07:00 (reconciled: PR #105 open for story 1.9; sprint-status marks 1.9 done)_
 
 ## Stories
 
@@ -13,7 +13,7 @@ _Last updated: 2026-06-11T10:45:00+07:00 (reconciled: PRs #103 and #104 confirme
 | 1.6 | 1 | Audit-log write-hook foundation | done | #6 | #103 | merged | 1.3 | ✅ Yes (done) |
 | 1.7 | 1 | Docker & deployment skeleton | done | #7 | #52 | merged | 1.1 | ✅ Yes (done) |
 | 1.8 | 1 | Test harness & CI | done | #8 | #104 | merged | 1.3, 1.7 | ✅ Yes (done) |
-| 1.9 | 1 | Walking-skeleton vertical slice | backlog | #9 | — | — | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ✅ Yes (all deps merged) |
+| 1.9 | 1 | Walking-skeleton vertical slice | done | #9 | #105 | open | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ✅ Yes (done) |
 | 2.1 | 2 | Sign in with Authentik (OIDC) | backlog | #10 | — | — | epic 1 complete | ❌ No (epic 1 not complete) |
 | 2.2 | 2 | Local dev auth bypass | backlog | #11 | — | — | 2.1 | ❌ No (epic 1 not complete) |
 | 2.3 | 2 | Self-service profile | backlog | #12 | — | — | 2.1 | ❌ No (epic 1 not complete) |
