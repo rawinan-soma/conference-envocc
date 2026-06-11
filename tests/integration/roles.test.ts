@@ -119,7 +119,7 @@ function makeMockEvent(userOverrides: Record<string, unknown> | null): {
 // ---------------------------------------------------------------------------
 
 describe('Story 2.4 — Roles Model: DB Default (AC-1, AC-2, AC-4)', () => {
-	test.skip('[P1] 2.4-INT-001 — New authenticated user defaults to organizer role (is_admin=false)', async () => {
+	test('[P1] 2.4-INT-001 — New authenticated user defaults to organizer role (is_admin=false)', async () => {
 		// THIS TEST WILL FAIL — is_admin column does not exist until Task 1 adds it
 		// (drizzle/0003_roles.sql migration applied by createPgFactory via drizzle-kit migrate).
 		//
@@ -163,7 +163,7 @@ describe('Story 2.4 — Roles Model: DB Default (AC-1, AC-2, AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 2.4 — Roles Model: requireAdmin Guard — Admin Access (AC-2, AC-3)', () => {
-	test.skip('[P1] 2.4-INT-002 — Admin user (is_admin=true) passes requireAdmin without error', () => {
+	test('[P1] 2.4-INT-002 — Admin user (is_admin=true) passes requireAdmin without error', () => {
 		// THIS TEST WILL FAIL until:
 		//   1. Task 1: isAdmin column added to User type (src/lib/server/db/schema/auth.ts)
 		//   2. Task 2: @ts-expect-error removed from requireAdmin (guards.ts)
@@ -192,7 +192,7 @@ describe('Story 2.4 — Roles Model: requireAdmin Guard — Admin Access (AC-2, 
 // ---------------------------------------------------------------------------
 
 describe('Story 2.4 — Roles Model: requireAdmin Guard — Role Scoping (AC-3)', () => {
-	test.skip('[P2] 2.4-INT-003a — Non-admin user (is_admin=false) blocked by requireAdmin with 403', () => {
+	test('[P2] 2.4-INT-003a — Non-admin user (is_admin=false) blocked by requireAdmin with 403', () => {
 		// THIS TEST WILL FAIL until Task 1 + Task 2 are implemented.
 		// Activate after Task 1 and Task 2.
 		//
@@ -205,7 +205,7 @@ describe('Story 2.4 — Roles Model: requireAdmin Guard — Role Scoping (AC-3)'
 		expect(() => requireAdmin(organizerEvent as Parameters<typeof requireAdmin>[0])).toThrow();
 	});
 
-	test.skip('[P2] 2.4-INT-003b — Admin user (is_admin=true) passes requireAdmin (happy path re-assert)', () => {
+	test('[P2] 2.4-INT-003b — Admin user (is_admin=true) passes requireAdmin (happy path re-assert)', () => {
 		// THIS TEST WILL FAIL until Task 1 + Task 2 are implemented.
 		// Activate after Task 1 and Task 2.
 		//
@@ -218,7 +218,7 @@ describe('Story 2.4 — Roles Model: requireAdmin Guard — Role Scoping (AC-3)'
 		expect(() => requireAdmin(adminEvent as Parameters<typeof requireAdmin>[0])).not.toThrow();
 	});
 
-	test.skip('[P2] 2.4-INT-003c — Unauthenticated request (no session) is redirected before 403 check', () => {
+	test('[P2] 2.4-INT-003c — Unauthenticated request (no session) is redirected before 403 check', () => {
 		// THIS TEST WILL FAIL until Task 1 + Task 2 are implemented.
 		// Activate after Task 1 and Task 2.
 		//
