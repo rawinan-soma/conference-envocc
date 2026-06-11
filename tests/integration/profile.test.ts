@@ -2,7 +2,7 @@
  * ATDD Red-Phase Scaffolds — Story 2.3: Self-service Profile
  * Integration Tests: Profile gate, profile form, email immutability, audit log
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
+ * TDD RED PHASE: All tests are marked test() and will remain skipped
  * until the developer activates them task-by-task during implementation.
  *
  * These tests run in the Vitest `integration` project which requires a real
@@ -11,7 +11,7 @@
  * service when DATABASE_URL is already provided.
  *
  * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test(s).
+ *   1. Remove `test(` → `test(` for the current task's test(s).
  *   2. Ensure Postgres is running (via Testcontainers or CI service).
  *   3. Run: `bun run test:integration` — verify it FAILS first (red).
  *   4. Implement the feature (per task in story 2.3).
@@ -192,7 +192,7 @@ describe('Story 2.3 — Profile Gate: Incomplete Profile Redirects to /profile/c
 		await truncateProfileTables();
 	});
 
-	test.skip('[P0] 2.3-INT-001 — GET /dashboard with authenticated-but-incomplete-profile session → 302 to /profile/complete', async () => {
+	test('[P0] 2.3-INT-001 — GET /dashboard with authenticated-but-incomplete-profile session → 302 to /profile/complete', async () => {
 		// THIS TEST WILL FAIL — profile gate guard not yet implemented (Task 4).
 		// Activate after Task 4 (hooks.server.ts routeGuards extension for profile gate).
 		//
@@ -253,7 +253,7 @@ describe('Story 2.3 — Profile Gate: Incomplete Profile Redirects to /profile/c
 		}
 	});
 
-	test.skip('[P0] 2.3-INT-001b — Authenticated user with COMPLETED profile can access /dashboard (gate is satisfied)', async () => {
+	test('[P0] 2.3-INT-001b — Authenticated user with COMPLETED profile can access /dashboard (gate is satisfied)', async () => {
 		// THIS TEST WILL FAIL — profile gate guard not yet implemented (Task 4).
 		// Activate after Tasks 3 and 4.
 		//
@@ -293,7 +293,7 @@ describe('Story 2.3 — Profile Form: Valid Submission Creates Profile (AC-3)', 
 		await truncateProfileTables();
 	});
 
-	test.skip('[P0] 2.3-INT-002 — POST to /profile/complete with all required fields → user_profiles row created; GET /dashboard → 200', async () => {
+	test('[P0] 2.3-INT-002 — POST to /profile/complete with all required fields → user_profiles row created; GET /dashboard → 200', async () => {
 		// THIS TEST WILL FAIL — profile form action not yet implemented (Task 5).
 		// Activate after Task 5 (/profile/complete/+page.server.ts actions.default).
 		//
@@ -397,7 +397,7 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 		await truncateProfileTables();
 	});
 
-	test.skip('[P0] 2.3-INT-003 — POST /profile/complete with firstName empty → 422 + error payload; no profile row created', async () => {
+	test('[P0] 2.3-INT-003 — POST /profile/complete with firstName empty → 422 + error payload; no profile row created', async () => {
 		// THIS TEST WILL FAIL — profile form validation not yet implemented (Task 5).
 		// Activate after Task 5 (sveltekit-superforms Valibot validation in actions.default).
 		//
@@ -457,7 +457,7 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 		}
 	});
 
-	test.skip('[P0] 2.3-INT-003b — POST /profile/complete with multiple missing fields → each missing field produces an error', async () => {
+	test('[P0] 2.3-INT-003b — POST /profile/complete with multiple missing fields → each missing field produces an error', async () => {
 		// THIS TEST WILL FAIL — profile form validation not yet implemented (Task 5).
 		// Activate after Task 5.
 		//
@@ -511,7 +511,7 @@ describe('Story 2.3 — Email Immutability: POST Body email Override Ignored (AC
 		await truncateProfileTables();
 	});
 
-	test.skip('[P0] 2.3-INT-004 — POST /profile/complete with email override in body → stored email unchanged (OIDC email preserved)', async () => {
+	test('[P0] 2.3-INT-004 — POST /profile/complete with email override in body → stored email unchanged (OIDC email preserved)', async () => {
 		// THIS TEST WILL FAIL — profile form action not yet implemented (Task 5).
 		// Activate after Task 5 (email must never be read from POST body in actions.default).
 		//
@@ -600,7 +600,7 @@ describe('Story 2.3 — Profile Edit: Update Mutable Fields, Email Stays Immutab
 		await truncateProfileTables();
 	});
 
-	test.skip('[P1] 2.3-INT-005 — POST /profile (edit) with new phone value → phone updated; email unchanged', async () => {
+	test('[P1] 2.3-INT-005 — POST /profile (edit) with new phone value → phone updated; email unchanged', async () => {
 		// THIS TEST WILL FAIL — profile edit route not yet implemented (Task 6).
 		// Activate after Task 6 (/profile/+page.server.ts actions.default).
 		//
@@ -677,7 +677,7 @@ describe('Story 2.3 — Profile Gate: Already-complete User Bypasses /profile/co
 		await truncateProfileTables();
 	});
 
-	test.skip('[P0] 2.3-INT-004c — GET /profile/complete with already-completed profile → redirected to dashboard', async () => {
+	test('[P0] 2.3-INT-004c — GET /profile/complete with already-completed profile → redirected to dashboard', async () => {
 		// THIS TEST WILL FAIL — /profile/complete load function not yet implemented (Task 5.1).
 		// Activate after Task 5.1 (load function checks profileComplete and redirects).
 		//
@@ -720,7 +720,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 		await truncateProfileTables();
 	});
 
-	test.skip('[P1] 2.7-INT-002 — Profile form completion → audit_log row written with entity=user_profile, action=create', async () => {
+	test('[P1] 2.7-INT-002 — Profile form completion → audit_log row written with entity=user_profile, action=create', async () => {
 		// THIS TEST WILL FAIL — profile-service.ts createProfile not yet implemented (Task 3).
 		// Activate after Tasks 3, 5 (profile service + form action creating profile in transaction).
 		//
@@ -807,7 +807,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 		await truncateProfileTables();
 	});
 
-	test.skip('[P1] 2.7-INT-003 — Profile edit with new phone → audit_log row written with action=update and diff containing changed field', async () => {
+	test('[P1] 2.7-INT-003 — Profile edit with new phone → audit_log row written with action=update and diff containing changed field', async () => {
 		// THIS TEST WILL FAIL — profile-service.ts updateProfile not yet implemented (Task 3).
 		// Activate after Tasks 3, 6 (profile service + edit route).
 		//
@@ -891,7 +891,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Rolled-back Transaction Writes No a
 		await truncateProfileTables();
 	});
 
-	test.skip('[P1] 2.7-INT-004 — DB error mid-transaction → audit_log count unchanged (atomic rollback)', async () => {
+	test('[P1] 2.7-INT-004 — DB error mid-transaction → audit_log count unchanged (atomic rollback)', async () => {
 		// THIS TEST WILL FAIL — profile-service.ts transaction handling not yet implemented (Task 3).
 		// Activate after Task 3 (createProfile/updateProfile wrapped in db.transaction()).
 		//
@@ -970,7 +970,7 @@ describe('Story 2.3 — Profile Form: Title Field Accepts All Valid Enum Values 
 		await truncateProfileTables();
 	});
 
-	test.skip('[P2] 2.3-INT-006 — POST /profile/complete with each valid title value (Mr., Mrs., Ms., Other) → all accepted', async () => {
+	test('[P2] 2.3-INT-006 — POST /profile/complete with each valid title value (Mr., Mrs., Ms., Other) → all accepted', async () => {
 		// THIS TEST WILL FAIL — profile form not yet implemented (Task 5).
 		// Activate after Tasks 2 and 5 (ProfileSchema with title enum + form action).
 		//
