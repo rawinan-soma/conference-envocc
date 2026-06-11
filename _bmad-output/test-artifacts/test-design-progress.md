@@ -9,13 +9,16 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-10'
+lastSaved: '2026-06-11'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/implementation-artifacts/sprint-status.yaml
   - _bmad-output/implementation-artifacts/1-1-scaffold-the-project.md
-  - _bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md
+  - _bmad-output/implementation-artifacts/1-6-audit-log-write-hook-foundation.md
+  - _bmad-output/implementation-artifacts/1-8-test-harness-ci.md
+  - _bmad-output/test-artifacts/atdd-checklist-1-6-audit-log-write-hook-foundation.md
+  - _bmad-output/test-artifacts/atdd-checklist-1-8-test-harness-ci.md
   - _bmad/tea/config.yaml
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/risk-governance.md
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/probability-impact.md
@@ -54,4 +57,9 @@ Story 1.1 P1 stubs noted as already generated (ATDD workflow).
 ## Step 5: Output Generated
 
 Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-1.md`
-Revision: v2 (2026-06-10) — updated post Story 1.1 completion
+Revision: v4 (2026-06-11) — updated post Stories 1.6 & 1.8 completion; Story 1.9 ATDD checklist generated
+
+New artifact: `_bmad-output/test-artifacts/atdd-checklist-1-9-walking-skeleton-vertical-slice.md`
+- 13 test stubs (P0: 6, P1: 5, P2: 1, P3: 1)
+- Files: `tests/e2e/walking-skeleton.spec.ts`, `tests/integration/walking-skeleton.test.ts`
+- Resolves deferred-work.md Story 1.2 failures (1.2-UNIT-008/010/012) via home page update

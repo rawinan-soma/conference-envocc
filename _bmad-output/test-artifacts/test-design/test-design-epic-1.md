@@ -9,13 +9,16 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-10'
+lastSaved: '2026-06-11'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/implementation-artifacts/sprint-status.yaml
   - _bmad-output/implementation-artifacts/1-1-scaffold-the-project.md
-  - _bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md
+  - _bmad-output/implementation-artifacts/1-6-audit-log-write-hook-foundation.md
+  - _bmad-output/implementation-artifacts/1-8-test-harness-ci.md
+  - _bmad-output/test-artifacts/atdd-checklist-1-6-audit-log-write-hook-foundation.md
+  - _bmad-output/test-artifacts/atdd-checklist-1-8-test-harness-ci.md
   - _bmad/tea/config.yaml
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/risk-governance.md
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/probability-impact.md
@@ -25,9 +28,9 @@ inputDocuments:
 
 # Test Design: Epic 1 — Foundation & Walking Skeleton
 
-**Date:** 2026-06-10
+**Date:** 2026-06-11
 **Author:** Rawinan
-**Status:** Draft (v3 — updated post Stories 1.2, 1.4, 1.5, 1.7 completion)
+**Status:** Draft (v4 — updated post Stories 1.6 & 1.8 completion; Story 1.9 ATDD stubs added)
 **Mode:** Epic-Level Test Design
 
 ---
@@ -41,8 +44,8 @@ Epic 1 establishes the entire technical foundation: the SvelteKit + Bun scaffold
 **Why this epic is high-stakes for testing:**
 All later epics build on the foundations set here. A misconfigured EXCLUDE constraint, a missing migration step, or a broken Paraglide pipeline discovered in Epic 3 is far more expensive to fix than discovering it now. The goal of this test design is to ensure the walking skeleton *fails fast and loudly* if any foundation layer is misconfigured.
 
-**Implementation Status Update (v3, 2026-06-10):**
-Stories 1.1, 1.2, 1.3, 1.4, 1.5, and 1.7 are **done**. Stories 1.6, 1.8, and 1.9 are backlog.
+**Implementation Status Update (v4, 2026-06-11):**
+Stories 1.1 through 1.8 are **done**. Story 1.9 is **backlog** (next up).
 
 Key implementation nuances from done stories that affect test scenarios:
 
@@ -79,6 +82,29 @@ Key implementation nuances from done stories that affect test scenarios:
 - Web container command: `sh -c "bunx drizzle-kit migrate && bun run build/index.js"` — migration pre-start confirmed
 - `src/lib/server/env.ts` with `validateEnv()` already exists from Story 1.5 — Story 1.7 extended it with HOST/PORT defaults
 - ATDD stubs generated: `src/lib/server/env.test.ts` (6, RED), `tests/unit/docker-deployment.spec.ts` (16, RED), `tests/support/fixtures/docker-context.ts`
+
+**Story 1.6 (Audit Log Write Hook — done 2026-06-10):**
+- `src/lib/server/db/` module created: `schema/audit-log.ts`, `schema/index.ts`, `schema.ts` (barrel), `index.ts` (Pool + drizzle)
+- `src/lib/server/services/audit.ts` with `writeAuditLog(tx, entry)` helper + `AuditLogEntry` type (relative imports throughout)
+- Migration: `drizzle/0000_broken_masked_marvel.sql` — `CREATE TABLE "audit_log"` with 6 columns (id UUID v7 PK, created_at, actor_id nullable, entity, action, diff jsonb)
+- `uuidv7@1.2.1` added as production dependency
+- ATDD unit tests activated (16/16 pass); integration tests remain `test.skip` (activated in Story 1.8)
+- **ATDD files:** `src/lib/server/db/schema/audit-log.test.ts` (9 unit, GREEN), `src/lib/server/services/audit.test.ts` (7 unit, GREEN), `src/lib/server/services/audit.integration.test.ts` (3 integration, activated by Story 1.8)
+- Code review patch: removed unnecessary `as Record<string, unknown> | null` cast on `diff` parameter
+- Pre-existing check/test failures from Story 1.7 hooks.server.ts `validateEnv` mismatch — resolved in Story 1.8
+
+**Story 1.8 (Test Harness & CI — done 2026-06-10):**
+- `src/lib/server/env.ts` refactored: `validateEnv(record)` now exported; SMTP vars optional; all 6 env tests GREEN; svelte-check passes 0 errors
+- `@testcontainers/postgresql`, `testcontainers`, `@axe-core/playwright` added as dev deps
+- Real-Postgres integration tier added: `integration` Vitest project in `vite.config.ts`; `tests/support/integration-setup.ts`, `tests/support/fixtures/pg-factory.ts`, `tests/support/fixtures/testcontainers-context.ts`
+- `src/lib/server/db/schema.ts` (bookings + EXCLUDE), `src/lib/server/db/index.ts`, `drizzle/0000_init.sql` (hand-written migration with btree_gist + EXCLUDE) — Story 1.3 carry-forward completed here
+- 4 integration tests in `src/worker.integration.test.ts` un-skipped and active
+- `tests/integration/db-schema.test.ts` — 5 active tests (constraint-exists + conflict tests) — P0 gate
+- `tests/e2e/a11y-smoke.spec.ts` (axe-core) + `tests/e2e/thai-render-smoke.spec.ts` (Thai font/locale) — activated
+- `.github/workflows/ci.yml` created with 5 jobs: quality, test-unit, test-integration, test-e2e, build-images, vuln-scan
+- `package.json` scripts: `test:integration`, `test:ci` added; `bun run test` scoped to `--project server` (no DB needed)
+- All 23 Story 1.8 unit tests pass; 6 env tests pass
+- Pre-existing Story 1.2 failures (`1.2-UNIT-008`, `1.2-UNIT-010`, `1.2-UNIT-012`) in `tests/unit/design-system.spec.ts` remain — awaiting Story 1.9 home-page fill (deferred-work.md)
 
 **Risk Summary:**
 
@@ -180,18 +206,22 @@ Key implementation nuances from done stories that affect test scenarios:
 - [x] Paraglide i18n configured, ESLint no-hardcoded-strings guard active (Story 1.4 **done**)
 - [x] pg-boss worker process and nodemailer transport running; `src/lib/server/env.ts` present (Story 1.5 **done**)
 - [x] Docker images (Dockerfile, Dockerfile.worker) build; `docker-compose.prod.yml` functional (Story 1.7 **done**)
-- [ ] Story 1.6 (audit log write hook) complete before audit atomicity integration tests (P0: 1.6-INT-001/002)
-- [ ] Story 1.8 (test harness + CI) merged before full CI gate enforcement
-- [ ] Story 1.9 (walking skeleton vertical slice) complete before 1.9-INT-* tests
+- [x] Story 1.6 (audit log write hook) complete — `writeAuditLog` helper + `audit_log` migration live (done 2026-06-10)
+- [x] Story 1.8 (test harness + CI) merged — real-Postgres integration tier, CI pipeline, axe-core (done 2026-06-10)
+- [ ] Story 1.9 (walking skeleton vertical slice) complete before 1.9-INT-* tests can run
 
 ## Exit Criteria
 
 - [ ] All P0 tests passing (zero failures)
 - [ ] All P1 tests passing (zero failures, or each failure triaged with owner)
-- [ ] R-001 and R-002 mitigations complete (EXCLUDE constraint test + migration pre-start test both green)
-- [ ] CI pipeline runs lint + typecheck + Vitest + Playwright + build + image — all green
-- [ ] No high-risk (score ≥6) items with status OPEN and no mitigation plan
+- [x] R-001 mitigation: EXCLUDE constraint test (`1.3-INT-001/002/003`) present in `tests/integration/db-schema.test.ts` (Story 1.8 done)
+- [ ] R-001 verification: `1.3-INT-001/002/003` GREEN in CI (requires running integration tier)
+- [ ] R-002 mitigation: migration pre-start Docker smoke test green
+- [x] CI pipeline configured: lint + typecheck + Vitest + Playwright + build + image (Story 1.8 done — `.github/workflows/ci.yml`)
+- [ ] CI pipeline green: first successful PR run (depends on Story 1.9 resolving pre-existing failures)
+- [x] No high-risk items (score ≥6) remaining OPEN without mitigation plan (all R-001 through R-007 have plans or Complete status)
 - [ ] Walking skeleton vertical slice (Story 1.9) passes end-to-end in Docker Compose
+- [ ] Pre-existing Story 1.2 test failures (`1.2-UNIT-008/010/012`) resolved — home page needs Button + Thai typography classes (Story 1.9 scope)
 
 ---
 
@@ -233,8 +263,8 @@ Key implementation nuances from done stories that affect test scenarios:
 
 **Owner:** Dev
 **Timeline:** Merged with Story 1.6
-**Status:** Planned
-**Verification:** Tests green before Story 1.6 is marked done
+**Status:** Complete (Story 1.6 done 2026-06-10)
+**Verification:** 16 unit tests pass (`audit-log.test.ts`, `audit.test.ts`); integration tests activated in Story 1.8 (`audit.integration.test.ts`)
 
 ---
 
@@ -289,8 +319,8 @@ Key implementation nuances from done stories that affect test scenarios:
 
 **Owner:** Dev / CI
 **Timeline:** Story 1.8
-**Status:** Planned
-**Verification:** CI pipeline green with build step present
+**Status:** Complete (Story 1.8 done 2026-06-10)
+**Verification:** `.github/workflows/ci.yml` live with `build-images` job; `bun run build` and Docker image build are PR gate steps
 
 ---
 
@@ -330,12 +360,32 @@ Key implementation nuances from done stories that affect test scenarios:
 - ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-5-jobs-email-platform.md`
 
 **Story 1.7 (done):**
-- `src/lib/server/env.test.ts` — 6 tests (P0: 3, P1: 3, RED)
+- `src/lib/server/env.test.ts` — 6 tests (P0: 3, P1: 3, GREEN after Story 1.8 env.ts fix)
 - `tests/unit/docker-deployment.spec.ts` — 16 tests (P0: 5, P1: 8, P2: 1, P3: 1, RED — requires Docker)
 - `tests/support/fixtures/docker-context.ts`
 - ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-7-docker-deployment-skeleton.md`
 
-**Total ATDD stubs generated across done stories:** ~150 tests (mix of GREEN unit tests and RED skipped stubs)
+**Story 1.6 (done):**
+- `src/lib/server/db/schema/audit-log.test.ts` — 9 unit tests (P1: 9, GREEN)
+- `src/lib/server/services/audit.test.ts` — 7 unit tests (P1: 6, P2: 1, GREEN)
+- `src/lib/server/services/audit.integration.test.ts` — 3 integration tests (P1: 3, activated in Story 1.8)
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-6-audit-log-write-hook-foundation.md`
+
+**Story 1.8 (done):**
+- `tests/unit/test-harness-ci.spec.ts` — 23 unit/static tests (P1: 18, P2: 2, GREEN — all 23 pass)
+- `tests/integration/db-schema.test.ts` — 5 integration tests (P0: 3, P1: 2, active — require Postgres)
+- `tests/e2e/a11y-smoke.spec.ts` — 2 E2E tests (axe-core, P1: 1, P2: 1, active)
+- `tests/e2e/thai-render-smoke.spec.ts` — 4 E2E tests (P1: 3, P2: 1, active)
+- `src/worker.integration.test.ts` — 4 integration tests (P1: 4, activated — un-skipped from Story 1.5)
+- Infrastructure: `tests/support/fixtures/pg-factory.ts`, `tests/support/fixtures/testcontainers-context.ts`, `tests/support/integration-setup.ts`
+- ATDD checklist: `_bmad-output/test-artifacts/atdd-checklist-1-8-test-harness-ci.md`
+
+**Story 1.9 (backlog — ATDD stubs TBD):**
+- ATDD checklist to generate: `_bmad-output/test-artifacts/atdd-checklist-1-9-walking-skeleton-vertical-slice.md`
+- Expected test files (to be scaffolded): `tests/e2e/walking-skeleton.spec.ts`, `tests/integration/walking-skeleton.test.ts`
+- Scenarios covered: 1.9-INT-001/002/003 (P0), 1.9-INT-004 (P3) — see P0/P3 tables below
+
+**Total ATDD stubs generated across done stories:** ~200 tests (mix of GREEN unit tests, active integration tests, and RED skipped stubs)
 
 ---
 
@@ -535,12 +585,13 @@ Scenarios with expensive setup or non-deterministic timing:
 
 ### Dependencies
 
-1. **Story 1.1 (scaffold)** — COMPLETE. Test infrastructure exists.
-2. **Story 1.3 (schema + constraint)** — P0 constraint tests depend on this story. Required for R-001 mitigation.
-3. **Story 1.7 (Docker)** — Docker smoke tests depend on compose stack. Required for R-002/R-006 mitigation.
-4. **Story 1.8 (test harness + CI)** — CI gate enforcement depends on this story. Required before Epic 1 exit.
-5. **Story 1.9 (walking skeleton)** — integration tests `1.9-INT-001/002/003` depend on full stack in Docker.
-6. **Mailpit** — email integration tests (R-005) require Mailpit service running in compose stack.
+1. **Story 1.1 (scaffold)** — DONE. Test infrastructure exists.
+2. **Story 1.3 (schema + constraint)** — DONE (completed as carry-forward in Story 1.8). EXCLUDE constraint live in `drizzle/0000_init.sql`.
+3. **Story 1.6 (audit log)** — DONE. `writeAuditLog` helper and `audit_log` table live.
+4. **Story 1.7 (Docker)** — DONE. `docker-compose.prod.yml` with web + worker + nginx + Postgres.
+5. **Story 1.8 (test harness + CI)** — DONE. Integration tier, CI pipeline, axe-core, constraint tests in place.
+6. **Story 1.9 (walking skeleton)** — BACKLOG. Integration tests `1.9-INT-001/002/003` depend on the route + full stack wiring.
+7. **Mailpit** — email integration tests (R-005) require Mailpit service in compose stack (already in `compose.yaml`).
 
 ### Risks to Plan
 
@@ -601,7 +652,13 @@ Scenarios with expensive setup or non-deterministic timing:
 - **Architecture:** `_bmad-output/planning-artifacts/architecture.md`
 - **Sprint Status:** `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - **Story 1.1 (done):** `_bmad-output/implementation-artifacts/1-1-scaffold-the-project.md`
+- **Story 1.6 (done):** `_bmad-output/implementation-artifacts/1-6-audit-log-write-hook-foundation.md`
+- **Story 1.8 (done):** `_bmad-output/implementation-artifacts/1-8-test-harness-ci.md`
+- **Deferred Work:** `_bmad-output/implementation-artifacts/deferred-work.md`
 - **ATDD Checklist 1.1:** `_bmad-output/test-artifacts/atdd-checklist-1-1-scaffold-the-project.md`
+- **ATDD Checklist 1.6:** `_bmad-output/test-artifacts/atdd-checklist-1-6-audit-log-write-hook-foundation.md`
+- **ATDD Checklist 1.8:** `_bmad-output/test-artifacts/atdd-checklist-1-8-test-harness-ci.md`
+- **ATDD Checklist 1.9:** `_bmad-output/test-artifacts/atdd-checklist-1-9-walking-skeleton-vertical-slice.md`
 
 ### Risk Score Legend
 
@@ -619,4 +676,4 @@ Scenarios with expensive setup or non-deterministic timing:
 **Version:** 4.0 (BMad v6)
 **Epic:** 1 — Foundation & Walking Skeleton
 **Mode:** Epic-Level
-**Revision:** v2 (2026-06-10) — Updated post Story 1.1 completion; incorporated scaffold nuances (compose.yaml, vite.config.ts adapter, test directory structure, ATDD stubs in RED phase)
+**Revision:** v4 (2026-06-11) — Updated post Stories 1.6 & 1.8 completion; added Story 1.6/1.8 implementation nuances; updated entry/exit criteria and dependencies; marked R-003 and R-007 mitigations Complete; added Story 1.9 ATDD stub placeholder; all 8 done stories documented in ATDD Stubs section. ATDD checklist for Story 1.9 in `_bmad-output/test-artifacts/atdd-checklist-1-9-walking-skeleton-vertical-slice.md`.
