@@ -2,21 +2,20 @@
  * ATDD Red-Phase Scaffolds — Story 2.4: Roles & Assignment Model
  * Integration Tests: is_admin DB default, requireAdmin guard, role scoping
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
- * until the developer activates them task-by-task during implementation.
+ * STATUS: ACTIVE (green phase). These tests were scaffolded red-phase and are
+ * now activated — story 2.4 (is_admin column + requireAdmin guard) is implemented.
+ * All scenarios below run live against the integration harness.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
  * starts Testcontainers when DATABASE_URL is not set, or uses the CI Postgres
  * service when DATABASE_URL is already provided.
  *
- * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test(s).
- *   2. Ensure Postgres is running (via Testcontainers or CI service).
- *   3. Run: `bun run test:integration` — verify it FAILS first (red).
- *   4. Implement the feature (per task in story 2.4).
- *   5. Run again — verify it PASSES (green).
- *   6. Commit passing tests.
+ * Running locally:
+ *   1. Ensure Postgres is running (via Testcontainers or CI service).
+ *   2. Run: `bun run test:integration`.
+ *   Tests apply migration 0003_roles.sql and exercise the is_admin default,
+ *   the requireAdmin guard, and role scoping. All are expected to PASS (green).
  *
  * AC Coverage:
  *   - AC-1: Every user with is_admin=false is treated as organizer (default capability)
@@ -48,8 +47,7 @@ import { createPgFactory } from '../support/fixtures/pg-factory.js';
 import type { PgFactoryResult } from '../support/fixtures/pg-factory.js';
 
 // ---------------------------------------------------------------------------
-// requireAdmin import — will fail to compile until guards.ts is corrected
-// (removing @ts-expect-error; Task 2 of story 2.4)
+// requireAdmin guard under test (reads user.isAdmin from event.locals).
 // ---------------------------------------------------------------------------
 
 import { requireAdmin } from '$lib/server/auth/guards.js';
@@ -129,10 +127,8 @@ function makeMockEvent(userOverrides: Record<string, unknown> | null): {
 
 describe('Story 2.4 — Roles Model: DB Default (AC-1, AC-2, AC-4)', () => {
 	test('[P1] 2.4-INT-001 — New authenticated user defaults to organizer role (is_admin=false)', async () => {
-		// THIS TEST WILL FAIL — is_admin column does not exist until Task 1 adds it
-		// (drizzle/0003_roles.sql migration applied by createPgFactory via drizzle-kit migrate).
-		//
-		// Activate after Task 1 (schema + migration) is complete.
+		// Migration drizzle/0003_roles.sql (applied by createPgFactory via drizzle-kit
+		// migrate) adds the is_admin column with DEFAULT false.
 		//
 		// Strategy: Insert a user row via raw SQL without specifying is_admin,
 		// then SELECT the row back and assert is_admin = false (DB default).
@@ -173,22 +169,13 @@ describe('Story 2.4 — Roles Model: DB Default (AC-1, AC-2, AC-4)', () => {
 
 describe('Story 2.4 — Roles Model: requireAdmin Guard — Admin Access (AC-2, AC-3)', () => {
 	test('[P1] 2.4-INT-002 — Admin user (is_admin=true) passes requireAdmin without error', () => {
-		// THIS TEST WILL FAIL until:
-		//   1. Task 1: isAdmin column added to User type (src/lib/server/db/schema/auth.ts)
-		//   2. Task 2: @ts-expect-error removed from requireAdmin (guards.ts)
-		//
-		// Activate after Task 1 and Task 2.
-		//
 		// Strategy: Build a mock event with an admin user (isAdmin: true)
-		// and verify requireAdmin() returns the user without throwing.
+		// and verify requireAdmin() returns that user without throwing.
 		// No DB or HTTP required — we mock event.locals directly.
 
 		const adminEvent = makeMockEvent({ isAdmin: true });
 
-		// Should NOT throw — admin user passes the guard
-		expect(() => requireAdmin(adminEvent as Parameters<typeof requireAdmin>[0])).not.toThrow();
-
-		// Should return the user object
+		// Should NOT throw and should return the admin user — invoke once.
 		const returnedUser = requireAdmin(adminEvent as Parameters<typeof requireAdmin>[0]);
 		expect(returnedUser).toBeDefined();
 		expect(returnedUser.isAdmin).toBe(true);
@@ -202,22 +189,23 @@ describe('Story 2.4 — Roles Model: requireAdmin Guard — Admin Access (AC-2, 
 
 describe('Story 2.4 — Roles Model: requireAdmin Guard — Role Scoping (AC-3)', () => {
 	test('[P2] 2.4-INT-003a — Non-admin user (is_admin=false) blocked by requireAdmin with 403', () => {
-		// THIS TEST WILL FAIL until Task 1 + Task 2 are implemented.
-		// Activate after Task 1 and Task 2.
-		//
 		// Strategy: Mock event with a non-admin user (isAdmin: false) and assert
-		// that requireAdmin throws (SvelteKit error(403)).
+		// that requireAdmin throws a SvelteKit error(403).
 
 		const organizerEvent = makeMockEvent({ isAdmin: false });
 
-		// Should THROW with 403 status — non-admin is rejected
-		expect(() => requireAdmin(organizerEvent as Parameters<typeof requireAdmin>[0])).toThrow();
+		// Should THROW specifically with status 403 — non-admin is rejected.
+		let thrown: unknown;
+		try {
+			requireAdmin(organizerEvent as Parameters<typeof requireAdmin>[0]);
+		} catch (e) {
+			thrown = e;
+		}
+		expect(thrown).toBeDefined();
+		expect((thrown as { status?: number }).status).toBe(403);
 	});
 
 	test('[P2] 2.4-INT-003b — Admin user (is_admin=true) passes requireAdmin (happy path re-assert)', () => {
-		// THIS TEST WILL FAIL until Task 1 + Task 2 are implemented.
-		// Activate after Task 1 and Task 2.
-		//
 		// Confirms both unhappy (003a) and happy (003b) paths in a single describe block
 		// for clean AC-3 traceability.
 
@@ -228,16 +216,20 @@ describe('Story 2.4 — Roles Model: requireAdmin Guard — Role Scoping (AC-3)'
 	});
 
 	test('[P2] 2.4-INT-003c — Unauthenticated request (no session) is redirected before 403 check', () => {
-		// THIS TEST WILL FAIL until Task 1 + Task 2 are implemented.
-		// Activate after Task 1 and Task 2.
-		//
 		// Strategy: Null user in locals — requireUser() inside requireAdmin() should
-		// throw a redirect(302) before the isAdmin check is reached.
-		// SvelteKit redirect() throws a Response-like object.
+		// throw a redirect(302) to /login before the isAdmin check is reached.
+		// SvelteKit redirect() throws a Response-like object carrying status + location.
 
 		const unauthEvent = makeMockEvent(null);
 
-		// Should THROW (redirect to /login), not reach the 403 isAdmin check
-		expect(() => requireAdmin(unauthEvent as Parameters<typeof requireAdmin>[0])).toThrow();
+		// Should THROW a 302 redirect, NOT reach the 403 isAdmin check.
+		let thrown: unknown;
+		try {
+			requireAdmin(unauthEvent as Parameters<typeof requireAdmin>[0]);
+		} catch (e) {
+			thrown = e;
+		}
+		expect(thrown).toBeDefined();
+		expect((thrown as { status?: number }).status).toBe(302);
 	});
 });
