@@ -21,6 +21,7 @@ import { genericOAuth } from 'better-auth/plugins/generic-oauth';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 
 import { db } from '../db/index.js'; // relative — safe for non-SvelteKit context
+import { accounts, sessions, users, verifications } from '../db/schema/auth.js'; // explicit schema for Drizzle adapter
 import { env } from '../env.js'; // relative — same reason
 
 // Warn if auth env vars are absent at module load time.
@@ -65,7 +66,17 @@ export const auth = betterAuth({
 	basePath: '/auth',
 	database: drizzleAdapter(db, {
 		provider: 'pg',
-		camelCase: true
+		camelCase: true,
+		// Explicit schema mapping: Drizzle adapter looks up models by singular name
+		// ("session", "user", "account", "verification") but our schema exports use
+		// plural names ("sessions", "users", etc.). Passing schema explicitly fixes
+		// the "model not found" error that occurs when findSession() is called.
+		schema: {
+			user: users,
+			session: sessions,
+			account: accounts,
+			verification: verifications
+		}
 	}),
 	session: {
 		expiresIn: 1800, // 30 minutes — FR-093: FIXED, never configurable
