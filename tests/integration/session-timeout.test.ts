@@ -218,12 +218,21 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 			const devServerUrl = process.env['DEV_SERVER_URL'] ?? 'http://localhost:3000';
 
 			// GET an (app) route with the expired session cookie — do NOT follow redirects
-			const response = await fetch(`${devServerUrl}/dashboard`, {
-				headers: {
-					Cookie: `better-auth.session_token=${token}`
-				},
-				redirect: 'manual'
-			});
+			let response: Response;
+			try {
+				response = await fetch(`${devServerUrl}/dashboard`, {
+					headers: {
+						Cookie: `better-auth.session_token=${token}`
+					},
+					redirect: 'manual'
+				});
+			} catch (err) {
+				throw new Error(
+					`2.6-INT-001: Could not connect to dev server at ${devServerUrl}. ` +
+						`Start the app (bun run dev) or set DEV_SERVER_URL.`,
+					{ cause: err }
+				);
+			}
 
 			// Better Auth should reject the expired session → auth guard redirects to /login
 			expect(
@@ -264,8 +273,12 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 
 		const userId = 'test-user-2-6-int-001b';
 		const token = 'fresh-session-token-2-6-int-001b';
+		// Capture reference time before seeding to avoid Date.now() race in the assertion
+		// (the assertion below compares row.expiresAt against this pre-seed baseline,
+		// not a later Date.now() call that might have advanced past validUntil on a slow machine).
+		const seedStartMs = Date.now();
 		// 29 minutes in the future — within the 30-min window (not yet expired)
-		const validUntil = new Date(Date.now() + 29 * 60 * 1000);
+		const validUntil = new Date(seedStartMs + 29 * 60 * 1000);
 
 		await seedSession(userId, token, validUntil);
 
@@ -285,11 +298,14 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 
 				const row = result.rows[0];
 
-				// expiresAt must be in the future (not expired)
+				// expiresAt must be in the future relative to when we started seeding.
+				// Use seedStartMs (captured before seeding) as the baseline to avoid a
+				// Date.now() race: on a very slow machine, a second Date.now() call made
+				// here could marginally exceed validUntil, producing a false failure.
 				expect(
 					row?.expiresAt.getTime(),
 					'Fresh session expiresAt must be in the future — contrasts with INT-001 where expiresAt is 31 min in the past'
-				).toBeGreaterThan(Date.now());
+				).toBeGreaterThan(seedStartMs);
 			} finally {
 				client.release();
 			}
