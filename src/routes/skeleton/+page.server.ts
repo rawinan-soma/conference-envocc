@@ -29,17 +29,31 @@ export async function load() {
 			});
 		});
 
-		// Enqueue smoke-email job after the transaction commits
-		await enqueueJob(
-			QUEUE.SMOKE_EMAIL,
-			{ to: 'skeleton@example.com', requestedAt: new Date().toISOString() },
-			{ singletonKey: 'skeleton-probe' }
-		);
+		// Enqueue smoke-email job after the transaction commits.
+		// If the job queue is not available (e.g. worker not started in this process),
+		// log and continue — the page still renders successfully.
+		let jobEnqueued = false;
+		try {
+			await enqueueJob(
+				QUEUE.SMOKE_EMAIL,
+				{ to: 'skeleton@example.com', requestedAt: new Date().toISOString() },
+				{ singletonKey: 'skeleton-probe' }
+			);
+			jobEnqueued = true;
+		} catch (jobErr: unknown) {
+			console.warn('[skeleton] enqueueJob failed (worker may not be running):', jobErr);
+		}
 
-		return { insertedId, conflict: false, jobEnqueued: true };
+		return { insertedId, conflict: false, jobEnqueued };
 	} catch (err: unknown) {
-		if (err instanceof Error && 'code' in err && (err as { code?: string }).code === '23P01') {
-			// EXCLUDE constraint fired — the probe row already exists (idempotent)
+		// Check for EXCLUDE constraint violation (23P01) — the probe row already exists (idempotent).
+		// Drizzle wraps pg errors in DrizzleQueryError, so check both err.code and err.cause.code.
+		const code =
+			(err instanceof Error && 'code' in err ? (err as { code?: string }).code : undefined) ??
+			(err instanceof Error && err.cause instanceof Error && 'code' in err.cause
+				? (err.cause as { code?: string }).code
+				: undefined);
+		if (code === '23P01') {
 			return { insertedId: null, conflict: true, jobEnqueued: false };
 		}
 		throw err; // re-throw unexpected errors
