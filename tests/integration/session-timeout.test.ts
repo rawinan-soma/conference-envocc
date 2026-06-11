@@ -23,6 +23,7 @@
  */
 
 import { execSync } from 'child_process';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
@@ -105,9 +106,17 @@ async function seedSession(
 			[userId, `${userId}@test-2-6.example.com`]
 		);
 		await client.query(
+			// DO UPDATE (not DO NOTHING): if a row with this id survived a skipped
+			// truncate or a crashed teardown, force it to reflect the requested token
+			// and expiresAt. DO NOTHING would silently leave a stale row in place,
+			// letting an expired-session test run against a previously-seeded fresh row.
 			`INSERT INTO sessions (id, token, "userId", "expiresAt", "createdAt", "updatedAt")
 			 VALUES ($1, $2, $3, $4, NOW(), NOW())
-			 ON CONFLICT (id) DO NOTHING`,
+			 ON CONFLICT (id) DO UPDATE SET
+			   token = EXCLUDED.token,
+			   "userId" = EXCLUDED."userId",
+			   "expiresAt" = EXCLUDED."expiresAt",
+			   "updatedAt" = NOW()`,
 			[`session-${userId}`, token, userId, expiresAt]
 		);
 	} finally {
@@ -142,42 +151,48 @@ describe('Story 2.6 — Auth Config: Fixed Session expiresIn (FR-093)', () => {
 			'auth.options.session must be defined — verify Better Auth config in src/lib/server/auth/index.ts'
 		).toBeDefined();
 
+		// Optional chaining: toBeDefined() above does not narrow the type or halt
+		// execution, so guard against a TypeError masking the clean assertion failure.
 		expect(
-			sessionConfig.expiresIn,
+			sessionConfig?.expiresIn,
 			'session.expiresIn must be exactly 1800 seconds (30 min) — FR-093 fixed timeout, never configurable'
 		).toBe(1800);
 	});
 
-	test('[P1] 2.6-UNIT-002 — Better Auth config does NOT read session timeout from environment variable', async () => {
-		// ACTIVATED immediately — static source-code assertion, no DB required.
+	test('[P1] 2.6-UNIT-002 — session.expiresIn is a hard-coded literal, not derived from any env var (source scan)', () => {
+		// ACTIVATED immediately — static source-code assertion, no DB/import required.
 		//
 		// AC: "the timeout is not exposed as a configurable setting"
 		// Risk: A developer may inadvertently refactor expiresIn to read from process.env,
 		// making the timeout configurable and violating FR-093.
 		//
-		// Strategy: Assert that the session.expiresIn value is a literal number (1800),
-		// not derived from any environment variable. We verify this by importing the auth
-		// module without setting any timeout-related env vars and asserting the value is
-		// still exactly 1800.
+		// Strategy: Read the auth config SOURCE and assert that the line declaring
+		// `expiresIn:` assigns a numeric literal (1800), not an expression that reads
+		// process.env / env.* / import.meta.env. A runtime re-import cannot prove this:
+		// ESM caches the module by specifier, so deleting env vars and re-importing the
+		// same path returns the already-evaluated instance and the assertion is vacuous.
+		// Scanning the source is the only way to detect an env-derived value.
 
-		// Temporarily unset any env vars that could override timeout (defensive)
-		const savedEnv = { ...process.env };
-		delete process.env['SESSION_TIMEOUT'];
-		delete process.env['SESSION_EXPIRES_IN'];
-		delete process.env['AUTH_SESSION_TIMEOUT'];
+		const authSourcePath = path.resolve(import.meta.dirname, '../../src/lib/server/auth/index.ts');
+		const source = readFileSync(authSourcePath, 'utf8');
 
-		try {
-			const { auth } = await import('../../src/lib/server/auth/index.js');
-			const sessionConfig = auth.options?.session;
+		const expiresInMatch = source.match(/expiresIn\s*:\s*([^,\n]+)/);
+		expect(
+			expiresInMatch,
+			'expiresIn must be declared in src/lib/server/auth/index.ts'
+		).not.toBeNull();
 
-			expect(
-				sessionConfig?.expiresIn,
-				'session.expiresIn must remain 1800 regardless of env vars — FR-093 requires hard-coded fixed timeout'
-			).toBe(1800);
-		} finally {
-			// Restore env
-			Object.assign(process.env, savedEnv);
-		}
+		const rhs = (expiresInMatch?.[1] ?? '').trim();
+		expect(
+			rhs,
+			`session.expiresIn must be the literal 1800, not an env-derived expression — found "${rhs}" (FR-093: fixed, never configurable)`
+		).toBe('1800');
+
+		// Defensive: the RHS must not reference any environment source.
+		expect(
+			/process\.env|import\.meta\.env|\benv\b/.test(rhs),
+			`session.expiresIn must not read from process.env / import.meta.env / env.* — found "${rhs}"`
+		).toBe(false);
 	});
 });
 
@@ -241,16 +256,26 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 			).toBe(302);
 
 			const location = response.headers.get('location');
+			// Anchor to the start of the path so an incidental substring (e.g.
+			// /account/login-history) cannot satisfy the security-relevant assertion.
+			// The guard in hooks.server.ts redirects to exactly '/login'.
 			expect(
 				location,
 				'302 redirect must point to /login — re-authentication required after session expiry'
-			).toMatch(/\/login/);
+			).toMatch(/^\/login(?:[/?#]|$)/);
 		} finally {
 			await truncateBetterAuthTables();
 		}
 	});
 
-	test('[P0] 2.6-INT-001b — Fresh (non-expired) session row has future expiresAt in DB (contrast with expired INT-001)', async () => {
+	test('[P2] 2.6-INT-001b — Fresh (non-expired) session row has future expiresAt in DB (contrast with expired INT-001)', async () => {
+		// Priority note: this is a DB-state contrast check, NOT an HTTP/auth-behavior test —
+		// it deliberately does not assert "fresh session is accepted / not redirected to /login".
+		// Raw-seeded tokens are not Better-Auth-signed, so getSession() returns null for them
+		// regardless of expiry (see infrastructure note below); an HTTP positive-case is therefore
+		// not achievable with raw seeding. Marked [P2] (not [P0]) to reflect that limited scope —
+		// the authoritative expiry behavior is covered by the P0 2.6-INT-001 and P2 2.6-INT-003.
+		//
 		// Complementary negative case: confirms that the test infrastructure correctly
 		// distinguishes expired vs. fresh sessions at the DB level.
 		//
@@ -338,16 +363,35 @@ describe('Story 2.6 — Non-Configurable Timeout: No Route or Service Exposes Ti
 		const routesDir = path.join(projectRoot, 'src/routes');
 		const servicesDir = path.join(projectRoot, 'src/lib/server/services');
 
+		// Both scanned directories MUST exist, otherwise this guard is silently scanning
+		// nothing and would pass vacuously. Assert presence explicitly.
+		expect(existsSync(routesDir), `Routes dir must exist for the scan: ${routesDir}`).toBe(true);
+		expect(existsSync(servicesDir), `Services dir must exist for the scan: ${servicesDir}`).toBe(
+			true
+		);
+
+		// Run grep over routes and services only (auth/index.ts is intentionally out of scope).
+		// grep exit codes: 0 = match found, 1 = no match (the PASS case), >=2 = real error.
+		// We must NOT blanket-swallow with `|| true`, which would turn a missing binary /
+		// bad path (exit 2) into a false-green. Distinguish the no-match case explicitly.
 		let grepOutput: string;
 		try {
-			// Run grep over routes and services directories only (not auth/index.ts)
-			// 2>/dev/null suppresses "no such file or directory" if services dir doesn't exist
 			grepOutput = execSync(
-				`grep -r "sessionTimeout\\|expiresIn" "${routesDir}" "${servicesDir}" 2>/dev/null || true`
-			).toString();
-		} catch {
-			// grep exits non-zero when no matches found in some environments — treat as no output
-			grepOutput = '';
+				`grep -r "sessionTimeout\\|expiresIn" "${routesDir}" "${servicesDir}"`,
+				{ encoding: 'utf8' }
+			);
+		} catch (err) {
+			const e = err as { status?: number; stderr?: Buffer | string };
+			if (e.status === 1) {
+				// No matches — the desired outcome.
+				grepOutput = '';
+			} else {
+				throw new Error(
+					`2.6-INT-002: grep failed (exit ${e.status}) — cannot verify timeout is not exposed. ` +
+						`stderr: ${e.stderr?.toString() ?? ''}`,
+					{ cause: err }
+				);
+			}
 		}
 
 		expect(
