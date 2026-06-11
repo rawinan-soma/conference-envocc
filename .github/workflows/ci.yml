@@ -89,10 +89,28 @@ jobs:
         run: bunx drizzle-kit migrate
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
+      - name: Start dev server (for HTTP-level integration tests)
+        # Some integration tests (2.1-INT-001 through 2.1-INT-004) send real HTTP requests
+        # to the SvelteKit app at DEV_SERVER_URL. Start the dev server in the background
+        # so these tests can connect when activated during Story 2.1 implementation.
+        run: bun run dev &
+        env:
+          DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
+          AUTH_SECRET: ci-test-secret-not-used-in-production
+          AUTHENTIK_CLIENT_ID: ci-placeholder
+          AUTHENTIK_CLIENT_SECRET: ci-placeholder
+          AUTHENTIK_ISSUER: https://auth.example.com
+          SMTP_HOST: localhost
+          SMTP_PORT: '1025'
+          SMTP_FROM: test@test.local
+          SMTP_DISPLAY_NAME: Test
+      - name: Wait for dev server to be ready
+        run: bunx wait-on http://localhost:3000 --timeout 60000
       - name: Run integration tests
         run: bun run test:integration
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
+          DEV_SERVER_URL: http://localhost:3000
           SMTP_HOST: localhost
           SMTP_PORT: '1025'
           SMTP_FROM: test@test.local

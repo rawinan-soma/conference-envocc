@@ -419,12 +419,13 @@ describe('Story 2.1 — Auth Config: Fixed Session Timeout (FR-093)', () => {
 		// loaded without a live DB connection.
 
 		// Dynamic import to defer until test activation (module may not exist yet)
-		// The auth module exports the Better Auth instance; we inspect its internal config.
-		// Better Auth exposes options via `auth.options` (verify against installed version).
+		// The auth module exports the Better Auth instance; we inspect its config.
+		// Better Auth exposes options via the public `auth.options` property (Auth<Options> type).
 		const { auth } = await import('../../src/lib/server/auth/index.js');
 
-		// @ts-expect-error — accessing internal options; verify property path against Better Auth version
-		const sessionConfig = auth.options?.session ?? auth.$context?.options?.session;
+		// auth.options is a public property of the Auth<Options> type returned by betterAuth().
+		// No @ts-expect-error needed — this is part of Better Auth's public API.
+		const sessionConfig = auth.options?.session;
 
 		expect(
 			sessionConfig,
