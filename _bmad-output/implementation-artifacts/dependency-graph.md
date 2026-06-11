@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-11T10:00:00+07:00 (reconciled: PRs #103 and #104 still open)_
+_Last updated: 2026-06-11T10:45:00+07:00 (reconciled: PRs #103 and #104 confirmed merged)_
 
 ## Stories
 
@@ -10,10 +10,10 @@ _Last updated: 2026-06-11T10:00:00+07:00 (reconciled: PRs #103 and #104 still op
 | 1.3 | 1 | Database & migration setup with bare EXCLUDE constraint | done | #3 | #50 | merged | 1.1 | ✅ Yes (done) |
 | 1.4 | 1 | Internationalization setup | done | #4 | #51 | merged | 1.1 | ✅ Yes (done) |
 | 1.5 | 1 | Jobs & email platform | done | #5 | #54 | merged | 1.1 | ✅ Yes (done) |
-| 1.6 | 1 | Audit-log write-hook foundation | review | #6 | #103 | open | 1.3 | ✅ Yes (in review) |
+| 1.6 | 1 | Audit-log write-hook foundation | done | #6 | #103 | merged | 1.3 | ✅ Yes (done) |
 | 1.7 | 1 | Docker & deployment skeleton | done | #7 | #52 | merged | 1.1 | ✅ Yes (done) |
-| 1.8 | 1 | Test harness & CI | review | #8 | #104 | open | 1.3, 1.7 | ✅ Yes (in review) |
-| 1.9 | 1 | Walking-skeleton vertical slice | backlog | #9 | — | — | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ❌ No (1.6, 1.8 not done) |
+| 1.8 | 1 | Test harness & CI | done | #8 | #104 | merged | 1.3, 1.7 | ✅ Yes (done) |
+| 1.9 | 1 | Walking-skeleton vertical slice | backlog | #9 | — | — | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ✅ Yes (all deps merged) |
 | 2.1 | 2 | Sign in with Authentik (OIDC) | backlog | #10 | — | — | epic 1 complete | ❌ No (epic 1 not complete) |
 | 2.2 | 2 | Local dev auth bypass | backlog | #11 | — | — | 2.1 | ❌ No (epic 1 not complete) |
 | 2.3 | 2 | Self-service profile | backlog | #12 | — | — | 2.1 | ❌ No (epic 1 not complete) |
