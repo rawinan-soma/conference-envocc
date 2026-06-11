@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-11T16:00:00+07:00 (reconciled: PR #105 merged for story 1.9; epic 1 complete; epic 2 now in-progress)_
+_Last updated: 2026-06-11T18:00:00+07:00 (reconciled: PR #106 merged for story 2.1; stories 2.2, 2.3, 2.4, 2.6 now unblocked)_
 
 ## Stories
 
@@ -14,12 +14,12 @@ _Last updated: 2026-06-11T16:00:00+07:00 (reconciled: PR #105 merged for story 1
 | 1.7 | 1 | Docker & deployment skeleton | done | #7 | #52 | merged | 1.1 | ✅ Yes (done) |
 | 1.8 | 1 | Test harness & CI | done | #8 | #104 | merged | 1.3, 1.7 | ✅ Yes (done) |
 | 1.9 | 1 | Walking-skeleton vertical slice | done | #9 | #105 | merged | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ✅ Yes (done) |
-| 2.1 | 2 | Sign in with Authentik (OIDC) | backlog | #10 | — | — | epic 1 complete | ✅ Yes |
-| 2.2 | 2 | Local dev auth bypass | backlog | #11 | — | — | 2.1 | ❌ No (awaiting 2.1) |
-| 2.3 | 2 | Self-service profile | backlog | #12 | — | — | 2.1 | ❌ No (awaiting 2.1) |
-| 2.4 | 2 | Roles & assignment model | backlog | #13 | — | — | 2.1 | ❌ No (awaiting 2.1) |
-| 2.5 | 2 | Authorization guard dispatcher | backlog | #14 | — | — | 2.1, 2.4 | ❌ No (awaiting 2.1, 2.4) |
-| 2.6 | 2 | Fixed session timeout | backlog | #15 | — | — | 2.1 | ❌ No (awaiting 2.1) |
+| 2.1 | 2 | Sign in with Authentik (OIDC) | done | #10 | #106 | merged | epic 1 complete | ✅ Yes (done) |
+| 2.2 | 2 | Local dev auth bypass | backlog | #11 | — | — | 2.1 | ✅ Yes |
+| 2.3 | 2 | Self-service profile | backlog | #12 | — | — | 2.1 | ✅ Yes |
+| 2.4 | 2 | Roles & assignment model | backlog | #13 | — | — | 2.1 | ✅ Yes |
+| 2.5 | 2 | Authorization guard dispatcher | backlog | #14 | — | — | 2.1, 2.4 | ❌ No (awaiting 2.4) |
+| 2.6 | 2 | Fixed session timeout | backlog | #15 | — | — | 2.1 | ✅ Yes |
 | 2.7 | 2 | Authorization negative-test pattern & audit on mutations | backlog | #16 | — | — | 2.5 | ❌ No (awaiting 2.5) |
 | 3.1 | 3 | Create and edit rooms | backlog | #17 | — | — | epic 2 complete | ❌ No (epic 2 not complete) |
 | 3.2 | 3 | Room photo upload | backlog | #18 | — | — | 3.1 | ❌ No (epic 2 not complete) |
@@ -66,13 +66,13 @@ _Last updated: 2026-06-11T16:00:00+07:00 (reconciled: PR #105 merged for story 1
 - **1.8** depends on: 1.3, 1.7
 - **1.9** depends on: 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8
 
-### Epic 2 (requires epic 1 complete — NOW UNBLOCKED)
-- **2.1** depends on: epic 1 complete ✅ **READY**
-- **2.2** depends on: 2.1
-- **2.3** depends on: 2.1
-- **2.4** depends on: 2.1
+### Epic 2 (in-progress — 2.1 merged; 2.2, 2.3, 2.4, 2.6 unblocked)
+- **2.1** depends on: epic 1 complete ✅ **DONE (PR #106 merged)**
+- **2.2** depends on: 2.1 ✅ **READY**
+- **2.3** depends on: 2.1 ✅ **READY**
+- **2.4** depends on: 2.1 ✅ **READY**
 - **2.5** depends on: 2.1, 2.4
-- **2.6** depends on: 2.1
+- **2.6** depends on: 2.1 ✅ **READY**
 - **2.7** depends on: 2.5
 
 ### Epic 3 (requires epic 2 complete)
@@ -135,6 +135,8 @@ _Last updated: 2026-06-11T16:00:00+07:00 (reconciled: PR #105 merged for story 1
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 to also be merged (which it will be by this point). Story 7.5 requires 2.7. Story 7.6 requires 2.4.
 
-**Current bottleneck:** Story 2.1 (Sign in with Authentik OIDC) is the sole unblocked story for Epic 2. All of Epic 2 is blocked behind 2.1 merging.
+**Current state:** Story 2.1 (Sign in with Authentik OIDC) is merged (PR #106). Stories 2.2, 2.3, 2.4, and 2.6 are all now unblocked and Ready to Work in parallel. Story 2.5 is blocked behind 2.4. Story 2.7 is blocked behind 2.5.
+
+**Current bottleneck:** No single bottleneck — 4 stories (2.2, 2.3, 2.4, 2.6) can proceed in parallel. Next sequential gate is 2.4 → 2.5 → 2.7.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
