@@ -50,7 +50,7 @@ export interface PgFactoryResult {
 // ---------------------------------------------------------------------------
 
 /** Tables managed by drizzle migrations — truncated for test isolation */
-const TRUNCATABLE_TABLES = ['bookings'] as const;
+const TRUNCATABLE_TABLES = ['bookings', 'audit_log'] as const;
 
 // ---------------------------------------------------------------------------
 // createPgFactory

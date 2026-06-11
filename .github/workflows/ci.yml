@@ -25,6 +25,10 @@ jobs:
         run: bun run check
       - name: Build
         run: bun run build
+        env:
+          # DATABASE_URL must be non-empty for env.ts fail-fast validation during SSR pre-render.
+          # This is a build-only placeholder — no real DB connection is made during vite build.
+          DATABASE_URL: postgresql://build-placeholder:placeholder@localhost:5432/conference_envocc
 
   test-unit:
     name: Unit Tests (Vitest server project)

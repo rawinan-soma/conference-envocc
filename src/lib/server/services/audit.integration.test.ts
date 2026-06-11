@@ -6,11 +6,11 @@
  * They are skipped until Story 1.8 (Test Harness & CI) wires Postgres
  * into the CI environment.
  *
- * Activation guide (Story 1.8+):
- *   1. Remove `test.skip(` → `test(` for each test below.
- *   2. Ensure Postgres is running (via docker compose or CI services).
- *   3. Set DATABASE_URL in the test environment.
- *   4. Run: `bun run test` — verify tests PASS (green).
+ * Activation status (Story 1.9): ACTIVATED — all tests below use `test(` and run
+ * against real Postgres (Testcontainers locally, CI Postgres service in CI).
+ *   1. Ensure Postgres is running (via docker compose or CI services).
+ *   2. Set DATABASE_URL in the test environment.
+ *   3. Run: `bun run test:integration` — verify tests PASS (green).
  *
  * AC Coverage:
  *   - AC-2: audit_log row is written atomically in the same transaction
@@ -26,7 +26,7 @@ import { describe, test, expect } from 'vitest';
 // ---------------------------------------------------------------------------
 
 describe('writeAuditLog integration', () => {
-	test.skip('[P1] 1.6-INT-001 — writes audit_log row atomically in committed transaction (AC-2)', async () => {
+	test('[P1] 1.6-INT-001 — writes audit_log row atomically in committed transaction (AC-2)', async () => {
 		// Activate in Story 1.8 when CI services are wired.
 		//
 		// AC-2: Given a running transaction,
@@ -74,7 +74,7 @@ describe('writeAuditLog integration', () => {
 		await db.delete(auditLog).where(eq(auditLog.id, insertedId!));
 	});
 
-	test.skip('[P1] 1.6-INT-002 — no audit_log row persists when transaction rolls back (AC-3)', async () => {
+	test('[P1] 1.6-INT-002 — no audit_log row persists when transaction rolls back (AC-3)', async () => {
 		// Activate in Story 1.8 when CI services are wired.
 		//
 		// AC-3: Given a transaction that calls writeAuditLog(tx, entry) and is then rolled back,
@@ -128,7 +128,7 @@ describe('writeAuditLog integration', () => {
 		expect(rowsByActorId).toHaveLength(0);
 	});
 
-	test.skip('[P1] 1.6-INT-003 — writeAuditLog stores diff payload correctly in jsonb column (AC-2, AC-4)', async () => {
+	test('[P1] 1.6-INT-003 — writeAuditLog stores diff payload correctly in jsonb column (AC-2, AC-4)', async () => {
 		// Activate in Story 1.8 when CI services are wired.
 		//
 		// AC-2 + AC-4: diff (jsonb, nullable) — when provided, the full JSON object

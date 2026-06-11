@@ -1,6 +1,10 @@
 # Stage 1: Build (includes all dev deps for build + drizzle-kit for migrate)
 FROM oven/bun:1 AS builder
 WORKDIR /app
+# DATABASE_URL must be non-empty for env.ts fail-fast validation during SSR pre-render.
+# This is a build-only placeholder — no real DB connection is made during vite build.
+ARG DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
+ENV DATABASE_URL=$DATABASE_URL
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
