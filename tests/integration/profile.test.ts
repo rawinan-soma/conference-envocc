@@ -373,7 +373,12 @@ describe('Story 2.3 — Profile Form: Valid Submission Creates Profile (AC-3)', 
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					// Accept: text/html forces SvelteKit to use the non-JSON form action path,
+					// which returns real HTTP status codes (302 for redirect, 422 for fail()).
+					// Without this, SvelteKit defaults to the JSON action path (Accept: */*)
+					// which always returns HTTP 200 with the result encoded in the JSON body.
+					Accept: 'text/html'
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -474,7 +479,8 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -523,7 +529,8 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -597,7 +604,8 @@ describe('Story 2.3 — Email Immutability: POST Body email Override Ignored (AC
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -679,7 +687,8 @@ describe('Story 2.3 — Profile Edit: Update Mutable Fields, Email Stays Immutab
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -803,7 +812,8 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -822,7 +832,8 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 
 			// Assert row content
 			const auditRow = await client.query(
-				`SELECT * FROM audit_log WHERE entity = 'user_profile' AND "actorId" = $1 ORDER BY "createdAt" DESC LIMIT 1`,
+				// audit_log uses snake_case column names (actor_id, created_at) per migration 0001.
+				`SELECT * FROM audit_log WHERE entity = 'user_profile' AND actor_id = $1 ORDER BY created_at DESC LIMIT 1`,
 				[userId]
 			);
 			expect(auditRow.rowCount, 'audit_log row must exist for this user').toBeGreaterThan(0);
@@ -830,7 +841,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 			const audit = auditRow.rows[0];
 			expect(audit['entity'], 'audit entity must be user_profile').toBe('user_profile');
 			expect(audit['action'], 'audit action must be create').toBe('create');
-			expect(audit['actorId'], 'audit actorId must match the user who submitted the form').toBe(
+			expect(audit['actor_id'], 'audit actor_id must match the user who submitted the form').toBe(
 				userId
 			);
 			expect(audit['diff'], 'audit diff must be non-null and contain profile fields').toBeTruthy();
@@ -889,7 +900,8 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 				method: 'POST',
 				headers: {
 					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded'
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 				},
 				body: formData.toString(),
 				redirect: 'manual'
@@ -907,7 +919,8 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 
 			// Assert the diff contains the phone field change
 			const auditRow = await client.query(
-				`SELECT diff FROM audit_log WHERE entity = 'user_profile' AND "actorId" = $1 AND action = 'update' ORDER BY "createdAt" DESC LIMIT 1`,
+				// audit_log uses snake_case column names (actor_id, created_at) per migration 0001.
+				`SELECT diff FROM audit_log WHERE entity = 'user_profile' AND actor_id = $1 AND action = 'update' ORDER BY created_at DESC LIMIT 1`,
 				[userId]
 			);
 			expect(auditRow.rowCount, 'audit_log update row must exist').toBeGreaterThan(0);
@@ -1041,7 +1054,8 @@ describe('Story 2.3 — Profile Form: Title Field Accepts All Valid Enum Values 
 					method: 'POST',
 					headers: {
 						Cookie: sessionCookie,
-						'Content-Type': 'application/x-www-form-urlencoded'
+						'Content-Type': 'application/x-www-form-urlencoded',
+						Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
 					},
 					body: formData.toString(),
 					redirect: 'manual'
