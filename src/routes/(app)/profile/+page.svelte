@@ -12,6 +12,7 @@
 
 	let savedSuccess = $state(false);
 
+	// svelte-ignore state_referenced_locally
 	const { form, errors, enhance, submitting } = superForm(data.form, {
 		onResult({ result }) {
 			if (result.type === 'success') {

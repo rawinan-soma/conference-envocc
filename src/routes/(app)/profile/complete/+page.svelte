@@ -11,6 +11,7 @@
 	let { data }: { data: PageData } = $props();
 
 	// superForm is initialised with the page-load data. SvelteKit reloads $page.data on navigation.
+	// svelte-ignore state_referenced_locally
 	const { form, errors, enhance, submitting } = superForm(data.form);
 </script>
 
