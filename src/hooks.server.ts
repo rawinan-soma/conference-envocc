@@ -64,36 +64,43 @@ export const routeGuards: Array<{
 // ---------------------------------------------------------------------------
 
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	// Populate event.locals from the current session cookie.
-	// auth.api.getSession() performs one DB round-trip to verify the session token.
-	// This must be done explicitly: svelteKitHandler does NOT populate event.locals —
-	// it only routes /auth/** requests to Better Auth's handler and resolves others.
-	const sessionData = await auth.api.getSession({ headers: event.request.headers });
-	if (sessionData) {
-		// @ts-expect-error — Better Auth session type maps to our Drizzle schema types
-		event.locals.session = sessionData.session;
-		// @ts-expect-error — Better Auth user type maps to our Drizzle schema types
-		event.locals.user = sessionData.user;
-		// Check profile completeness once per request (avoids per-route DB hit).
-		// This is one extra DB query per authenticated request — acceptable for MVP.
-		const profile = await getProfileByUserId(sessionData.user.id);
-		event.locals.userProfile = profile;
-		event.locals.profileComplete = profile !== null;
-	} else {
-		event.locals.session = null;
-		event.locals.user = null;
-		event.locals.userProfile = null;
-		event.locals.profileComplete = null;
-	}
-
-	// Wrap the entire request's async call tree in eventStorage.run(event, ...) so the
-	// sveltekitCookies plugin can retrieve the correct per-request RequestEvent via
-	// AsyncLocalStorage when it writes Set-Cookie headers on auth API responses.
+	// Wrap the entire request's async call tree in eventStorage.run(event, ...) so that:
+	//   1. auth.api.getSession()'s after-hooks (sveltekitCookies) can call getRequestEvent()
+	//      without getting undefined from AsyncLocalStorage.
+	//   2. svelteKitHandler can write Set-Cookie headers via the same per-request event.
+	//
+	// IMPORTANT: auth.api.getSession() MUST be called inside eventStorage.run().
+	// The sveltekitCookies plugin's after hook (matcher: always true, flag: "json")
+	// runs after every direct auth.api.* call and calls getRequestEvent(). If the
+	// event is not in AsyncLocalStorage, getRequestEvent() throws — causing a 500.
 	//
 	// AsyncLocalStorage guarantees per-request isolation: concurrent requests each have
-	// their own storage slot, so request B cannot overwrite request A's event reference
-	// (unlike a module-level mutable singleton, which was a concurrency hazard).
-	return eventStorage.run(event, () => svelteKitHandler({ auth, event, resolve, building }));
+	// their own storage slot, so request B cannot overwrite request A's event reference.
+	return eventStorage.run(event, async () => {
+		// Populate event.locals from the current session cookie.
+		// auth.api.getSession() performs one DB round-trip to verify the session token.
+		// This must be done explicitly: svelteKitHandler does NOT populate event.locals —
+		// it only routes /auth/** requests to Better Auth's handler and resolves others.
+		const sessionData = await auth.api.getSession({ headers: event.request.headers });
+		if (sessionData) {
+			// @ts-expect-error — Better Auth session type maps to our Drizzle schema types
+			event.locals.session = sessionData.session;
+			// @ts-expect-error — Better Auth user type maps to our Drizzle schema types
+			event.locals.user = sessionData.user;
+			// Check profile completeness once per request (avoids per-route DB hit).
+			// This is one extra DB query per authenticated request — acceptable for MVP.
+			const profile = await getProfileByUserId(sessionData.user.id);
+			event.locals.userProfile = profile;
+			event.locals.profileComplete = profile !== null;
+		} else {
+			event.locals.session = null;
+			event.locals.user = null;
+			event.locals.userProfile = null;
+			event.locals.profileComplete = null;
+		}
+
+		return svelteKitHandler({ auth, event, resolve, building });
+	});
 };
 
 // ---------------------------------------------------------------------------
