@@ -27,17 +27,22 @@ import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import pg from 'pg';
 
-import { createPgFactory, type PgFactoryResult } from '../support/fixtures/pg-factory.js';
+import {
+	createPgFactory,
+	type PgFactoryResult,
+	type CreatePgFactoryOptions
+} from '../support/fixtures/pg-factory.js';
 
 // ---------------------------------------------------------------------------
 // Postgres client — provided by shared createPgFactory (tests/support/fixtures/pg-factory.ts)
-// truncateAll() is the canonical shared helper; no local duplicate needed.
+// skipMigrations: true — integration-setup.ts globalSetup already ran drizzle-kit migrate;
+// running it again here would double the migration time per test-suite start.
 // ---------------------------------------------------------------------------
 
-let pool: pg.Pool;
 let factory: PgFactoryResult;
+
+const FACTORY_OPTIONS: CreatePgFactoryOptions = { skipMigrations: true };
 
 beforeAll(async () => {
 	const databaseUrl = process.env['DATABASE_URL'];
@@ -46,8 +51,7 @@ beforeAll(async () => {
 			'DATABASE_URL not set — integration-setup.ts should have configured it via Testcontainers or CI service'
 		);
 	}
-	factory = await createPgFactory(databaseUrl);
-	pool = factory.pool;
+	factory = await createPgFactory(databaseUrl, FACTORY_OPTIONS);
 });
 
 afterAll(async () => {
@@ -59,11 +63,16 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------
 
 /**
- * Truncate Better Auth tables between tests for isolation.
- * Delegates to the shared createPgFactory().truncateAll() to avoid duplicating
- * the per-table existence-check logic across integration test files.
+ * Truncate all test tables between tests for isolation.
+ * Delegates to factory.truncateAll() — covers sessions, accounts, verifications,
+ * users, bookings, and audit_log (see tests/support/fixtures/pg-factory.ts).
  */
-async function truncateBetterAuthTables(): Promise<void> {
+async function truncateAllTestData(): Promise<void> {
+	if (!factory) {
+		throw new Error(
+			'truncateAllTestData called before factory was initialised — beforeAll must have failed'
+		);
+	}
 	await factory.truncateAll();
 }
 
@@ -80,7 +89,7 @@ async function seedSession(
 	token: string,
 	expiresAt: Date
 ): Promise<{ userId: string; token: string }> {
-	const client = await pool.connect();
+	const client = await factory.pool.connect();
 	try {
 		await client.query(
 			`INSERT INTO users (id, email, "emailVerified", "createdAt", "updatedAt")
@@ -209,7 +218,7 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 		// (auth.api.signInWithPassword or equivalent) — deferred to a future story when
 		// the dev-bypass seam is generalised for arbitrary session injection.
 
-		await truncateBetterAuthTables();
+		await truncateAllTestData();
 
 		const userId = 'test-user-2-6-int-001';
 		const token = 'expired-session-token-2-6-int-001';
@@ -253,7 +262,7 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 				'302 redirect must point to /login — re-authentication required after session expiry'
 			).toMatch(/^\/login(?:[/?#]|$)/);
 		} finally {
-			await truncateBetterAuthTables();
+			await truncateAllTestData();
 		}
 	});
 
@@ -283,7 +292,7 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 		//   2. Query the DB to verify the session row exists and expiresAt is in the future
 		//   3. Confirm this is the opposite state from INT-001 (where expiresAt is in the past)
 
-		await truncateBetterAuthTables();
+		await truncateAllTestData();
 
 		const userId = 'test-user-2-6-int-001b';
 		const token = 'fresh-session-token-2-6-int-001b';
@@ -297,7 +306,7 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 		await seedSession(userId, token, validUntil);
 
 		try {
-			const client = await pool.connect();
+			const client = await factory.pool.connect();
 			try {
 				const result = await client.query<{ expiresAt: Date; token: string }>(
 					`SELECT token, "expiresAt" FROM sessions WHERE token = $1`,
@@ -324,7 +333,7 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 				client.release();
 			}
 		} finally {
-			await truncateBetterAuthTables();
+			await truncateAllTestData();
 		}
 	});
 });
