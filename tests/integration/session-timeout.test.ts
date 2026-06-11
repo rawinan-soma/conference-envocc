@@ -29,11 +29,15 @@ import path from 'path';
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import pg from 'pg';
 
+import { createPgFactory, type PgFactoryResult } from '../support/fixtures/pg-factory.js';
+
 // ---------------------------------------------------------------------------
-// Postgres client — uses DATABASE_URL from environment (set by integration-setup.ts)
+// Postgres client — provided by shared createPgFactory (tests/support/fixtures/pg-factory.ts)
+// truncateAll() is the canonical shared helper; no local duplicate needed.
 // ---------------------------------------------------------------------------
 
 let pool: pg.Pool;
+let factory: PgFactoryResult;
 
 beforeAll(async () => {
 	const databaseUrl = process.env['DATABASE_URL'];
@@ -42,17 +46,12 @@ beforeAll(async () => {
 			'DATABASE_URL not set — integration-setup.ts should have configured it via Testcontainers or CI service'
 		);
 	}
-	pool = new pg.Pool({ connectionString: databaseUrl });
-	// Verify connectivity
-	const client = await pool.connect();
-	await client.query('SELECT 1');
-	client.release();
+	factory = await createPgFactory(databaseUrl);
+	pool = factory.pool;
 });
 
 afterAll(async () => {
-	if (pool) {
-		await pool.end();
-	}
+	await factory?.cleanup();
 });
 
 // ---------------------------------------------------------------------------
@@ -61,27 +60,11 @@ afterAll(async () => {
 
 /**
  * Truncate Better Auth tables between tests for isolation.
- * Order: sessions → accounts → users (FK child before parent).
- * Safe to call even if tables don't yet exist (schema check first).
+ * Delegates to the shared createPgFactory().truncateAll() to avoid duplicating
+ * the per-table existence-check logic across integration test files.
  */
 async function truncateBetterAuthTables(): Promise<void> {
-	const client = await pool.connect();
-	try {
-		for (const table of ['sessions', 'accounts', 'users']) {
-			const result = await client.query<{ exists: boolean }>(
-				`SELECT EXISTS (
-					SELECT 1 FROM information_schema.tables
-					WHERE table_schema = 'public' AND table_name = $1
-				) AS exists`,
-				[table]
-			);
-			if (result.rows[0]?.exists) {
-				await client.query(`TRUNCATE TABLE "${table}" CASCADE`);
-			}
-		}
-	} finally {
-		client.release();
-	}
+	await factory.truncateAll();
 }
 
 /**
@@ -211,14 +194,20 @@ describe('Story 2.6 — Session Expiry: Expired Session Forces Re-auth (AC)', ()
 		//
 		// Strategy:
 		//   1. Seed a user + session row with expiresAt set 31 minutes in the past
-		//      (simulating a session that went idle past the 30-min fixed timeout)
-		//   2. Make a GET request to any (app) route using the expired session token as cookie
-		//   3. Better Auth validates the session — finds expiresAt in the past → rejects it
-		//   4. Auth guard intercepts the unauthenticated request → 302 to /login
+		//   2. Make a GET request to any (app) route carrying the seeded token as cookie
+		//   3. The auth guard (hooks.server.ts) calls auth.api.getSession() — Better Auth
+		//      rejects the token (either unsigned signature or expired expiresAt) → null
+		//   4. Auth guard sees null session → redirect(302, '/login')
 		//
-		// Why DB mutation instead of time-travel: Better Auth evaluates expiresAt at runtime.
-		// Setting expiresAt to a past timestamp is the authoritative way to simulate expiry
-		// without time-travel mocking or clock manipulation.
+		// Token signing note: raw-seeded tokens are not HMAC-signed by Better Auth, so
+		// getSession() returns null due to signature validation before it reaches the expiry
+		// check. What this test DOES verify: a session cookie that represents an invalid/
+		// expired credential (no valid Better Auth session backing it) causes the auth guard
+		// to redirect to /login — which is the correct AC behavior. The precise rejection
+		// mechanism (signature vs. expiry) is an implementation detail of Better Auth.
+		// Verifying expiry specifically would require seeding via Better Auth's own API
+		// (auth.api.signInWithPassword or equivalent) — deferred to a future story when
+		// the dev-bypass seam is generalised for arbitrary session injection.
 
 		await truncateBetterAuthTables();
 
@@ -418,7 +407,7 @@ describe('Story 2.6 — Non-Configurable Timeout: No Route or Service Exposes Ti
 
 		for (const key of forbiddenEnvKeys) {
 			expect(
-				key in process.env ? process.env[key] : undefined,
+				process.env[key],
 				`Environment key '${key}' must NOT exist or be used to configure session timeout — FR-093: fixed 1800s, never configurable`
 			).toBeUndefined();
 		}
@@ -430,41 +419,17 @@ describe('Story 2.6 — Non-Configurable Timeout: No Route or Service Exposes Ti
 // ---------------------------------------------------------------------------
 
 describe('Story 2.6 — Session Isolation: Expired Sessions Not Returned by Better Auth', () => {
-	test('[P2] 2.6-INT-003 — auth.api.getSession returns null for expired session', async () => {
-		// AC-3: Given an expired session row in the DB, When Better Auth processes a request
-		//        carrying that session cookie, Then event.locals.session is null.
-		//
-		// Strategy: Seed an expired session, call auth.api.getSession() programmatically
-		// with the expired token in a Cookie header. Better Auth should filter expired rows
-		// and return null — no dev server required.
-		//
-		// This tests the Better Auth layer directly (no HTTP server needed).
-
-		await truncateBetterAuthTables();
-
-		const userId = 'test-user-2-6-int-003';
-		const token = 'expired-session-token-2-6-int-003';
-		// 1 hour ago — well past the 30-min timeout
-		const expiredAt = new Date(Date.now() - 60 * 60 * 1000);
-
-		await seedSession(userId, token, expiredAt);
-
-		try {
-			const { auth } = await import('../../src/lib/server/auth/index.js');
-
-			// Call Better Auth's getSession API directly with the expired token
-			const sessionData = await auth.api.getSession({
-				headers: new Headers({ Cookie: `better-auth.session_token=${token}` })
-			});
-
-			expect(
-				sessionData,
-				'auth.api.getSession must return null for an expired session token — Better Auth must filter expiresAt'
-			).toBeNull();
-		} finally {
-			await truncateBetterAuthTables();
-		}
-	});
+	// 2.6-INT-003: raw-seeded tokens are not HMAC-signed by Better Auth, so
+	// auth.api.getSession() returns null for ANY raw token regardless of expiresAt.
+	// This means a DB-seeded-then-getSession() test cannot distinguish expiry rejection
+	// from signature rejection — it would pass vacuously even with a future expiresAt.
+	// Verifying expiry at the Better Auth layer requires obtaining a properly signed token
+	// via auth.api.signInWithPassword() (or equivalent), which in turn requires password
+	// credentials. Deferred until the dev-bypass seam is generalised for arbitrary session
+	// injection (see INT-001 note). Blocked on: signed token injection capability.
+	test.todo(
+		'[P2] 2.6-INT-003 — auth.api.getSession returns null for expired session (blocked: needs signed token)'
+	);
 });
 
 // ---------------------------------------------------------------------------
