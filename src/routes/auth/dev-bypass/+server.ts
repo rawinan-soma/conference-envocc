@@ -123,16 +123,35 @@ export const POST: RequestHandler = async () => {
 		error(500, 'Dev bypass failed');
 	}
 
-	// Get the session cookie name from Better Auth's context (respects __Secure- prefix on HTTPS).
-	// On HTTP (local dev), the name is 'better-auth.session_token'.
+	// Build the Set-Cookie header from Better Auth's own cookie definition so the dev-bypass
+	// cookie is byte-for-byte compatible with what Better Auth writes and reads:
+	//   - name: respects the __Secure- prefix and useSecureCookies (derived from NODE_ENV).
+	//   - options: HttpOnly / SameSite / Secure / Path exactly as configured by Better Auth.
+	// Reusing these (instead of hand-rolling the attribute string) prevents drift such as a
+	// missing Secure flag or a __Secure- name without the Secure attribute (browser-rejected).
 	const ctx = await auth.$context;
-	const cookieName = ctx.authCookies.sessionToken.name;
+	const { name: cookieName, attributes: cookieAttributes } = ctx.authCookies.sessionToken;
+
+	// Better Auth URL-encodes the signed value on write and decodeURIComponent's it on read
+	// (better-call cookie serialization). Encode here so the value survives that round-trip.
+	const cookieParts = [`${cookieName}=${encodeURIComponent(signedCookieValue)}`];
+	cookieParts.push(`Path=${cookieAttributes.path ?? '/'}`);
+	// Align the cookie lifetime with the 30-minute DB session expiry (FR-093) instead of
+	// emitting a browser session cookie with no Max-Age.
+	cookieParts.push(`Max-Age=${30 * 60}`);
+	if (cookieAttributes.httpOnly) cookieParts.push('HttpOnly');
+	if (cookieAttributes.secure) cookieParts.push('Secure');
+	// sameSite is one of 'Strict'|'Lax'|'None' (or lowercase); normalize to a valid cookie token.
+	const sameSite = String(cookieAttributes.sameSite ?? 'lax');
+	cookieParts.push(
+		`SameSite=${sameSite.charAt(0).toUpperCase() + sameSite.slice(1).toLowerCase()}`
+	);
 
 	return new Response(JSON.stringify({ ok: true, userId: devUser.id }), {
 		status: 200,
 		headers: {
 			'Content-Type': 'application/json',
-			'Set-Cookie': `${cookieName}=${signedCookieValue}; Path=/; HttpOnly; SameSite=Lax`
+			'Set-Cookie': cookieParts.join('; ')
 		}
 	});
 };
