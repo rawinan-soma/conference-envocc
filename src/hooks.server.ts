@@ -47,16 +47,29 @@ export const routeGuards: Array<{
 // Better Auth handler — populates event.locals.session and event.locals.user
 // ---------------------------------------------------------------------------
 
-const handleBetterAuth: Handle = ({ event, resolve }) => {
+const handleBetterAuth: Handle = async ({ event, resolve }) => {
+	// Populate event.locals from the current session cookie.
+	// auth.api.getSession() performs one DB round-trip to verify the session token.
+	// This must be done explicitly: svelteKitHandler does NOT populate event.locals —
+	// it only routes /auth/** requests to Better Auth's handler and resolves others.
+	const sessionData = await auth.api.getSession({ headers: event.request.headers });
+	if (sessionData) {
+		// @ts-expect-error — Better Auth session type maps to our Drizzle schema types
+		event.locals.session = sessionData.session;
+		// @ts-expect-error — Better Auth user type maps to our Drizzle schema types
+		event.locals.user = sessionData.user;
+	} else {
+		event.locals.session = null;
+		event.locals.user = null;
+	}
+
 	// Wrap the entire request's async call tree in eventStorage.run(event, ...) so the
-	// sveltekitCookies plugin can retrieve the correct RequestEvent via AsyncLocalStorage.
-	// AsyncLocalStorage provides per-request isolation: concurrent requests each have their
-	// own storage slot and cannot overwrite each other — unlike a module-level singleton.
+	// sveltekitCookies plugin can retrieve the correct per-request RequestEvent via
+	// AsyncLocalStorage when it writes Set-Cookie headers on auth API responses.
 	//
-	// svelteKitHandler handles:
-	//   - Routing /auth/** requests to Better Auth's handler
-	//   - Populating event.locals.session / event.locals.user for all other requests
-	//     (via the sveltekitCookies plugin's after-hook, which calls getRequestEvent())
+	// AsyncLocalStorage guarantees per-request isolation: concurrent requests each have
+	// their own storage slot, so request B cannot overwrite request A's event reference
+	// (unlike a module-level mutable singleton, which was a concurrency hazard).
 	return eventStorage.run(event, () => svelteKitHandler({ auth, event, resolve, building }));
 };
 
