@@ -58,6 +58,11 @@ export function setRequestEvent(event: RequestEvent | null): void {
 
 export const auth = betterAuth({
 	secret: env.AUTH_SECRET ?? 'placeholder-secret-for-build-time-only-not-used-in-production',
+	// Mount Better Auth under /auth (matches src/routes/auth/[...all]/+server.ts and the
+	// public-route allow-list in hooks.server.ts). Without this, Better Auth defaults to
+	// /api/auth — svelteKitHandler's isAuthPath() and the OIDC redirectURI would not align
+	// with the /auth route zone, breaking the sign-in and callback flow.
+	basePath: '/auth',
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		camelCase: true

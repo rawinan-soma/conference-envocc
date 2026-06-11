@@ -1,5 +1,9 @@
 <script lang="ts">
+	import { page } from '$app/stores';
+
 	import * as m from '$lib/paraglide/messages';
+
+	const hasError = $derived($page.url.searchParams.get('error') === 'provider_unavailable');
 </script>
 
 <svelte:head>
@@ -12,10 +16,15 @@
 			{m.login_title()}
 		</h1>
 
-		<form method="POST" action="/auth/sign-in/oauth2">
-			<input type="hidden" name="providerId" value="authentik" />
-			<input type="hidden" name="callbackURL" value="/" />
+		{#if hasError}
+			<p class="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+				{m.login_error_provider_unavailable()}
+			</p>
+		{/if}
 
+		<!-- Posts to the page's default form action, which initiates the OIDC flow
+		     server-side and redirects to Authentik. -->
+		<form method="POST">
 			<button
 				type="submit"
 				class="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

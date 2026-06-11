@@ -4,7 +4,7 @@ baseline_commit: 351fdbd7341b72ef57751c41d526c90d6a4bfd4e
 
 # Story 2.1: Sign in with Authentik (OIDC)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -298,6 +298,17 @@ claude-sonnet-4-6
 - `src/lib/paraglide/messages/th.js`
 - `src/lib/paraglide/messages.js`
 
+### Review Findings
+
+Code review (2026-06-11): 0 decision-needed, 4 patch (all applied), 1 deferred, 2 dismissed.
+
+- [x] [Review][Patch] Better Auth basePath mismatch breaks entire OIDC flow [src/lib/server/auth/index.ts] — Auth mounted at `/auth/[...all]` and `svelteKitHandler` used, but Better Auth default basePath is `/api/auth` with no `basePath`/`baseURL` configured. `isAuthPath()` only matched `/api/auth/**`, `auth.handler` routed against `/api/auth` (so `/auth/**` requests 404), and the generated OIDC `redirectURI` became `/api/auth/oauth2/callback/authentik` — outside the allow-listed public zone. Fixed by setting `basePath: '/auth'`.
+- [x] [Review][Patch] Login form could not initiate OAuth [src/routes/login/+page.svelte, +page.server.ts] — `/sign-in/oauth2` is a POST returning JSON `{ url, redirect }` (not a 302) and expects a JSON body; a plain HTML form post landed the browser on a raw-JSON page. Replaced with a SvelteKit default form action that calls `auth.api.signInWithOAuth2` server-side and issues the redirect to Authentik; added provider-unavailable error surfacing on the login page.
+- [x] [Review][Patch] Credential-shaped literals in CI workflow [.github/workflows/ci.yml] — `AUTH_SECRET`/`AUTHENTIK_CLIENT_ID`/`AUTHENTIK_CLIENT_SECRET`/`AUTHENTIK_ISSUER` were hardcoded, violating the zero-credential-literals project rule. Moved to `${{ secrets.TEST_AUTH_SECRET }}`, `${{ secrets.TEST_AUTHENTIK_CLIENT_ID }}`, `${{ secrets.TEST_AUTHENTIK_CLIENT_SECRET }}`, `${{ vars.TEST_AUTHENTIK_ISSUER }}`.
+- [x] [Review][Patch] Inaccurate OIDC callback path in doc comment [src/routes/auth/[...all]/+server.ts] — comment said `/auth/callback/authentik`; actual Better Auth path is `/auth/oauth2/callback/authentik`. Corrected.
+- [x] [Review][Defer] Route-guard regex not boundary-anchored [src/hooks.server.ts] — `/loginabc`-style paths would slip the negative lookahead `/^\/(?!(?:login|auth\/|r\/|$))/`. No such routes exist today; cosmetic robustness only. Deferred, pre-existing.
+
 ## Change Log
 
 - 2026-06-11: Story 2.1 implemented — Better Auth + Authentik OIDC sign-in, auth guard, session management, DB migration, i18n keys, integration tests activated. All quality gates pass.
+- 2026-06-11: Code review — applied 4 patches (basePath fix, login form action, CI credential hygiene, callback-path comment). 1 deferred (guard regex anchoring). check/lint/unit/build all green.

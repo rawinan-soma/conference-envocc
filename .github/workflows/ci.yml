@@ -96,10 +96,11 @@ jobs:
         run: bun run dev &
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
-          AUTH_SECRET: ci-test-secret-not-used-in-production
-          AUTHENTIK_CLIENT_ID: ci-placeholder
-          AUTHENTIK_CLIENT_SECRET: ci-placeholder
-          AUTHENTIK_ISSUER: https://auth.example.com
+          # Auth env vars sourced from GH Secrets/Vars — never hardcode credential literals.
+          AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+          AUTHENTIK_CLIENT_ID: ${{ secrets.TEST_AUTHENTIK_CLIENT_ID }}
+          AUTHENTIK_CLIENT_SECRET: ${{ secrets.TEST_AUTHENTIK_CLIENT_SECRET }}
+          AUTHENTIK_ISSUER: ${{ vars.TEST_AUTHENTIK_ISSUER }}
           SMTP_HOST: localhost
           SMTP_PORT: '1025'
           SMTP_FROM: test@test.local

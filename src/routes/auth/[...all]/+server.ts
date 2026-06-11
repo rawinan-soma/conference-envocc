@@ -2,9 +2,9 @@
  * Better Auth request handler — Story 2.1
  *
  * This route catches ALL requests under /auth/** and delegates to Better Auth.
- * Handles:
+ * Handles (Better Auth basePath is set to /auth in src/lib/server/auth/index.ts):
  *   - /auth/sign-in/oauth2 — PKCE flow initiation
- *   - /auth/callback/authentik — OIDC callback (session creation)
+ *   - /auth/oauth2/callback/authentik — OIDC callback (session creation)
  *   - /auth/sign-out — session destruction
  *   - All other Better Auth endpoints
  *
