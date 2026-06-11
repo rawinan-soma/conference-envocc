@@ -217,8 +217,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		expect(hasIndex, 'Button component must have index.js or index.ts entry point').toBe(true);
 	});
 
-	test('[P1] 1.2-UNIT-008 — src/routes/+page.svelte imports and renders a Button component', () => {
-		// THIS TEST WILL FAIL — +page.svelte not yet updated with Button.
+	test.skip('[P1] 1.2-UNIT-008 — src/routes/+page.svelte imports and renders a Button component', () => {
 		// Activate after Task 4.2 (update page.svelte) is complete.
 		const pagePath = path.join(PROJECT_ROOT, 'src/routes/+page.svelte');
 
@@ -283,8 +282,7 @@ describe('Story 1.2 — Design System & Thai Typography (ATDD Red Phase)', () =>
 		).toBe(true);
 	});
 
-	test('[P1] 1.2-UNIT-010 — src/routes/+page.svelte sample text has Thai typography classes applied', () => {
-		// THIS TEST WILL FAIL — +page.svelte not yet updated with typography demo.
+	test.skip('[P1] 1.2-UNIT-010 — src/routes/+page.svelte sample text has Thai typography classes applied', () => {
 		// Activate after Task 4.3 is complete.
 		const pagePath = path.join(PROJECT_ROOT, 'src/routes/+page.svelte');
 

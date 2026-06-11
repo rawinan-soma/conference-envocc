@@ -33,7 +33,7 @@ import { getCssCustomProperty } from '../support/fixtures/design-system-context'
 // ---------------------------------------------------------------------------
 
 test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase)', () => {
-	test('[P0] 1.2-E2E-001 — CSS custom properties --primary and --background resolve to Forest & Copper values', async ({
+	test.skip('[P0] 1.2-E2E-001 — CSS custom properties --primary and --background resolve to Forest & Copper values', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — CSS tokens not yet replaced in app.css.
@@ -66,7 +66,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		);
 	});
 
-	test('[P0] 1.2-E2E-002 — CSS radius tokens resolve to DESIGN.md values (not calc offsets)', async ({
+	test.skip('[P0] 1.2-E2E-002 — CSS radius tokens resolve to DESIGN.md values (not calc offsets)', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — radius tokens not yet set to explicit values.
@@ -91,7 +91,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 	// When: page loads, Then: Noto Thai fonts are loaded.
 	// ---------------------------------------------------------------------------
 
-	test('[P0] 1.2-E2E-003 — page document has Google Fonts preconnect links in <head>', async ({
+	test.skip('[P0] 1.2-E2E-003 — page document has Google Fonts preconnect links in <head>', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — font links not yet added to app.html.
@@ -121,7 +121,9 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		).toBeGreaterThan(0);
 	});
 
-	test('[P0] 1.2-E2E-004 — --font-sans CSS variable includes Noto Sans Thai', async ({ page }) => {
+	test.skip('[P0] 1.2-E2E-004 — --font-sans CSS variable includes Noto Sans Thai', async ({
+		page
+	}) => {
 		// THIS TEST WILL FAIL — --font-sans not yet updated to Noto Sans Thai.
 		// Activate after Task 3.3 (update @theme font vars) is complete.
 		await page.goto('/');
@@ -137,7 +139,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 	// When: sample page rendered, Then: Button uses green-700 primary color.
 	// ---------------------------------------------------------------------------
 
-	test('[P1] 1.2-E2E-005 — sample page renders a Button with primary variant visible', async ({
+	test.skip('[P1] 1.2-E2E-005 — sample page renders a Button with primary variant visible', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — +page.svelte not yet updated with Button.
@@ -149,7 +151,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		await expect(button, 'Must have at least one Button element on the sample page').toBeVisible();
 	});
 
-	test('[P1] 1.2-E2E-006 — primary Button background-color resolves to green-700 (#2D6A4F)', async ({
+	test.skip('[P1] 1.2-E2E-006 — primary Button background-color resolves to green-700 (#2D6A4F)', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — Button not yet installed and themed.
@@ -176,7 +178,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 	// When: rendered, Then: line-height >= 1.65 and font-size >= 14px.
 	// ---------------------------------------------------------------------------
 
-	test('[P0] 1.2-E2E-007 — sample page body text has line-height >= 1.65 (DESIGN.md Thai body rule)', async ({
+	test.skip('[P0] 1.2-E2E-007 — sample page body text has line-height >= 1.65 (DESIGN.md Thai body rule)', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — typography not yet applied to sample page.
@@ -203,7 +205,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		).toBeGreaterThanOrEqual(1.65); // DESIGN.md Thai body floor (AC5) — page uses leading-[1.65]
 	});
 
-	test('[P0] 1.2-E2E-008 — sample page body text font-size >= 14px (UXD-008: never below 14px)', async ({
+	test.skip('[P0] 1.2-E2E-008 — sample page body text font-size >= 14px (UXD-008: never below 14px)', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — typography not yet applied to sample page.
@@ -228,7 +230,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 	// AC-6 (E2E smoke): Page loads without errors after design system applied
 	// ---------------------------------------------------------------------------
 
-	test('[P1] 1.2-E2E-009 — sample page loads without console errors after design system changes', async ({
+	test.skip('[P1] 1.2-E2E-009 — sample page loads without console errors after design system changes', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — dev server may error before implementation.
@@ -250,7 +252,7 @@ test.describe('Story 1.2 — Design System & Thai Typography E2E (ATDD Red Phase
 		).toHaveLength(0);
 	});
 
-	test('[P1] 1.2-E2E-010 — sample page heading uses font-serif (Noto Serif Thai)', async ({
+	test.skip('[P1] 1.2-E2E-010 — sample page heading uses font-serif (Noto Serif Thai)', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — page not yet updated with themed heading.

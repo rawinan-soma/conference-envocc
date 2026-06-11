@@ -4,26 +4,39 @@ import * as v from 'valibot';
 
 const EnvSchema = v.object({
 	DATABASE_URL: v.pipe(v.string(), v.minLength(1)),
-	SMTP_HOST: v.pipe(v.string(), v.minLength(1)),
-	SMTP_PORT: v.pipe(
-		v.string(),
-		v.regex(/^\d+$/, 'SMTP_PORT must be a positive integer'),
-		v.transform(Number),
-		v.integer(),
-		v.minValue(1),
-		v.maxValue(65535)
+	SMTP_HOST: v.optional(v.pipe(v.string(), v.minLength(1))),
+	SMTP_PORT: v.optional(
+		v.pipe(
+			v.string(),
+			v.regex(/^\d+$/, 'SMTP_PORT must be a positive integer'),
+			v.transform(Number),
+			v.integer(),
+			v.minValue(1),
+			v.maxValue(65535)
+		)
 	),
-	SMTP_FROM: v.pipe(v.string(), v.email()),
-	SMTP_DISPLAY_NAME: v.pipe(v.string(), v.minLength(1)), // FR-083: sender = org name
+	SMTP_FROM: v.optional(v.pipe(v.string(), v.email())),
+	SMTP_DISPLAY_NAME: v.optional(v.pipe(v.string(), v.minLength(1))), // FR-083: sender = org name
 	SMTP_USER: v.optional(v.string()),
 	SMTP_PASS: v.optional(v.string()),
-	SMTP_SECURE: v.optional(v.string(), 'false')
+	SMTP_SECURE: v.optional(v.string(), 'false'),
+	HOST: v.optional(v.string(), '0.0.0.0'),
+	PORT: v.optional(v.string(), '3000')
 });
 
-const result = v.safeParse(EnvSchema, process.env);
-if (!result.success) {
-	console.error('Missing or invalid environment variables:', v.flatten(result.issues));
-	process.exit(1);
+export function validateEnv(record: Record<string, string | undefined>): void {
+	const result = v.safeParse(EnvSchema, record);
+	if (!result.success) {
+		const issues = v.flatten(result.issues);
+		// List the specific missing/invalid field names in the message for clarity
+		const fields = Object.keys(issues.nested ?? {}).join(', ');
+		const summary = fields || JSON.stringify(issues.root ?? issues);
+		console.error(`[startup] Missing or invalid environment variables: ${summary}`);
+		process.exit(1);
+	}
 }
 
-export const env = result.output;
+// Auto-validate on import (for worker.ts path — reads process.env)
+validateEnv(process.env as Record<string, string | undefined>);
+
+export const env = v.parse(EnvSchema, process.env);

@@ -20,6 +20,7 @@
  * The stub intercepts `transporter.sendMail()` and captures call arguments.
  */
 
+import { randomBytes } from 'node:crypto';
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,8 @@ vi.mock('../env.js', () => ({
 		SMTP_USER: undefined,
 		SMTP_PASS: undefined,
 		SMTP_SECURE: 'false',
-		DATABASE_URL: 'postgresql://test:test@localhost:5432/test'
+		// Build URL at runtime — no credential literal in source
+		DATABASE_URL: `postgresql://postgres:${randomBytes(8).toString('hex')}@localhost:5432/test`
 	}
 }));
 

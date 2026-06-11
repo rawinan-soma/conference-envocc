@@ -12,3 +12,6 @@ bun.lockb
 # BMad planning and tooling artifacts
 /_bmad/
 /_bmad-output/
+
+# Inlang/Paraglide project config (auto-generated, not user-maintained)
+/project.inlang/

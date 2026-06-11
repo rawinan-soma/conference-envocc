@@ -12,6 +12,9 @@ export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	// Ignore auto-generated shadcn-svelte UI components
 	{ ignores: ['src/lib/components/ui/**'] },
+	// Ignore transient ESLint fixture files written/deleted by unit tests.
+	// Tests that need to lint these files must use `eslint --no-ignore`.
+	{ ignores: ['tests/support/fixtures/**'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

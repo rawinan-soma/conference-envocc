@@ -124,6 +124,8 @@ describe('Story 1.4 — i18n Messages & ESLint Guard', () => {
 		//
 		// Strategy: temporarily write a fixture .svelte file with a hardcoded string,
 		// run eslint on it, confirm non-zero exit, then clean up.
+		// The fixture dir is listed in eslint ignores so `bun run lint` skips it.
+		// Use --no-ignore to force ESLint to lint the explicitly-named fixture file.
 		const fixtureDir = path.join(PROJECT_ROOT, 'tests/support/fixtures');
 		// Use process.pid to make the filename worker-unique for parallel safety
 		const fixtureFile = path.join(fixtureDir, `__hardcoded-string-fixture-${process.pid}.svelte`);
@@ -134,7 +136,8 @@ describe('Story 1.4 — i18n Messages & ESLint Guard', () => {
 		writeFileSync(fixtureFile, hardcodedContent, 'utf-8');
 
 		try {
-			const result = runCmd(`bunx eslint "${fixtureFile}"`, PROJECT_ROOT);
+			// --no-ignore: force lint even though the fixture dir is in eslint ignores
+			const result = runCmd(`bunx eslint --no-ignore "${fixtureFile}"`, PROJECT_ROOT);
 
 			// ESLint must exit non-zero (rule fires on hardcoded string)
 			expect(

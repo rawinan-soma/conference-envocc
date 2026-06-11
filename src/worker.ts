@@ -13,6 +13,12 @@ async function main() {
 	await boss.start();
 	logger.info('pg-boss started');
 
+	// pg-boss v12 requires explicit queue creation before send/work can be used.
+	// createQueue is idempotent — safe to call on every startup.
+	await boss.createQueue(QUEUE.SMOKE_EMAIL);
+	await boss.createQueue(QUEUE.SEND_EMAIL);
+	logger.info('pg-boss queues created');
+
 	// pg-boss v12 WorkHandler passes Job<T>[] which extends our JobLike interface
 	// Await boss.work() so registration errors surface immediately rather than being silently lost.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
