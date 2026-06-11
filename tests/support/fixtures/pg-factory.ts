@@ -59,8 +59,9 @@ const TRUNCATABLE_TABLES = [
 	'sessions',
 	'accounts',
 	'verifications',
+	// Application tables — child before parent (FK: user_profiles.userId → users.id)
+	'user_profiles',
 	'users',
-	// Application tables
 	'bookings',
 	'audit_log'
 ] as const;
