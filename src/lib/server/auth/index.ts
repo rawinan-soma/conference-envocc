@@ -91,7 +91,10 @@ export const auth = betterAuth({
 		// the correct per-request event with no cross-request contamination.
 		sveltekitCookies(() => {
 			const event = eventStorage.getStore();
-			if (!event) throw new Error('[auth] sveltekitCookies: no RequestEvent in AsyncLocalStorage — ensure handleBetterAuth wraps svelteKitHandler with eventStorage.run()');
+			if (!event)
+				throw new Error(
+					'[auth] sveltekitCookies: no RequestEvent in AsyncLocalStorage — ensure handleBetterAuth wraps svelteKitHandler with eventStorage.run()'
+				);
 			return event;
 		})
 	]
