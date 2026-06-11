@@ -53,29 +53,7 @@ import type { PgFactoryResult } from '../support/fixtures/pg-factory.js';
 import { requireAdmin } from '$lib/server/auth/guards.js';
 
 // ---------------------------------------------------------------------------
-// Shared DB factory — used for 2.4-INT-001 (real Postgres)
-// ---------------------------------------------------------------------------
-
-let pgFactory: PgFactoryResult;
-
-beforeAll(async () => {
-	const databaseUrl = process.env['DATABASE_URL'];
-	if (!databaseUrl) {
-		throw new Error(
-			'DATABASE_URL not set — integration-setup.ts should have configured it via Testcontainers or CI service'
-		);
-	}
-	pgFactory = await createPgFactory(databaseUrl);
-});
-
-afterAll(async () => {
-	if (pgFactory) {
-		await pgFactory.cleanup();
-	}
-});
-
-// ---------------------------------------------------------------------------
-// Helpers
+// Helpers (used by INT-002 / INT-003 unit-level tests — no DB required)
 // ---------------------------------------------------------------------------
 
 /**
@@ -122,9 +100,30 @@ function makeMockEvent(userOverrides: Record<string, unknown> | null): {
 // ---------------------------------------------------------------------------
 // 2.4-INT-001 — New user defaults to organizer (is_admin=false) [P1]
 // AC-1, AC-2, AC-4
+//
+// DB factory lifecycle is scoped to this describe block — only INT-001 requires
+// a real Postgres instance. INT-002/003 are pure unit-level and run independently.
 // ---------------------------------------------------------------------------
 
 describe('Story 2.4 — Roles Model: DB Default (AC-1, AC-2, AC-4)', () => {
+	let pgFactory: PgFactoryResult;
+
+	beforeAll(async () => {
+		const databaseUrl = process.env['DATABASE_URL'];
+		if (!databaseUrl) {
+			throw new Error(
+				'DATABASE_URL not set — integration-setup.ts should have configured it via Testcontainers or CI service'
+			);
+		}
+		pgFactory = await createPgFactory(databaseUrl);
+	});
+
+	afterAll(async () => {
+		if (pgFactory) {
+			await pgFactory.cleanup();
+		}
+	});
+
 	test('[P1] 2.4-INT-001 — New authenticated user defaults to organizer role (is_admin=false)', async () => {
 		// Migration drizzle/0003_roles.sql (applied by createPgFactory via drizzle-kit
 		// migrate) adds the is_admin column with DEFAULT false.
