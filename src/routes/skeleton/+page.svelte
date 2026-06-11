@@ -6,7 +6,9 @@
 
 <main class="container mx-auto p-8">
 	<Card>
-		<CardHeader><CardTitle data-testid="skeleton-heading">{m.skeleton_title()}</CardTitle></CardHeader>
+		<CardHeader
+			><CardTitle data-testid="skeleton-heading">{m.skeleton_title()}</CardTitle></CardHeader
+		>
 		<CardContent>
 			<p>{m.skeleton_description()}</p>
 			<p>

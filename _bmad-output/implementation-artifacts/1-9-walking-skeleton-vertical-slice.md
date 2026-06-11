@@ -4,7 +4,7 @@ baseline_commit: b4737bf
 
 # Story 1.9: Walking-Skeleton Vertical Slice
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -106,6 +106,16 @@ so that the foundations are proven, not assumed.
   - [x] 6.3 `bun run test` (vitest `server` project, unit tests) → exit 0.
   - [x] 6.4 `bun run test:integration` (vitest `integration` project, real Postgres) → exit 0, all three `db-schema.test.ts` tests and audit integration tests pass — NONE skipped.
   - [x] 6.5 `bun run build` → exit 0.
+
+### Review Findings
+
+Code review (2026-06-11) — 3 patched, 2 deferred, 5 dismissed as noise.
+
+- [x] [Review][Patch] `src/routes/skeleton/+page.svelte` not Prettier-formatted — broke quality-gate tests 1.2-UNIT-013 and 1.5-UNIT-013c (`prettier --check`). Fixed with `prettier --write`. [src/routes/skeleton/+page.svelte]
+- [x] [Review][Patch] Mangled activation-guide comment `Remove \`test(\` → \`test(\`` from over-broad find/replace. Rewrote as an "ACTIVATED" status note. [src/lib/server/services/audit.integration.test.ts:10]
+- [x] [Review][Patch] Integration scaffolds queried non-existent `audit_log.entity_id` / `metadata` columns (real schema: id, created_at, actor_id, entity, action, diff). Rewrote 1.9-INT-001 and 1.9-INT-004 to insert/filter via `diff->>'roomId'`. Currently skipped, but would have failed on activation. [tests/integration/walking-skeleton.test.ts]
+- [x] [Review][Defer] `bun run build` (and `bun run test` via 1.4-UNIT-003) exits 1 without `DATABASE_URL` because `env.ts` calls `process.exit(1)` at module import during SSR build. Pre-existing from Story 1.8 (env.ts byte-identical on baseline b4737bf); AC-7 cannot pass locally/in test-unit CI until the root cause is fixed. The CI build-step `DATABASE_URL` placeholder added in this story does not cover the test-unit job. [src/lib/server/env.ts:40] — deferred, pre-existing
+- [x] [Review][Defer] `drizzle/0001_audit_log.sql` hand-written + `_journal.json` manually edited (fabricated `when` timestamp), bypassing `drizzle-kit generate`; schema-drift between this migration and the Drizzle schema is not machine-verified. Pre-existing tech debt accepted in story Dev Notes. [drizzle/0001_audit_log.sql] — deferred, pre-existing
 
 ## Dev Notes
 

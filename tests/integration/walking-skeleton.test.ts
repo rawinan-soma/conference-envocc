@@ -97,9 +97,11 @@ describe('Story 1.9 — Vertical Slice Service: Atomic Transaction (AC-1b)', () 
 		try {
 			await client.query('BEGIN');
 
-			// Clean state
+			// Clean state. audit_log has no entity_id column (schema: id, created_at,
+			// actor_id, entity, action, diff) — the room reference is stored in the
+			// diff jsonb payload and filtered via diff->>'roomId'.
 			await client.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]);
-			await client.query(`DELETE FROM audit_log WHERE entity_id = $1`, [testRoomId]);
+			await client.query(`DELETE FROM audit_log WHERE diff->>'roomId' = $1`, [testRoomId]);
 
 			// Insert booking row
 			const bookingResult = await client.query<{ id: string }>(
@@ -111,12 +113,12 @@ describe('Story 1.9 — Vertical Slice Service: Atomic Transaction (AC-1b)', () 
 			const bookingId = bookingResult.rows[0]?.id;
 			expect(bookingId, 'Booking insert must return a row id').toBeTruthy();
 
-			// Write audit log row (mirrors writeAuditLog call in +page.server.ts action)
-			// actorId is null — no auth in Epic 1
+			// Write audit log row (mirrors writeAuditLog call in +page.server.ts).
+			// actor_id is null — no auth in Epic 1. Columns match audit_log schema.
 			await client.query(
-				`INSERT INTO audit_log (actor_id, entity, entity_id, action, metadata)
-				 VALUES ($1, 'booking', $2, 'create', $3::jsonb)`,
-				[null, testRoomId, JSON.stringify({ source: '1.9-INT-001' })]
+				`INSERT INTO audit_log (actor_id, entity, action, diff)
+				 VALUES ($1, 'booking', 'create', $2::jsonb)`,
+				[null, JSON.stringify({ roomId: testRoomId, source: '1.9-INT-001' })]
 			);
 
 			await client.query('COMMIT');
@@ -132,7 +134,7 @@ describe('Story 1.9 — Vertical Slice Service: Atomic Transaction (AC-1b)', () 
 			).toBe(1);
 
 			const auditCount = await client.query<{ count: string }>(
-				`SELECT COUNT(*) as count FROM audit_log WHERE entity_id = $1`,
+				`SELECT COUNT(*) as count FROM audit_log WHERE diff->>'roomId' = $1`,
 				[testRoomId]
 			);
 			expect(
@@ -143,7 +145,7 @@ describe('Story 1.9 — Vertical Slice Service: Atomic Transaction (AC-1b)', () 
 			// Clean up test data
 			await client.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]).catch(() => {});
 			await client
-				.query(`DELETE FROM audit_log WHERE entity_id = $1`, [testRoomId])
+				.query(`DELETE FROM audit_log WHERE diff->>'roomId' = $1`, [testRoomId])
 				.catch(() => {});
 			client.release();
 		}
@@ -300,9 +302,10 @@ describe('Story 1.9 — Vertical Slice Service: Transaction Rollback Atomicity (
 
 		const client = await pool.connect();
 		try {
-			// Clean state
+			// Clean state. audit_log has no entity_id column — room reference lives in
+			// the diff jsonb payload (filtered via diff->>'roomId').
 			await pool.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]);
-			await pool.query(`DELETE FROM audit_log WHERE entity_id = $1`, [testRoomId]);
+			await pool.query(`DELETE FROM audit_log WHERE diff->>'roomId' = $1`, [testRoomId]);
 
 			// Simulate a transaction that writes both rows then rolls back
 			try {
@@ -315,9 +318,9 @@ describe('Story 1.9 — Vertical Slice Service: Transaction Rollback Atomicity (
 				);
 
 				await client.query(
-					`INSERT INTO audit_log (actor_id, entity, entity_id, action, metadata)
-					 VALUES (null, 'booking', $1, 'create', $2::jsonb)`,
-					[testRoomId, JSON.stringify({ source: '1.9-INT-004' })]
+					`INSERT INTO audit_log (actor_id, entity, action, diff)
+					 VALUES (null, 'booking', 'create', $1::jsonb)`,
+					[JSON.stringify({ roomId: testRoomId, source: '1.9-INT-004' })]
 				);
 
 				// Simulate an error mid-transaction (intentional rollback)
@@ -343,7 +346,7 @@ describe('Story 1.9 — Vertical Slice Service: Transaction Rollback Atomicity (
 			).toBe(0);
 
 			const auditCount = await pool.query<{ count: string }>(
-				`SELECT COUNT(*) as count FROM audit_log WHERE entity_id = $1`,
+				`SELECT COUNT(*) as count FROM audit_log WHERE diff->>'roomId' = $1`,
 				[testRoomId]
 			);
 			expect(
@@ -353,7 +356,9 @@ describe('Story 1.9 — Vertical Slice Service: Transaction Rollback Atomicity (
 		} finally {
 			// Clean test data
 			await pool.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]).catch(() => {});
-			await pool.query(`DELETE FROM audit_log WHERE entity_id = $1`, [testRoomId]).catch(() => {});
+			await pool
+				.query(`DELETE FROM audit_log WHERE diff->>'roomId' = $1`, [testRoomId])
+				.catch(() => {});
 			client.release();
 		}
 	});

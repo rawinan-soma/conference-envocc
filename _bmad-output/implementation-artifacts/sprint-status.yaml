@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-09 22:01:41 +0700
-last_updated: 2026-06-11  # story 1.8 → done; story 1.6 → done (code review passed)
+last_updated: 2026-06-11  # story 1.9 → in-progress (code review: prettier + test-scaffold patches applied; build/env AC-7 gate deferred as pre-existing)
 project: conference-envocc
 project_key: NOKEY
 tracking_system: file-system
@@ -52,7 +52,7 @@ development_status:
   1-6-audit-log-write-hook-foundation: done
   1-7-docker-deployment-skeleton: done
   1-8-test-harness-ci: done
-  1-9-walking-skeleton-vertical-slice: backlog
+  1-9-walking-skeleton-vertical-slice: in-progress
   epic-1-retrospective: optional
 
   # ── Epic 2: Identity & Access ──

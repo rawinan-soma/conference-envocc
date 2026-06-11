@@ -6,11 +6,11 @@
  * They are skipped until Story 1.8 (Test Harness & CI) wires Postgres
  * into the CI environment.
  *
- * Activation guide (Story 1.8+):
- *   1. Remove `test(` → `test(` for each test below.
- *   2. Ensure Postgres is running (via docker compose or CI services).
- *   3. Set DATABASE_URL in the test environment.
- *   4. Run: `bun run test` — verify tests PASS (green).
+ * Activation status (Story 1.9): ACTIVATED — all tests below use `test(` and run
+ * against real Postgres (Testcontainers locally, CI Postgres service in CI).
+ *   1. Ensure Postgres is running (via docker compose or CI services).
+ *   2. Set DATABASE_URL in the test environment.
+ *   3. Run: `bun run test:integration` — verify tests PASS (green).
  *
  * AC Coverage:
  *   - AC-2: audit_log row is written atomically in the same transaction
