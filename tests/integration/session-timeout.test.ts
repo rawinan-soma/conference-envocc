@@ -28,11 +28,7 @@ import path from 'path';
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 
-import {
-	createPgFactory,
-	type PgFactoryResult,
-	type CreatePgFactoryOptions
-} from '../support/fixtures/pg-factory.js';
+import { createPgFactory, type PgFactoryResult } from '../support/fixtures/pg-factory.js';
 
 // ---------------------------------------------------------------------------
 // Postgres client — provided by shared createPgFactory (tests/support/fixtures/pg-factory.ts)
@@ -42,8 +38,6 @@ import {
 
 let factory: PgFactoryResult;
 
-const FACTORY_OPTIONS: CreatePgFactoryOptions = { skipMigrations: true };
-
 beforeAll(async () => {
 	const databaseUrl = process.env['DATABASE_URL'];
 	if (!databaseUrl) {
@@ -51,7 +45,8 @@ beforeAll(async () => {
 			'DATABASE_URL not set — integration-setup.ts should have configured it via Testcontainers or CI service'
 		);
 	}
-	factory = await createPgFactory(databaseUrl, FACTORY_OPTIONS);
+	// skipMigrations: true — globalSetup (integration-setup.ts) already ran drizzle-kit migrate
+	factory = await createPgFactory(databaseUrl, { skipMigrations: true });
 });
 
 afterAll(async () => {
@@ -89,6 +84,11 @@ async function seedSession(
 	token: string,
 	expiresAt: Date
 ): Promise<{ userId: string; token: string }> {
+	if (!factory) {
+		throw new Error(
+			'seedSession called before factory was initialised — beforeAll must have failed'
+		);
+	}
 	const client = await factory.pool.connect();
 	try {
 		await client.query(
