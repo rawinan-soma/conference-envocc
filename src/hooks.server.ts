@@ -32,8 +32,8 @@ export const routeGuards: Array<{
 	{
 		// All (app) routes require authentication.
 		// The SvelteKit route group "/(app)/" maps to URL paths under / (not literally /(app)/).
-		// Public routes explicitly excluded: /login, /auth/**, /r/[token]/**, /
-		pattern: /^\/(?!(?:login|auth\/|r\/|$))/,
+		// Public routes explicitly excluded: /login, /auth/**, /r/[token]/**, /, /skeleton (dev probe)
+		pattern: /^\/(?!(?:login|auth\/|r\/|skeleton|$))/,
 		guard: (event) => {
 			const session = event.locals.session;
 			if (!session) {

@@ -165,6 +165,14 @@ jobs:
         run: bun run test:e2e
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
+          # Auth env vars sourced from GH Secrets/Vars.
+          # When secrets are absent (e.g. forks / pre-secret-provisioning), Better Auth logs a
+          # warning but the server still starts — E2E tests that require live Authentik are
+          # test.skip()-ed and will not fail.
+          AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+          AUTHENTIK_CLIENT_ID: ${{ secrets.TEST_AUTHENTIK_CLIENT_ID }}
+          AUTHENTIK_CLIENT_SECRET: ${{ secrets.TEST_AUTHENTIK_CLIENT_SECRET }}
+          AUTHENTIK_ISSUER: ${{ vars.TEST_AUTHENTIK_ISSUER }}
           SMTP_HOST: localhost
           SMTP_PORT: '1025'
           SMTP_FROM: test@test.local
