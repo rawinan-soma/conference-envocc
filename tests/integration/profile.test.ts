@@ -57,7 +57,43 @@
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
+import { createHmac } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
+
+// ---------------------------------------------------------------------------
+// Cookie signing helper — produces a Better Auth-compatible signed cookie value.
+//
+// Better Auth (via better-call) signs session cookies as:
+//   encodeURIComponent("{token}.{base64(HMAC-SHA256(token, AUTH_SECRET))}")
+//
+// Integration tests must send signed cookies because Better Auth's getSession()
+// calls getSignedCookie(), which rejects unsigned (or incorrectly signed) values.
+//
+// AUTH_SECRET must match the value used by the running dev server. It is injected
+// via the CI workflow's AUTH_SECRET env var for the integration test step.
+// ---------------------------------------------------------------------------
+
+/**
+ * Signs a session token value using the same HMAC-SHA256 algorithm that
+ * Better Auth (via better-call) uses for its signed session cookie.
+ *
+ * Returns the full cookie header string suitable for use in fetch() headers:
+ *   `better-auth.session_token=<signedValue>`
+ */
+function buildSignedSessionCookie(token: string): string {
+	const secret = process.env['AUTH_SECRET'];
+	if (!secret) {
+		throw new Error(
+			'AUTH_SECRET env var not set — integration tests require AUTH_SECRET to sign session cookies. ' +
+				'Ensure AUTH_SECRET is passed to the test process (CI workflow: add to Run integration tests env).'
+		);
+	}
+	// HMAC-SHA256 the token with the secret, encode as base64
+	const signature = createHmac('sha256', secret).update(token).digest('base64');
+	// Better Auth cookie format: "{value}.{signature}" → URL-encoded
+	const signedValue = encodeURIComponent(`${token}.${signature}`);
+	return `better-auth.session_token=${signedValue}`;
+}
 
 // ---------------------------------------------------------------------------
 // Postgres client — uses DATABASE_URL from environment (set by integration-setup.ts)
@@ -142,13 +178,16 @@ async function seedIncompleteProfileUser(
 }
 
 /**
- * Inserts a Better Auth session for the given user, returning the session token.
- * Simulates an authenticated session (user is logged in) for HTTP-level integration tests.
+ * Inserts a Better Auth session for the given user.
+ * Returns:
+ *   - sessionToken: the raw token stored in the sessions table
+ *   - sessionCookie: the full signed "Cookie: better-auth.session_token=..." header value
+ *     ready for use in fetch() headers. Better Auth requires HMAC-signed cookies.
  */
 async function seedUserSession(
 	client: pg.PoolClient,
 	userId: string
-): Promise<{ sessionToken: string }> {
+): Promise<{ sessionToken: string; sessionCookie: string }> {
 	const sessionToken = `test-session-2.3-${randomUUID().slice(0, 8)}`;
 	const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min from now
 
@@ -159,7 +198,9 @@ async function seedUserSession(
 		[`session-id-${userId}`, sessionToken, userId, expiresAt]
 	);
 
-	return { sessionToken };
+	// Build the signed cookie that Better Auth's getSignedCookie() will accept.
+	const sessionCookie = buildSignedSessionCookie(sessionToken);
+	return { sessionToken, sessionCookie };
 }
 
 /**
@@ -215,11 +256,11 @@ describe('Story 2.3 — Profile Gate: Incomplete Profile Redirects to /profile/c
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedIncompleteProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			// Attempt to access /dashboard — must redirect to /profile/complete
 			const dashboardResponse = await fetch(`${DEV_SERVER_URL}/dashboard`, {
-				headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+				headers: { Cookie: sessionCookie },
 				redirect: 'manual'
 			});
 
@@ -235,7 +276,7 @@ describe('Story 2.3 — Profile Gate: Incomplete Profile Redirects to /profile/c
 
 			// AC-9: Also verify /bookings redirects
 			const bookingsResponse = await fetch(`${DEV_SERVER_URL}/bookings`, {
-				headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+				headers: { Cookie: sessionCookie },
 				redirect: 'manual'
 			});
 
@@ -265,10 +306,10 @@ describe('Story 2.3 — Profile Gate: Incomplete Profile Redirects to /profile/c
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedCompletedProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			const dashboardResponse = await fetch(`${DEV_SERVER_URL}/dashboard`, {
-				headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+				headers: { Cookie: sessionCookie },
 				redirect: 'manual'
 			});
 
@@ -316,7 +357,7 @@ describe('Story 2.3 — Profile Form: Valid Submission Creates Profile (AC-3)', 
 		const client = await pool.connect();
 		try {
 			const { userId, email } = await seedIncompleteProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			// POST valid profile data (sveltekit-superforms sends application/x-www-form-urlencoded)
 			const formData = new URLSearchParams({
@@ -331,7 +372,7 @@ describe('Story 2.3 — Profile Form: Valid Submission Creates Profile (AC-3)', 
 			const postResponse = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -374,7 +415,7 @@ describe('Story 2.3 — Profile Form: Valid Submission Creates Profile (AC-3)', 
 
 			// After profile completion, GET /dashboard must NOT redirect to /profile/complete
 			const dashboardResponse = await fetch(`${DEV_SERVER_URL}/dashboard`, {
-				headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+				headers: { Cookie: sessionCookie },
 				redirect: 'manual'
 			});
 
@@ -418,7 +459,7 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedIncompleteProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			// POST with missing firstName
 			const formData = new URLSearchParams({
@@ -432,7 +473,7 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 			const postResponse = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -467,7 +508,7 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedIncompleteProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			// POST with all required fields empty
 			const formData = new URLSearchParams({
@@ -481,7 +522,7 @@ describe('Story 2.3 — Profile Form: Validation Rejects Missing Required Fields
 			const postResponse = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -540,7 +581,7 @@ describe('Story 2.3 — Email Immutability: POST Body email Override Ignored (AC
 			const attackerEmail = 'attacker@evil.com';
 
 			const { userId } = await seedIncompleteProfileUser(client, { email: oidcEmail });
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			// POST with all valid fields + attacker email override
 			const formData = new URLSearchParams({
@@ -555,7 +596,7 @@ describe('Story 2.3 — Email Immutability: POST Body email Override Ignored (AC
 			const postResponse = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -620,7 +661,7 @@ describe('Story 2.3 — Profile Edit: Update Mutable Fields, Email Stays Immutab
 		try {
 			const oidcEmail = `oidc-edit-${randomUUID().slice(0, 8)}@example.com`;
 			const { userId } = await seedCompletedProfileUser(client, { email: oidcEmail });
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			const updatedPhone = '+66812399999';
 			const attackerEmail = 'hacker@evil.com';
@@ -637,7 +678,7 @@ describe('Story 2.3 — Profile Edit: Update Mutable Fields, Email Stays Immutab
 			const postResponse = await fetch(`${DEV_SERVER_URL}/profile`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -689,10 +730,10 @@ describe('Story 2.3 — Profile Gate: Already-complete User Bypasses /profile/co
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedCompletedProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			const response = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
-				headers: { Cookie: `better-auth.session_token=${sessionToken}` },
+				headers: { Cookie: sessionCookie },
 				redirect: 'manual'
 			});
 
@@ -741,7 +782,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedIncompleteProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			// Count audit_log rows before
 			const countBefore = await client.query<{ count: string }>(
@@ -761,7 +802,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 			await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -828,7 +869,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 		const client = await pool.connect();
 		try {
 			const { userId } = await seedCompletedProfileUser(client);
-			const { sessionToken } = await seedUserSession(client, userId);
+			const { sessionCookie } = await seedUserSession(client, userId);
 
 			const countBefore = await client.query<{ count: string }>(
 				`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile' AND action = 'update'`
@@ -847,7 +888,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 			await fetch(`${DEV_SERVER_URL}/profile`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: sessionCookie,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
 				body: formData.toString(),
@@ -986,7 +1027,7 @@ describe('Story 2.3 — Profile Form: Title Field Accepts All Valid Enum Values 
 			const client = await pool.connect();
 			try {
 				const { userId } = await seedIncompleteProfileUser(client);
-				const { sessionToken } = await seedUserSession(client, userId);
+				const { sessionCookie } = await seedUserSession(client, userId);
 
 				const formData = new URLSearchParams({
 					title,
@@ -999,7 +1040,7 @@ describe('Story 2.3 — Profile Form: Title Field Accepts All Valid Enum Values 
 				const response = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 					method: 'POST',
 					headers: {
-						Cookie: `better-auth.session_token=${sessionToken}`,
+						Cookie: sessionCookie,
 						'Content-Type': 'application/x-www-form-urlencoded'
 					},
 					body: formData.toString(),

@@ -112,6 +112,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
           DEV_SERVER_URL: http://localhost:3000
+          # AUTH_SECRET must match the dev server's secret so integration tests can produce
+          # correctly signed Better Auth session cookies via buildSignedSessionCookie().
+          AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
           SMTP_HOST: localhost
           SMTP_PORT: '1025'
           SMTP_FROM: test@test.local
