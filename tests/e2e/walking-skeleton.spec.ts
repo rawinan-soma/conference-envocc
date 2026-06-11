@@ -53,7 +53,14 @@ test.describe('Story 1.9 — Skeleton Route: Smoke Checks (activated)', () => {
 		await page.waitForLoadState('networkidle');
 
 		// The CardTitle renders m.skeleton_title() = "Walking Skeleton"
-		const titleText = await page.locator('h3').first().textContent();
+		// Use data-testid="skeleton-heading" (present on CardTitle in +page.svelte) — resilient to
+		// HTML element type changes (CardTitle renders a <div>, not <h3>).
+		const titleLocator = page.locator('[data-testid="skeleton-heading"]');
+		await expect(
+			titleLocator,
+			'Skeleton page must render a [data-testid="skeleton-heading"] element'
+		).toBeVisible();
+		const titleText = await titleLocator.textContent();
 		expect(
 			titleText,
 			'Skeleton page must contain "Walking Skeleton" heading from m.skeleton_title()'
