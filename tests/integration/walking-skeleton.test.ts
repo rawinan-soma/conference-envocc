@@ -142,9 +142,12 @@ describe('Story 1.9 — Vertical Slice Service: Atomic Transaction (AC-1b)', () 
 				'audit_log table must have 1 row after committed transaction (writeAuditLog must be called inside the same transaction)'
 			).toBe(1);
 		} finally {
-			// Clean up test data
-			await client.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]).catch(() => {});
-			await client
+			// Rollback if a query or assertion failed before COMMIT — prevents returning
+			// a connection with an open aborted transaction to the pool.
+			await client.query('ROLLBACK').catch(() => {});
+			// Clean up test data in a fresh autocommit statement
+			await pool.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]).catch(() => {});
+			await pool
 				.query(`DELETE FROM audit_log WHERE diff->>'roomId' = $1`, [testRoomId])
 				.catch(() => {});
 			client.release();

@@ -60,12 +60,18 @@ export default async function setup(): Promise<() => Promise<void>> {
 
 	// Apply migrations so all tests see the fully-migrated schema
 	console.log('[integration-setup] Running drizzle-kit migrate...');
-	execSync('bunx drizzle-kit migrate', {
-		cwd: PROJECT_ROOT,
-		env: { ...process.env },
-		stdio: 'pipe',
-		timeout: 60_000
-	});
+	try {
+		execSync('bunx drizzle-kit migrate', {
+			cwd: PROJECT_ROOT,
+			env: { ...process.env },
+			stdio: 'pipe',
+			timeout: 60_000
+		});
+	} catch (err: unknown) {
+		const e = err as { stderr?: Buffer; stdout?: Buffer; message?: string };
+		const detail = (e.stderr?.toString() ?? '') || (e.stdout?.toString() ?? '') || String(e.message ?? err);
+		throw new Error(`[integration-setup] drizzle-kit migrate failed:\n${detail}`);
+	}
 	console.log('[integration-setup] Migrations applied.');
 
 	// Return teardown function
