@@ -83,8 +83,7 @@ afterAll(async () => {
  * Using a far-future session expiry ensures requireUser's expiry check always
  * passes for mock sessions regardless of when the test suite runs.
  */
-const MOCK_CREATED_AT = new Date('2026-01-01T00:00:00.000Z');
-const MOCK_UPDATED_AT = new Date('2026-01-01T00:00:00.000Z');
+const MOCK_TIMESTAMP = new Date('2026-01-01T00:00:00.000Z');
 const MOCK_SESSION_EXPIRES_AT = new Date('2099-12-31T23:59:59.000Z');
 
 /**
@@ -108,8 +107,8 @@ function makeMockEvent(userOverrides: Record<string, unknown> | null): {
 				email: 'testuser@envocc.test',
 				emailVerified: true,
 				image: null,
-				createdAt: MOCK_CREATED_AT,
-				updatedAt: MOCK_UPDATED_AT,
+				createdAt: MOCK_TIMESTAMP,
+				updatedAt: MOCK_TIMESTAMP,
 				isAdmin: false,
 				...userOverrides
 			},
@@ -154,7 +153,6 @@ describe('Story 2.4 — Roles Model: DB Default (AC-1, AC-2, AC-4)', () => {
 
 			// Assertions — will fail until 0003_roles.sql migration is applied
 			expect(result.rows).toHaveLength(1);
-			expect(result.rows[0]).toBeDefined();
 			expect(result.rows[0]!.is_admin).toBe(false);
 		} finally {
 			client.release();
