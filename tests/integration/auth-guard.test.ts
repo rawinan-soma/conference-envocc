@@ -66,7 +66,7 @@ describe('Story 2.5 — Guard Dispatcher: requireUser Coverage (R-006)', () => {
 	);
 
 	test.todo(
-		'[P1] 2.5-INT-004 — read-to-attend: non-owner organizer can GET another organizer\'s event detail → 200'
+		"[P1] 2.5-INT-004 — read-to-attend: non-owner organizer can GET another organizer's event detail → 200"
 	);
 
 	test.todo(

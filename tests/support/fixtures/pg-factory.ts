@@ -49,8 +49,21 @@ export interface PgFactoryResult {
 // Tables to truncate between integration tests
 // ---------------------------------------------------------------------------
 
-/** Tables managed by drizzle migrations — truncated for test isolation */
-const TRUNCATABLE_TABLES = ['bookings', 'audit_log'] as const;
+/**
+ * Tables managed by drizzle migrations — truncated for test isolation.
+ * Order matters for FK constraints: truncate child tables before parent tables.
+ * Better Auth tables: sessions → accounts → users (sessions/accounts FK to users).
+ */
+const TRUNCATABLE_TABLES = [
+	// Better Auth tables (Story 2.1) — child tables before parent
+	'sessions',
+	'accounts',
+	'verifications',
+	'users',
+	// Application tables
+	'bookings',
+	'audit_log'
+] as const;
 
 // ---------------------------------------------------------------------------
 // createPgFactory

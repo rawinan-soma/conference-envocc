@@ -4,6 +4,15 @@ import * as v from 'valibot';
 
 const EnvSchema = v.object({
 	DATABASE_URL: v.pipe(v.string(), v.minLength(1)),
+
+	// Auth — Better Auth + Authentik OIDC (Story 2.1)
+	// Required at runtime; optional at build time (CI uses GH Secrets).
+	// NEVER hardcode values here — see project memory: zero credential literals.
+	AUTH_SECRET: v.optional(v.pipe(v.string(), v.minLength(32))),
+	AUTHENTIK_CLIENT_ID: v.optional(v.pipe(v.string(), v.minLength(1))),
+	AUTHENTIK_CLIENT_SECRET: v.optional(v.pipe(v.string(), v.minLength(1))),
+	AUTHENTIK_ISSUER: v.optional(v.pipe(v.string(), v.minLength(1))),
+
 	SMTP_HOST: v.optional(v.pipe(v.string(), v.minLength(1))),
 	SMTP_PORT: v.optional(
 		v.pipe(

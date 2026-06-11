@@ -1,11 +1,87 @@
 import type { Handle } from '@sveltejs/kit';
+
+import { building } from '$app/environment';
+import { redirect } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
+import { svelteKitHandler } from 'better-auth/svelte-kit';
+
 import { env } from '$env/dynamic/private';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
+import { auth, setRequestEvent } from '$lib/server/auth';
 import { validateEnv } from '$lib/server/env';
 
 // Validate at module load — fails fast on missing secrets
 validateEnv(env as Record<string, string | undefined>);
+
+// ---------------------------------------------------------------------------
+// Route guards registry (R-006 architecture requirement)
+//
+// Story 2.5 and later stories push additional guards to this array without
+// modifying the hook body. Export is required for test assertions (2.5-UNIT-001).
+//
+// Pattern:
+//   { pattern: RegExp; guard: (event: Parameters<Handle>[0]['event']) => void }
+//   The guard throws redirect(302, '/login') or error(403) as appropriate.
+// ---------------------------------------------------------------------------
+
+export const routeGuards: Array<{
+	pattern: RegExp;
+	guard: (event: Parameters<Handle>[0]['event']) => void;
+}> = [
+	{
+		// All (app) routes require authentication.
+		// The SvelteKit route group "/(app)/" maps to URL paths under / (not literally /(app)/).
+		// Public routes explicitly excluded: /login, /auth/**, /r/[token]/**, /
+		pattern: /^\/(?!(?:login|auth\/|r\/|$))/,
+		guard: (event) => {
+			const session = event.locals.session;
+			if (!session) {
+				redirect(302, '/login');
+			}
+		}
+	}
+];
+
+// ---------------------------------------------------------------------------
+// Better Auth handler — populates event.locals.session and event.locals.user
+// ---------------------------------------------------------------------------
+
+const handleBetterAuth: Handle = async ({ event, resolve }) => {
+	// Set per-request event for sveltekitCookies plugin
+	setRequestEvent(event);
+
+	// Populate event.locals from Better Auth session (cookie-based)
+	const sessionData = await auth.api.getSession({ headers: event.request.headers });
+	if (sessionData) {
+		// @ts-expect-error — Better Auth session type maps to our Drizzle schema types
+		event.locals.session = sessionData.session;
+		// @ts-expect-error — Better Auth user type maps to our Drizzle schema types
+		event.locals.user = sessionData.user;
+	} else {
+		event.locals.session = null;
+		event.locals.user = null;
+	}
+
+	return svelteKitHandler({ auth, event, resolve, building });
+};
+
+// ---------------------------------------------------------------------------
+// Auth guard — runs after Better Auth populates event.locals
+// ---------------------------------------------------------------------------
+
+const handleAuthGuard: Handle = async ({ event, resolve }) => {
+	for (const { pattern, guard } of routeGuards) {
+		if (pattern.test(event.url.pathname)) {
+			guard(event);
+		}
+	}
+	return resolve(event);
+};
+
+// ---------------------------------------------------------------------------
+// Paraglide i18n handle
+// ---------------------------------------------------------------------------
 
 const handleParaglide: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -19,4 +95,6 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 		});
 	});
 
-export const handle: Handle = handleParaglide;
+// Compose: Better Auth → Auth Guard → Paraglide
+// Order is critical: Better Auth must run first to populate event.locals.session
+export const handle: Handle = sequence(handleBetterAuth, handleAuthGuard, handleParaglide);

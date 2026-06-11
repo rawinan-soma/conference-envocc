@@ -57,7 +57,7 @@ development_status:
 
   # ── Epic 2: Identity & Access ──
   epic-2: in-progress
-  2-1-sign-in-with-authentik-oidc: backlog
+  2-1-sign-in-with-authentik-oidc: in-progress
   2-2-local-dev-auth-bypass: backlog
   2-3-self-service-profile: backlog
   2-4-roles-assignment-model: backlog
