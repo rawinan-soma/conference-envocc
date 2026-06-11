@@ -75,23 +75,23 @@ describe('Story 1.5 — Worker Integration Tests (AC-1, AC-2, AC-3, AC-4)', () =
 	let QUEUE: Record<string, string>;
 
 	beforeAll(async () => {
-		// Import real modules — will throw if not implemented (red phase)
-		// Activate by removing test.skip() and ensuring the modules exist.
-		try {
-			const bossModule = await import('./lib/server/jobs/boss.js');
-			const queuesModule = await import('./lib/server/jobs/queues.js');
-			const indexModule = await import('./lib/server/jobs/index.js');
-			const smokeHandler = await import('./lib/server/jobs/handlers/smoke-email.js');
+		// Import real modules — DATABASE_URL must be set (Testcontainers or CI service).
+		const bossModule = await import('./lib/server/jobs/boss.js');
+		const queuesModule = await import('./lib/server/jobs/queues.js');
+		const indexModule = await import('./lib/server/jobs/index.js');
+		const smokeHandler = await import('./lib/server/jobs/handlers/smoke-email.js');
 
-			boss = bossModule.default;
-			QUEUE = queuesModule.QUEUE;
-			enqueueJob = indexModule.enqueueJob;
+		boss = bossModule.default;
+		QUEUE = queuesModule.QUEUE;
+		enqueueJob = indexModule.enqueueJob;
 
-			await boss.start();
-			boss.work(QUEUE.SMOKE_EMAIL, smokeHandler.smokeEmailHandler);
-		} catch {
-			// Integration setup failed — modules not implemented yet (red phase expected)
-		}
+		await boss.start();
+
+		// pg-boss v12 requires explicit queue creation before send/work/getQueueStats can be used.
+		// createQueue is idempotent — safe to call on every startup.
+		await boss.createQueue(QUEUE.SMOKE_EMAIL);
+
+		await boss.work(QUEUE.SMOKE_EMAIL, smokeHandler.smokeEmailHandler);
 	});
 
 	afterAll(async () => {
@@ -105,17 +105,16 @@ describe('Story 1.5 — Worker Integration Tests (AC-1, AC-2, AC-3, AC-4)', () =
 		sendMailSpy.mockClear();
 	});
 
-	test.skip('[P1] 1.5-INT-001 — Worker starts and pg-boss begins polling without errors', async () => {
-		// THIS TEST WILL FAIL — pg-boss + worker not implemented, and no real DB.
+	test('[P1] 1.5-INT-001 — Worker starts and pg-boss begins polling without errors', async () => {
 		// Requires: real Postgres at DATABASE_URL, SMTP vars in env.
-		// Activate in Story 1.8 when CI services are wired.
 		expect(boss).toBeDefined();
 		// If boss.start() succeeded, the worker is polling.
 		// pg-boss emits an 'error' event on connection failure — absence of error means success.
-		await expect(boss.getQueueSize(QUEUE.SMOKE_EMAIL)).resolves.toBeDefined();
+		// getQueueStats (pg-boss v12 API) returns queue metadata including counts.
+		await expect(boss.getQueueStats(QUEUE.SMOKE_EMAIL)).resolves.toBeDefined();
 	});
 
-	test.skip('[P1] 1.5-INT-002 — Enqueue smoke-email → handler picks it up → sendMail invoked', async () => {
+	test('[P1] 1.5-INT-002 — Enqueue smoke-email → handler picks it up → sendMail invoked', async () => {
 		// THIS TEST WILL FAIL — worker not implemented + no real Postgres.
 		// Activate in Story 1.8.
 		//
@@ -141,7 +140,7 @@ describe('Story 1.5 — Worker Integration Tests (AC-1, AC-2, AC-3, AC-4)', () =
 		expect(callArgs.to).toBe('integration-test@example.com');
 	});
 
-	test.skip('[P1] 1.5-INT-003 — Idempotency: same key enqueued twice → only one email delivered (AC-3)', async () => {
+	test('[P1] 1.5-INT-003 — Idempotency: same key enqueued twice → only one email delivered (AC-3)', async () => {
 		// THIS TEST WILL FAIL — worker not implemented + no real Postgres.
 		// Activate in Story 1.8.
 		//
@@ -166,16 +165,13 @@ describe('Story 1.5 — Worker Integration Tests (AC-1, AC-2, AC-3, AC-4)', () =
 		expect(sendMailSpy).toHaveBeenCalledTimes(1);
 	});
 
-	test.skip('[P1] 1.5-INT-004 — Dead-letter: failed handler causes job to land in pgboss.job with state=failed (AC-4)', async () => {
-		// THIS TEST WILL FAIL — worker not implemented + no real Postgres.
-		// Activate in Story 1.8.
-		//
+	test('[P1] 1.5-INT-004 — Dead-letter: failed handler causes job to land in pgboss.job with state=failed (AC-4)', async () => {
 		// AC-4: Given nodemailer encounters a transport error on a job,
 		// When retries are exhausted, Then the job lands in the pg-boss dead-letter queue
 		// with state = 'failed' and output contains the error.
 		//
 		// Strategy: Make sendMailSpy reject consistently to exhaust pg-boss retries.
-		// Then query pgboss.job directly to verify state = 'failed'.
+		// Then use findJobs (pg-boss v12 API) to verify state = 'failed'.
 
 		sendMailSpy.mockRejectedValue(new Error('Simulated SMTP failure for dead-letter test'));
 
@@ -193,20 +189,16 @@ describe('Story 1.5 — Worker Integration Tests (AC-1, AC-2, AC-3, AC-4)', () =
 		// pg-boss retryLimit is 3 × retryDelay 60s — for integration test, we force immediate failure.
 		// Wait for the job to transition to failed state (may need adjusted retryLimit in test env).
 		await waitFor(async () => {
-			// Query pg-boss job table to check state
-			const failedJobs = await boss.getJobs({ name: QUEUE.SMOKE_EMAIL, state: 'failed' });
-			return failedJobs.some(
-				(job: { singletonKey?: string }) => job.singletonKey === idempotencyKey
-			);
+			// findJobs (pg-boss v12 API) searches by singletonKey
+			const jobs = await boss.findJobs(QUEUE.SMOKE_EMAIL, { key: idempotencyKey });
+			return jobs.some((job: { state?: string }) => job.state === 'failed');
 		}, 30_000); // Allow up to 30s for retry cycle in integration
 
 		// Verify job is in failed state — this confirms the dead-letter behavior
-		const failedJobs = await boss.getJobs({ name: QUEUE.SMOKE_EMAIL, state: 'failed' });
-		const targetJob = failedJobs.find(
-			(job: { singletonKey?: string }) => job.singletonKey === idempotencyKey
-		);
+		const jobs = await boss.findJobs(QUEUE.SMOKE_EMAIL, { key: idempotencyKey });
+		const targetJob = jobs.find((job: { state?: string }) => job.state === 'failed');
 
 		expect(targetJob).toBeDefined();
-		expect(targetJob.state).toBe('failed');
+		expect(targetJob?.state).toBe('failed');
 	});
 });

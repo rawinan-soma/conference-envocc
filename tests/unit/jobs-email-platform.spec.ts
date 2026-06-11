@@ -23,7 +23,7 @@
 import { test, expect, describe } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
-import { runCmd } from '../support/run-cmd';
+import { runCmd } from '../support/helpers/run-cmd';
 
 const PROJECT_ROOT = path.resolve(process.cwd());
 

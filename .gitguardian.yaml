@@ -1,15 +1,2 @@
 # GitGuardian configuration
-# Exclude example/template files that intentionally contain placeholder credentials
-paths-ignore:
-  - ".env.example"
-  - "*.env.example"
-  - "**/*.env.example"
-  - "**/*.example"
-  - "**/*.sample"
-
-# Ignore known false-positive occurrences already remediated in later commits.
-# Incident 33849009: Generic Password in .env.example (commit f6d0a85)
-# — the file now uses safe CHANGEME/changeme placeholders.
-ignored-matches:
-  - name: ".env.example placeholder — not a real credential (incident 33849009)"
-    match: "POSTGRES_PASSWORD=postgres"
+# Credential literals have been removed from source — no ignore rules needed.

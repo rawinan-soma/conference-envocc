@@ -7,8 +7,16 @@
  * Scenario IDs align with test-design-epic-1.md (Story 1.7 section).
  */
 
+import { randomBytes } from 'node:crypto';
 import { describe, test, expect, vi, afterEach } from 'vitest';
 import { validateEnv } from './env.js';
+
+// Build a syntactically-valid DATABASE_URL at runtime to avoid any credential
+// literal in source (password segment is a random hex string, not a known word).
+function makeTestDbUrl(db = 'conference_envocc'): string {
+	const pw = randomBytes(8).toString('hex');
+	return `postgresql://postgres:${pw}@localhost:5432/${db}`;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,7 +51,7 @@ describe('Story 1.7 — env.ts: validateEnv() (ATDD Red Phase)', () => {
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		validateEnv({
-			DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/conference_envocc',
+			DATABASE_URL: makeTestDbUrl('conference_envocc'),
 			PORT: '3000',
 			HOST: '0.0.0.0'
 		});
@@ -89,7 +97,7 @@ describe('Story 1.7 — env.ts: validateEnv() (ATDD Red Phase)', () => {
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		// Only DATABASE_URL provided — PORT and HOST should use defaults
-		validateEnv({ DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/test_db' });
+		validateEnv({ DATABASE_URL: makeTestDbUrl('test_db') });
 
 		expect(exitSpy).not.toHaveBeenCalled();
 	});

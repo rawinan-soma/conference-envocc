@@ -162,10 +162,7 @@ describe('Story 1.7 — Production Compose Stack (ATDD Red Phase — Nightly)', 
 		runCmd(`docker compose -f ${PROD_COMPOSE_FILE} down --volumes --remove-orphans`, PROJECT_ROOT);
 
 		// Cold start
-		const upResult = runCmd(
-			`docker compose -f ${PROD_COMPOSE_FILE} up -d --build`,
-			PROJECT_ROOT
-		);
+		const upResult = runCmd(`docker compose -f ${PROD_COMPOSE_FILE} up -d --build`, PROJECT_ROOT);
 		expect(upResult.exitCode, `docker compose up failed:\n${upResult.stderr}`).toBe(0);
 
 		// Wait for web service to be healthy
@@ -222,8 +219,10 @@ describe('Story 1.7 — Production Compose Stack (ATDD Red Phase — Nightly)', 
 			[
 				'run',
 				'--rm',
-				'-e', 'PORT=3000',
-				'-e', 'HOST=0.0.0.0',
+				'-e',
+				'PORT=3000',
+				'-e',
+				'HOST=0.0.0.0',
 				// DATABASE_URL intentionally NOT passed
 				WEB_IMAGE_NAME
 			],
@@ -231,7 +230,10 @@ describe('Story 1.7 — Production Compose Stack (ATDD Red Phase — Nightly)', 
 		);
 
 		// Container must exit non-zero immediately (fail-fast)
-		expect(result.status, 'Web container should exit non-zero when DATABASE_URL is missing').not.toBe(0);
+		expect(
+			result.status,
+			'Web container should exit non-zero when DATABASE_URL is missing'
+		).not.toBe(0);
 
 		// Stderr or stdout must contain a meaningful error message
 		const output = (result.stdout ?? '') + (result.stderr ?? '');
@@ -380,10 +382,7 @@ describe('Story 1.7 — Worker Restart (ATDD Red Phase — Nightly)', () => {
 		// Requires: compose stack up.
 
 		// Stop the worker container to simulate a crash
-		const stopResult = runCmd(
-			`docker compose -f ${PROD_COMPOSE_FILE} stop worker`,
-			PROJECT_ROOT
-		);
+		const stopResult = runCmd(`docker compose -f ${PROD_COMPOSE_FILE} stop worker`, PROJECT_ROOT);
 		expect(stopResult.exitCode, 'Failed to stop worker').toBe(0);
 
 		// Restart the worker

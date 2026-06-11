@@ -15,8 +15,8 @@ services:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - "1025:1025"   # SMTP
-      - "8025:8025"   # Web UI at http://localhost:8025
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI at http://localhost:8025
 
 volumes:
   pgdata:

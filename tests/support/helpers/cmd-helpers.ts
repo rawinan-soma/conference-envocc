@@ -1,29 +1,8 @@
 /**
- * Shared shell command helpers for unit and infrastructure tests.
+ * Re-export from the canonical run-cmd module.
  *
- * Extracted from scaffold.spec.ts and i18n-setup.spec.ts to avoid duplication.
- * Any improvement here applies to all test files that import from this module.
+ * This file exists for backward compatibility with imports that use
+ * '../support/helpers/cmd-helpers'. New code should import directly from
+ * '../support/helpers/run-cmd'.
  */
-
-import { execSync } from 'child_process';
-
-/**
- * Run a shell command synchronously and return { stdout, stderr, exitCode }.
- * Never throws — caller asserts on exitCode / stdout.
- */
-export function runCmd(
-	cmd: string,
-	cwd = process.cwd()
-): { stdout: string; stderr: string; exitCode: number } {
-	try {
-		const stdout = execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf-8' });
-		return { stdout: stdout.toString(), stderr: '', exitCode: 0 };
-	} catch (err: unknown) {
-		const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; status?: number };
-		return {
-			stdout: e.stdout?.toString() ?? '',
-			stderr: e.stderr?.toString() ?? '',
-			exitCode: e.status ?? 1
-		};
-	}
-}
+export { runCmd, type CmdResult } from './run-cmd.js';

@@ -5,6 +5,10 @@ import adapter from 'svelte-adapter-bun';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
+	server: {
+		// Use port 3000 so the Playwright webServer config (CI=true → port 3000) can find the dev server.
+		port: 3000
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({
@@ -35,7 +39,20 @@ export default defineConfig({
 					name: 'server',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}', 'tests/unit/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}', 'src/**/*.integration.test.ts'],
+					// Quality-gate tests run bun run lint/check/build as subprocesses — allow up to 3 min per test.
+					testTimeout: 180_000
+				}
+			},
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'integration',
+					environment: 'node',
+					include: ['src/**/*.integration.test.ts', 'tests/integration/**/*.{test,spec}.{js,ts}'],
+					globalSetup: './tests/support/integration-setup.ts',
+					testTimeout: 30_000,
+					hookTimeout: 60_000
 				}
 			}
 		]

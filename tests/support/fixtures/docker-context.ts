@@ -9,8 +9,9 @@
  * that invoke Docker CLI commands and do not require Playwright page fixtures.
  */
 
-import { execSync, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import path from 'path';
+import { runCmd, type CmdResult } from '../helpers/run-cmd.js';
 
 // ---------------------------------------------------------------------------
 // Project root (resolved relative to the tests/support/fixtures/ directory)
@@ -52,38 +53,8 @@ export const NGINX_PORT = 80;
  *  Story 1.9 may add a dedicated /health endpoint; use / for now. */
 export const NGINX_HEALTH_PATH = '/';
 
-// ---------------------------------------------------------------------------
-// Helper: Run a shell command synchronously
-// ---------------------------------------------------------------------------
-
-export interface CmdResult {
-	stdout: string;
-	stderr: string;
-	exitCode: number;
-}
-
-/**
- * Run a shell command synchronously and return { stdout, stderr, exitCode }.
- * Never throws — caller asserts on exitCode.
- */
-export function runCmd(cmd: string, cwd: string = PROJECT_ROOT): CmdResult {
-	try {
-		const stdout = execSync(cmd, {
-			cwd,
-			stdio: ['ignore', 'pipe', 'pipe'],
-			encoding: 'utf-8',
-			timeout: 120_000
-		});
-		return { stdout: stdout.toString(), stderr: '', exitCode: 0 };
-	} catch (err: unknown) {
-		const e = err as { stdout?: Buffer | string; stderr?: Buffer | string; status?: number };
-		return {
-			stdout: e.stdout?.toString() ?? '',
-			stderr: e.stderr?.toString() ?? '',
-			exitCode: e.status ?? 1
-		};
-	}
-}
+// re-export for callers that import CmdResult / runCmd from this module
+export { runCmd, type CmdResult };
 
 // ---------------------------------------------------------------------------
 // Helper: Wait for a URL to return a specific status code

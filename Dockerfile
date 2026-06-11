@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
+RUN bunx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide
 RUN bun run build
 
 # Stage 2: Runtime
