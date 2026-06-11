@@ -240,10 +240,17 @@ describe('Story 2.1 — Session Lifecycle: Logout Destroys Session (AC-4)', () =
 			const rawCookie = await getDevBypassCookie(devServerUrl);
 			const cookiePair = extractCookiePair(rawCookie);
 
-			// Extract the session token value for DB lookup
+			// Extract the session token value for DB lookup.
+			// The cookie value is a signed token: "${plainToken}.${hmacSignature}" (Better Auth signs cookies).
+			// The DB sessions table stores only the plain token (without the signature suffix).
+			// Strip the signature to get the lookup key: take everything before the last '.' separator.
 			const tokenMatch = cookiePair.match(/better-auth\.session_token=([^;]+)/);
 			expect(tokenMatch, 'Could not extract session token from bypass cookie').not.toBeNull();
-			const sessionToken = tokenMatch![1];
+			const signedTokenValue = tokenMatch![1];
+			// Remove the HMAC signature suffix (format: "token.base64signature" → "token")
+			const lastDotIndex = signedTokenValue.lastIndexOf('.');
+			const sessionToken =
+				lastDotIndex > -1 ? signedTokenValue.slice(0, lastDotIndex) : signedTokenValue;
 
 			// Verify session exists in DB before sign-out
 			const sessionBefore = await client.query<{ id: string }>(
@@ -253,11 +260,14 @@ describe('Story 2.1 — Session Lifecycle: Logout Destroys Session (AC-4)', () =
 			expect(sessionBefore.rowCount, 'Session row must exist before sign-out').toBeGreaterThan(0);
 
 			// Step 2: POST /auth/sign-out with the real session cookie
+			// Include Origin header — Better Auth's sign-out route requires it for CSRF protection
+			// (returns 403 "Missing or null Origin" without it).
 			const signOutResponse = await fetch(`${devServerUrl}/auth/sign-out`, {
 				method: 'POST',
 				headers: {
 					Cookie: cookiePair,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					Origin: devServerUrl
 				},
 				redirect: 'manual'
 			});
