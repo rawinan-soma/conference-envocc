@@ -4,6 +4,15 @@ import * as v from 'valibot';
 
 const EnvSchema = v.object({
 	DATABASE_URL: v.pipe(v.string(), v.minLength(1)),
+
+	// Auth — Better Auth + Authentik OIDC (Story 2.1)
+	// Required at runtime; optional at build time (CI uses GH Secrets).
+	// NEVER hardcode values here — see project memory: zero credential literals.
+	AUTH_SECRET: v.optional(v.pipe(v.string(), v.minLength(32))),
+	AUTHENTIK_CLIENT_ID: v.optional(v.pipe(v.string(), v.minLength(1))),
+	AUTHENTIK_CLIENT_SECRET: v.optional(v.pipe(v.string(), v.minLength(1))),
+	AUTHENTIK_ISSUER: v.optional(v.pipe(v.string(), v.minLength(1))),
+
 	SMTP_HOST: v.optional(v.pipe(v.string(), v.minLength(1))),
 	SMTP_PORT: v.optional(
 		v.pipe(
@@ -24,8 +33,19 @@ const EnvSchema = v.object({
 	PORT: v.optional(v.string(), '3000')
 });
 
+// GitHub Actions sets unresolved secrets/vars to empty string "".
+// Strip empty strings so optional fields are correctly treated as absent.
+function stripEmptyStrings(
+	record: Record<string, string | undefined>
+): Record<string, string | undefined> {
+	return Object.fromEntries(
+		Object.entries(record).map(([key, val]) => [key, val === '' ? undefined : val])
+	);
+}
+
 export function validateEnv(record: Record<string, string | undefined>): void {
-	const result = v.safeParse(EnvSchema, record);
+	const cleaned = stripEmptyStrings(record);
+	const result = v.safeParse(EnvSchema, cleaned);
 	if (!result.success) {
 		const issues = v.flatten(result.issues);
 		// List the specific missing/invalid field names in the message for clarity
@@ -39,4 +59,7 @@ export function validateEnv(record: Record<string, string | undefined>): void {
 // Auto-validate on import (for worker.ts path — reads process.env)
 validateEnv(process.env as Record<string, string | undefined>);
 
-export const env = v.parse(EnvSchema, process.env);
+export const env = v.parse(
+	EnvSchema,
+	stripEmptyStrings(process.env as Record<string, string | undefined>)
+);

@@ -63,3 +63,38 @@ New artifact: `_bmad-output/test-artifacts/atdd-checklist-1-9-walking-skeleton-v
 - 13 test stubs (P0: 6, P1: 5, P2: 1, P3: 1)
 - Files: `tests/e2e/walking-skeleton.spec.ts`, `tests/integration/walking-skeleton.test.ts`
 - Resolves deferred-work.md Story 1.2 failures (1.2-UNIT-008/010/012) via home page update
+
+---
+
+# Epic 2 Test Design Run — 2026-06-11
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "Epic 2: Identity & Access" + sprint-status.yaml present)
+- **Epic**: Epic 2 — Identity & Access (7 stories; 2.1–2.7 all backlog; epic-2 in-progress)
+- **Prerequisites confirmed**: Epic + stories with acceptance criteria available; architecture.md available; Epic 1 done
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Better Auth + Drizzle + PostgreSQL + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **Pact.js utils**: disabled (tea_use_pactjs_utils: false)
+- **Existing test infrastructure confirmed**: Testcontainers Postgres tier active; audit.ts helper available; CI pipeline live
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+Key risks identified: dev bypass in production (SEC, P×I=6), guard dispatcher misconfiguration (SEC, 6), IDOR via assertOwner bypass (SEC, 6), session timeout not enforced (BUS, 6), profile gate bypass (BUS, 6), guard dispatcher not extensible (TECH, 6).
+Medium: OIDC callback parameter leak (SEC, 4), email field mutability (BUS, 4), read-to-attend missing (BUS, 4), session row accumulation (OPS, 3), audit trail missing on mutations (BUS, 4).
+Total: 12 risks (6 high ≥6, 5 medium 3–5, 1 low).
+
+## Step 4: Coverage Plan
+
+Coverage matrix: 14 P0 (~28–40h), 17 P1 (~20–30h), 8 P2 (~4–8h), 3 P3 (~2–4h). Total 42 scenarios (~54–82h ~7–10 days).
+Execution: PR gate (P0+P1 Vitest+Playwright < 15 min via Testcontainers Postgres); nightly (P2 + Docker compose smoke); on-demand (P3).
+IDOR template (`tests/support/helpers/idor-template.ts`) seeded in Story 2.7 for E3–E7 reuse.
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-2.md`
+Revision: v1 (2026-06-11) — initial generation; all 7 stories backlog; 42 scenarios; 6 high-priority risks with mitigation plans; IDOR template pattern documented.

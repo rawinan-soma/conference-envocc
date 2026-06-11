@@ -57,9 +57,11 @@
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
 		"vite": "^8.0.16",
-		"vitest": "^4.1.8"
+		"vitest": "^4.1.8",
+		"wait-on": "^9.0.10"
 	},
 	"dependencies": {
+		"better-auth": "^1.6.16",
 		"clsx": "^2.1.1",
 		"drizzle-orm": "^0.45.2",
 		"nodemailer": "^8.0.10",

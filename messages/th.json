@@ -5,5 +5,9 @@
 	"skeleton_title": "Walking Skeleton",
 	"skeleton_description": "Foundation layer probe — DB + i18n + jobs",
 	"skeleton_insert_label": "Booking inserted",
-	"skeleton_job_label": "Email job enqueued"
+	"skeleton_job_label": "Email job enqueued",
+	"login_title": "Sign in",
+	"login_sign_in_button": "Sign in with organization account",
+	"login_error_provider_unavailable": "Sign in is temporarily unavailable. Please try again.",
+	"logout_button": "Sign out"
 }
