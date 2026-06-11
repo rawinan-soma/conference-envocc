@@ -42,6 +42,48 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 // ---------------------------------------------------------------------------
+// Story 1.9 — Skeleton route: basic render checks (Task 5.2, AC-1, AC-6)
+// ---------------------------------------------------------------------------
+
+test.describe('Story 1.9 — Skeleton Route: Smoke Checks (activated)', () => {
+	test('[P0] 1.9-E2E-TITLE — Skeleton route page title contains "Walking Skeleton"', async ({
+		page
+	}) => {
+		await page.goto('/skeleton');
+		await page.waitForLoadState('networkidle');
+
+		// The CardTitle renders m.skeleton_title() = "Walking Skeleton"
+		const titleText = await page.locator('h3').first().textContent();
+		expect(
+			titleText,
+			'Skeleton page must contain "Walking Skeleton" heading from m.skeleton_title()'
+		).toContain('Walking Skeleton');
+	});
+
+	test('[P1] 1.9-E2E-A11Y — axe-core: zero WCAG 2.1 AA violations on skeleton page (AC-6)', async ({
+		page
+	}) => {
+		await page.goto('/skeleton');
+		await page.waitForLoadState('networkidle');
+
+		const results = await new AxeBuilder({ page })
+			.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+			.analyze();
+
+		expect(
+			results.violations,
+			`axe-core found ${results.violations.length} WCAG 2.1 AA violation(s):\n` +
+				results.violations
+					.map(
+						(v) =>
+							`  - [${v.impact}] ${v.id}: ${v.description}\n    Affected nodes: ${v.nodes.map((n) => n.html).join(', ')}`
+					)
+					.join('\n')
+		).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // AC-1a: Skeleton route renders with lang="th" and a resolved Paraglide string
 // ---------------------------------------------------------------------------
 
@@ -66,10 +108,9 @@ test.describe('Story 1.9 — Skeleton Route: Render & Theme (AC-1a, AC-1b)', () 
 
 		// Assert Paraglide middleware set lang="th"
 		const htmlLang = await page.locator('html').getAttribute('lang');
-		expect(
-			htmlLang,
-			'<html lang="..."> must be set by Paraglide middleware — expected "th"'
-		).toBe('th');
+		expect(htmlLang, '<html lang="..."> must be set by Paraglide middleware — expected "th"').toBe(
+			'th'
+		);
 
 		// Assert skeleton heading is present and contains a resolved string (not a raw key)
 		const headingLocator = page.locator('[data-testid="skeleton-heading"]');
@@ -106,11 +147,7 @@ test.describe('Story 1.9 — Skeleton Route: Render & Theme (AC-1a, AC-1b)', () 
 			const colorPrimary = rootStyles.getPropertyValue('--color-primary').trim();
 			const green500 = rootStyles.getPropertyValue('--green-500').trim();
 			const copper500 = rootStyles.getPropertyValue('--copper-500').trim();
-			return (
-				colorPrimary.length > 0 ||
-				green500.length > 0 ||
-				copper500.length > 0
-			);
+			return colorPrimary.length > 0 || green500.length > 0 || copper500.length > 0;
 		});
 
 		expect(
@@ -155,25 +192,29 @@ test.describe('Story 1.9 — Skeleton Form: Job → Email Delivery (AC-1c)', () 
 		await page.waitForLoadState('networkidle');
 
 		// Submit the skeleton form (button with type="submit" or [data-testid="skeleton-submit"])
-		const submitButton = page.locator('[data-testid="skeleton-submit"], button[type="submit"]').first();
+		const submitButton = page
+			.locator('[data-testid="skeleton-submit"], button[type="submit"]')
+			.first();
 		await expect(submitButton).toBeVisible();
 		await submitButton.click();
 
 		// Wait for job to be processed and email to arrive in Mailpit (max 10s)
-		const emailDelivered = await page.waitForFunction(
-			async ([url]: [string]) => {
-				try {
-					const res = await fetch(`${url}/api/v1/messages`);
-					if (!res.ok) return false;
-					const data = await res.json() as { total?: number };
-					return (data.total ?? 0) >= 1;
-				} catch {
-					return false;
-				}
-			},
-			[mailpitUrl] as [string],
-			{ timeout: 10_000, polling: 500 }
-		).catch(() => null);
+		const emailDelivered = await page
+			.waitForFunction(
+				async ([url]: [string]) => {
+					try {
+						const res = await fetch(`${url}/api/v1/messages`);
+						if (!res.ok) return false;
+						const data = (await res.json()) as { total?: number };
+						return (data.total ?? 0) >= 1;
+					} catch {
+						return false;
+					}
+				},
+				[mailpitUrl] as [string],
+				{ timeout: 10_000, polling: 500 }
+			)
+			.catch(() => null);
 
 		expect(
 			emailDelivered,
@@ -203,13 +244,15 @@ test.describe('Story 1.9 — Skeleton Route: Accessibility (P1)', () => {
 		await page.goto('/skeleton');
 		await page.waitForLoadState('networkidle');
 
-		const results = await new AxeBuilder({ page })
-			.withTags(['wcag2aa'])
-			.analyze();
+		const results = await new AxeBuilder({ page }).withTags(['wcag2aa']).analyze();
 
 		expect(
 			results.violations,
-			`axe-core found ${results.violations.length} WCAG 2.1 AA violation(s): ${JSON.stringify(results.violations.map((v) => ({ id: v.id, description: v.description, impact: v.impact })), null, 2)}`
+			`axe-core found ${results.violations.length} WCAG 2.1 AA violation(s): ${JSON.stringify(
+				results.violations.map((v) => ({ id: v.id, description: v.description, impact: v.impact })),
+				null,
+				2
+			)}`
 		).toHaveLength(0);
 	});
 });
@@ -246,10 +289,7 @@ test.describe('Story 1.9 — Deferred 1.2 Fixes: Home Page Button & Thai Typogra
 		// Button must have a Forest & Copper background color class
 		// shadcn Button uses Tailwind classes — check for presence of a non-trivial background
 		const buttonClass = await buttonLocator.getAttribute('class');
-		expect(
-			buttonClass,
-			'Button must have Tailwind/shadcn styling classes applied'
-		).toBeTruthy();
+		expect(buttonClass, 'Button must have Tailwind/shadcn styling classes applied').toBeTruthy();
 	});
 
 	test('[P1] 1.9-E2E-006 — Home page body text has computed line-height >= 1.65 and font-size >= 14px (resolves deferred 1.2-COMP-002)', async ({
@@ -296,10 +336,7 @@ test.describe('Story 1.9 — Deferred 1.2 Fixes: Home Page Button & Thai Typogra
 // ---------------------------------------------------------------------------
 
 test.describe('Story 1.9 — Skeleton Route: UX Smoke (P2)', () => {
-	test.skip(
-		true,
-		'RED phase — activate after skeleton form action is implemented'
-	);
+	test.skip(true, 'RED phase — activate after skeleton form action is implemented');
 
 	test('[P2] 1.9-E2E-007 — Skeleton route displays success indicator (toast/status element) after form submit', async ({
 		page
@@ -314,14 +351,16 @@ test.describe('Story 1.9 — Skeleton Route: UX Smoke (P2)', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Submit the skeleton form
-		const submitButton = page.locator('[data-testid="skeleton-submit"], button[type="submit"]').first();
+		const submitButton = page
+			.locator('[data-testid="skeleton-submit"], button[type="submit"]')
+			.first();
 		await expect(submitButton).toBeVisible();
 		await submitButton.click();
 
 		// Wait for success indicator to appear (role="status", role="alert", or [data-testid="success"])
-		const successLocator = page.locator(
-			'[role="status"], [role="alert"], [data-testid="success"], [data-testid="toast"]'
-		).first();
+		const successLocator = page
+			.locator('[role="status"], [role="alert"], [data-testid="success"], [data-testid="toast"]')
+			.first();
 
 		await expect(
 			successLocator,
@@ -335,10 +374,7 @@ test.describe('Story 1.9 — Skeleton Route: UX Smoke (P2)', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Story 1.9 — Skeleton Route: Performance Baseline (P3, informational)', () => {
-	test.skip(
-		true,
-		'RED phase — activate after skeleton route is implemented'
-	);
+	test.skip(true, 'RED phase — activate after skeleton route is implemented');
 
 	test('[P3] 1.9-E2E-008 — Skeleton route responds within 2s under single-user load (informational baseline)', async ({
 		page

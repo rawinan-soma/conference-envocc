@@ -1,5 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"app_name": "Conference Room Booking",
-	"home_title": "Room Booking System"
+	"home_title": "Room Booking System",
+	"skeleton_title": "Walking Skeleton",
+	"skeleton_description": "Foundation layer probe — DB + i18n + jobs",
+	"skeleton_insert_label": "Booking inserted",
+	"skeleton_job_label": "Email job enqueued"
 }

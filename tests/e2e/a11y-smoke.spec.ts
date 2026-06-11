@@ -72,7 +72,8 @@ test.describe('Story 1.8 — Accessibility Smoke Test (AC-3, ATDD Red Phase)', (
 		// Scope to WCAG 2.1 AA for consistent baseline.
 
 		const pagesToCheck = [
-			'/' // Home page (walking skeleton vertical slice — Story 1.9)
+			'/', // Home page (walking skeleton vertical slice — Story 1.9)
+			'/skeleton' // Walking skeleton vertical slice probe page (Story 1.9, AC-6)
 		];
 
 		for (const pagePath of pagesToCheck) {

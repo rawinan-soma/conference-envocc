@@ -21,6 +21,13 @@
  */
 
 import { setupTestcontainerPostgres } from './fixtures/testcontainers-context.js';
+import { execSync } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// integration-setup.ts lives at tests/support/integration-setup.ts
+// go up 3 levels: integration-setup.ts → support → tests → project root
+const PROJECT_ROOT = path.resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 
 // ---------------------------------------------------------------------------
 // Vitest Global Setup
@@ -50,6 +57,16 @@ export default async function setup(): Promise<() => Promise<void>> {
 				'Testcontainers must set it, or provide DATABASE_URL in the environment.'
 		);
 	}
+
+	// Apply migrations so all tests see the fully-migrated schema
+	console.log('[integration-setup] Running drizzle-kit migrate...');
+	execSync('bunx drizzle-kit migrate', {
+		cwd: PROJECT_ROOT,
+		env: { ...process.env },
+		stdio: 'pipe',
+		timeout: 60_000
+	});
+	console.log('[integration-setup] Migrations applied.');
 
 	// Return teardown function
 	return async () => {

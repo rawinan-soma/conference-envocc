@@ -142,7 +142,9 @@ describe('Story 1.9 — Vertical Slice Service: Atomic Transaction (AC-1b)', () 
 		} finally {
 			// Clean up test data
 			await client.query(`DELETE FROM bookings WHERE room_id = $1`, [testRoomId]).catch(() => {});
-			await client.query(`DELETE FROM audit_log WHERE entity_id = $1`, [testRoomId]).catch(() => {});
+			await client
+				.query(`DELETE FROM audit_log WHERE entity_id = $1`, [testRoomId])
+				.catch(() => {});
 			client.release();
 		}
 	});
@@ -181,14 +183,16 @@ describe('Story 1.9 — Vertical Slice Service: Job → Email Delivery (AC-1c)',
 		//   await enqueueJob(QUEUE.SMOKE_EMAIL, { to, subject }, { key: `skeleton-int-002-${Date.now()}` });
 		//
 		// Using raw insert here as a fallback so the test compiles before enqueueJob is exported.
-		await pool.query(
-			`INSERT INTO pgboss.job (name, data, state, startafter, expirein, priority, retrylimit, retrydelay, retrybackoff, deadletter, keepuntil, oncomplete, output)
+		await pool
+			.query(
+				`INSERT INTO pgboss.job (name, data, state, startafter, expirein, priority, retrylimit, retrydelay, retrybackoff, deadletter, keepuntil, oncomplete, output)
 			 SELECT $1, $2::jsonb, 'created', now(), interval '15 minutes', 0, 0, 0, false, null, now() + interval '1 hour', false, null
 			 WHERE EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'pgboss')`,
-			['smoke-email', JSON.stringify({ to, subject })]
-		).catch(() => {
-			// pgboss schema may not exist yet — skip enqueue, test will fail at assertion
-		});
+				['smoke-email', JSON.stringify({ to, subject })]
+			)
+			.catch(() => {
+				// pgboss schema may not exist yet — skip enqueue, test will fail at assertion
+			});
 
 		// Poll Mailpit for delivery (max 10s, 500ms interval)
 		const deadline = Date.now() + 10_000;
@@ -198,7 +202,7 @@ describe('Story 1.9 — Vertical Slice Service: Job → Email Delivery (AC-1c)',
 			try {
 				const res = await fetch(`${mailpitUrl}/api/v1/messages`);
 				if (res.ok) {
-					const data = await res.json() as { total?: number; messages?: unknown[] };
+					const data = (await res.json()) as { total?: number; messages?: unknown[] };
 					if ((data.total ?? 0) >= 1) {
 						delivered = true;
 						break;
@@ -213,7 +217,7 @@ describe('Story 1.9 — Vertical Slice Service: Job → Email Delivery (AC-1c)',
 		expect(
 			delivered,
 			`Expected at least 1 email in Mailpit (${mailpitUrl}) within 10s after enqueueJob — ` +
-			'worker may not be running or Mailpit SMTP not wired to nodemailer transport'
+				'worker may not be running or Mailpit SMTP not wired to nodemailer transport'
 		).toBe(true);
 	});
 });
@@ -267,7 +271,7 @@ describe('Story 1.9 — Vertical Slice: Overlap Rejection in Skeleton Context (A
 			expect(
 				exclusionRaised,
 				`Expected SQLSTATE 23P01 (exclusion_violation) on overlapping insert but got: ${errorCode ?? 'no error'} — ` +
-				'EXCLUDE constraint on bookings table may be missing or misconfigured'
+					'EXCLUDE constraint on bookings table may be missing or misconfigured'
 			).toBe(true);
 		} finally {
 			// Always rollback — transaction may be in aborted state after the expected error
@@ -382,15 +386,12 @@ describe('Story 1.9 — DB Constraint: EXCLUDE Still Active After Migration (AC-
 		expect(
 			result.rows.length,
 			'No EXCLUDE constraint found on bookings table after Story 1.9 migration — ' +
-			'a migration may have accidentally dropped the constraint (AC-3: build-gate)'
+				'a migration may have accidentally dropped the constraint (AC-3: build-gate)'
 		).toBeGreaterThan(0);
 
 		// Log constraint name for traceability
 		const constraintName = result.rows[0]?.conname;
-		expect(
-			constraintName,
-			'EXCLUDE constraint name must be a non-empty string'
-		).toBeTruthy();
+		expect(constraintName, 'EXCLUDE constraint name must be a non-empty string').toBeTruthy();
 
 		console.info(`[1.9-INT-005] EXCLUDE constraint found: ${constraintName}`);
 	});
