@@ -38,7 +38,11 @@ export const routeGuards: Array<{
 		// The SvelteKit route group "/(app)/" maps to URL paths under / (not literally /(app)/).
 		// Public routes explicitly excluded: /login, /auth (bare or with subpath), /r/[token]/**, /, /skeleton (dev probe)
 		// Profile completion route explicitly excluded: /profile/complete (would cause infinite redirect loop)
-		pattern: /^\/(?!(?:login|auth(?:\/|$)|r\/|skeleton|profile\/complete|$))/,
+		//
+		// Each exemption is end-anchored with (?:\/|$) so the negative lookahead only matches the
+		// exact segment(s), not arbitrary prefixes. Without anchoring, "/profile/completeX",
+		// "/loginx", "/skeletonx" would all be (incorrectly) treated as exempt and bypass the guard.
+		pattern: /^\/(?!(?:login|auth|r|skeleton|profile\/complete)(?:\/|$)|$)/,
 		guard: (event) => {
 			const session = event.locals.session;
 			if (!session) {

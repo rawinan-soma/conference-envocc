@@ -52,14 +52,14 @@
 					class="border-input bg-background ring-offset-background focus-visible:ring-ring h-11 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					aria-invalid={$errors.title ? true : undefined}
 				>
-					<option value="" disabled>{m.profile_title_label()}</option>
+					<option value="" disabled hidden selected>{m.profile_title_label()}</option>
 					<option value="Mr.">{m.profile_title_mr()}</option>
 					<option value="Mrs.">{m.profile_title_mrs()}</option>
 					<option value="Ms.">{m.profile_title_ms()}</option>
 					<option value="Other">{m.profile_title_other()}</option>
 				</select>
 				{#if $errors.title}
-					<p class="text-xs text-destructive">{$errors.title}</p>
+					<p class="text-xs text-destructive">{m.profile_error_required()}</p>
 				{/if}
 			</div>
 
@@ -75,7 +75,7 @@
 					aria-invalid={$errors.firstName ? true : undefined}
 				/>
 				{#if $errors.firstName}
-					<p class="text-xs text-destructive">{$errors.firstName}</p>
+					<p class="text-xs text-destructive">{m.profile_error_first_name_required()}</p>
 				{/if}
 			</div>
 
@@ -91,7 +91,7 @@
 					aria-invalid={$errors.lastName ? true : undefined}
 				/>
 				{#if $errors.lastName}
-					<p class="text-xs text-destructive">{$errors.lastName}</p>
+					<p class="text-xs text-destructive">{m.profile_error_last_name_required()}</p>
 				{/if}
 			</div>
 
@@ -107,7 +107,7 @@
 					aria-invalid={$errors.phone ? true : undefined}
 				/>
 				{#if $errors.phone}
-					<p class="text-xs text-destructive">{$errors.phone}</p>
+					<p class="text-xs text-destructive">{m.profile_error_phone_required()}</p>
 				{/if}
 			</div>
 
@@ -123,7 +123,7 @@
 					aria-invalid={$errors.organization ? true : undefined}
 				/>
 				{#if $errors.organization}
-					<p class="text-xs text-destructive">{$errors.organization}</p>
+					<p class="text-xs text-destructive">{m.profile_error_organization_required()}</p>
 				{/if}
 			</div>
 

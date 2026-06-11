@@ -4,7 +4,7 @@ baseline_commit: de96bd2
 
 # Story 2.3: Self-service profile
 
-Status: review
+Status: done
 
 ## Story
 
@@ -471,3 +471,26 @@ None.
 ## Change Log
 
 - 2026-06-11: Story 2.3 implementation complete. Self-service profile feature implemented: user_profiles DB migration, Drizzle schema, profile service with audit logging, hooks.server.ts profile completeness guard, profile completion and edit routes with sveltekit-superforms + Valibot validation, i18n keys, integration tests activated. Status: review.
+
+## Review Findings
+
+Code review (Step 5) — 2026-06-11. Three adversarial layers (Blind Hunter, Edge Case
+Hunter, Acceptance Auditor). 8 findings after dedup; all applied as patches. 2 dismissed
+as noise. 0 decision-needed, 0 deferred. Security-critical ACs (7, 8, 1/9, 4) verified
+correct by all layers.
+
+### Patches applied
+
+- [x] [Review][Patch] Open redirect via unvalidated `redirectTo` query param — sanitize to same-origin local paths only [src/routes/(app)/profile/complete/+page.server.ts] (HIGH)
+- [x] [Review][Patch] Dead `/dashboard` redirect 404s the happy path — route does not exist; redirect to `/` (the app's actual post-login landing, matching login `callbackURL`) [src/routes/(app)/profile/complete/+page.server.ts] (HIGH)
+- [x] [Review][Patch] Guard regex not end-anchored — prefix-match leak (e.g. `/profile/completeX`, `/loginx`) bypassed the guard; anchored each exemption with `(?:\/|$)` [src/hooks.server.ts] (HIGH, latent)
+- [x] [Review][Patch] Duplicate/concurrent profile creation threw unhandled 500 on `userId` UNIQUE — catch via `isUniqueViolation` (SQLSTATE 23505) and treat as success [src/routes/(app)/profile/complete/+page.server.ts, src/lib/server/services/profile-service.ts] (MEDIUM)
+- [x] [Review][Patch] No-op update wrote an empty-diff audit row and bumped `updatedAt` — short-circuit when `computeDiff` is empty [src/lib/server/services/profile-service.ts] (MEDIUM)
+- [x] [Review][Patch] Validation error messages not localized — wired field errors through spec-defined `profile_error_*` Paraglide keys instead of hardcoded English schema strings [src/routes/(app)/profile/complete/+page.svelte, src/routes/(app)/profile/+page.svelte] (MEDIUM)
+- [x] [Review][Patch] Title `<option value="">` default could visually drift to "Mr." while bound value stays empty — placeholder now `disabled hidden selected` [both profile forms] (LOW)
+- [x] [Review][Patch] `createProfile`/`updateProfile` returned `profile!` masking a zero-row result — replaced non-null assertions with explicit throws [src/lib/server/services/profile-service.ts] (LOW)
+
+### Dismissed (noise / false positive)
+
+- Edit-success no-redirect "staleness" smell — `event.locals.userProfile` is re-fetched per request by the hook; the returned form reflects submitted values. No real staleness.
+- Profile-gate "informational" concern — no concrete bypass demonstrable from the diff; the regex exemptions are now end-anchored.

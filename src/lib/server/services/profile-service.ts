@@ -18,6 +18,15 @@ import { userProfiles } from '../db/schema/profiles.js';
 import type { UserProfile } from '../db/schema/profiles.js';
 import { writeAuditLog } from './audit.js';
 
+/**
+ * Detect a Postgres unique-constraint violation (SQLSTATE 23505).
+ * Used by callers to handle duplicate/concurrent profile creation gracefully
+ * (e.g. double-submit of the completion form racing on the userId UNIQUE constraint).
+ */
+export function isUniqueViolation(err: unknown): boolean {
+	return typeof err === 'object' && err !== null && 'code' in err && err.code === '23505';
+}
+
 // ---------------------------------------------------------------------------
 // getProfileByUserId
 // ---------------------------------------------------------------------------
@@ -77,7 +86,11 @@ export async function createProfile(
 			}
 		});
 
-		return profile!;
+		if (!profile) {
+			// Defensive: a successful INSERT ... RETURNING always yields a row.
+			throw new Error('createProfile: insert returned no row');
+		}
+		return profile;
 	});
 }
 
@@ -115,9 +128,15 @@ export async function updateProfile(
 	existing: UserProfile,
 	input: ProfileInput
 ): Promise<UserProfile> {
-	return db.transaction(async (tx) => {
-		const diff = computeDiff(existing, input);
+	const diff = computeDiff(existing, input);
 
+	// No-op save: nothing changed. Skip the UPDATE (avoids bumping updatedAt) and skip
+	// writing an audit_log row with an empty diff (audit pollution). Return the row as-is.
+	if (Object.keys(diff).length === 0) {
+		return existing;
+	}
+
+	return db.transaction(async (tx) => {
 		const [profile] = await tx
 			.update(userProfiles)
 			.set({
@@ -131,6 +150,12 @@ export async function updateProfile(
 			.where(eq(userProfiles.userId, userId))
 			.returning();
 
+		if (!profile) {
+			// The profile row was deleted between load and this update (e.g. user cascade-deleted).
+			// Fail loudly rather than silently reporting success.
+			throw new Error('updateProfile: no profile row matched for update');
+		}
+
 		await writeAuditLog(tx, {
 			actorId: userId,
 			entity: 'user_profile',
@@ -138,6 +163,6 @@ export async function updateProfile(
 			diff
 		});
 
-		return profile!;
+		return profile;
 	});
 }

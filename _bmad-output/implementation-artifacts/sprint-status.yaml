@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-09 22:01:41 +0700
-last_updated: 2026-06-11  # story 2.1 → done (code review); story 1.8 → done; story 1.6 → done; story 1.9 → done; epic-1 → done; story 2.3 → review
+last_updated: 2026-06-11  # story 2.1 → done (code review); story 1.8 → done; story 1.6 → done; story 1.9 → done; epic-1 → done; story 2.3 → done (code review)
 project: conference-envocc
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   epic-2: in-progress
   2-1-sign-in-with-authentik-oidc: done
   2-2-local-dev-auth-bypass: backlog
-  2-3-self-service-profile: review
+  2-3-self-service-profile: done
   2-4-roles-assignment-model: backlog
   2-5-authorization-guard-dispatcher: backlog
   2-6-fixed-session-timeout: backlog
