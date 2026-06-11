@@ -49,6 +49,7 @@
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import pg from 'pg';
+import { getDevBypassCookie, extractCookiePair } from '../support/helpers/dev-bypass.js';
 
 // ---------------------------------------------------------------------------
 // Postgres client — uses DATABASE_URL from environment (set by integration-setup.ts)
@@ -201,25 +202,27 @@ describe('Story 2.1 — Auth Guard: Unauthenticated Redirect (AC-1, AC-5)', () =
 // ---------------------------------------------------------------------------
 
 describe('Story 2.1 — Session Lifecycle: Logout Destroys Session (AC-4)', () => {
-	test.skip('[P0] 2.1-INT-002 — POST /auth/sign-out destroys DB session row; subsequent (app) GET → 302', async () => {
-		// THIS TEST WILL FAIL — Better Auth not yet installed; session tables not yet created.
-		// Activate after Task 1.3 (auth schema) + Task 2.2 (hooks wired) + Task 3.1 (auth routes).
-		// Depends on Story 2.2 dev bypass to seed an authenticated session.
+	test('[P0] 2.1-INT-002 — POST /auth/sign-out destroys DB session row; subsequent (app) GET → 302', async () => {
+		// ACTIVATED — Story 2.2 dev bypass seam is now available (getDevBypassCookie helper).
+		// Activation condition: Story 2.2 dev bypass route implemented + AUTH_DEV_BYPASS=true in CI.
 		//
 		// AC-4: Given a logged-in user, When I click "Sign out", Then the session row is
 		//       destroyed and a subsequent request to any (app) route redirects to login.
 		//
-		// Strategy (requires Story 2.2 dev bypass for session seeding):
-		//   1. Seed a session row directly in the DB (simulating a logged-in user)
+		// Strategy (using Story 2.2 dev bypass for session seeding):
+		//   1. Use getDevBypassCookie() to create a real Better Auth session for dev@local.test
 		//   2. POST to /auth/sign-out with the session cookie
 		//   3. Assert the session row is deleted from the DB
 		//   4. GET an (app) route with the now-invalid cookie → assert 302 to /login
 		//
-		// NOTE: Full activation requires Story 2.2 dev bypass. Mark conditional until merged.
+		// Note: This test replaces the manual DB seeding approach (deferred in Story 2.1)
+		// with a proper session created by the dev bypass (Story 2.2 AC-5).
 
 		await truncateBetterAuthTables();
 
+		const devServerUrl = process.env['DEV_SERVER_URL'] ?? 'http://localhost:3000';
 		const client = await pool.connect();
+
 		try {
 			// Pre-condition: verify sessions table exists (requires Task 1.3 migration)
 			const tableCheck = await client.query<{ exists: boolean }>(
@@ -233,37 +236,27 @@ describe('Story 2.1 — Session Lifecycle: Logout Destroys Session (AC-4)', () =
 				'sessions table must exist — run migration 0002_better_auth.sql'
 			).toBe(true);
 
-			// Seed a test user
-			const userId = 'test-user-2-1-int-002';
-			await client.query(
-				`INSERT INTO users (id, email, "emailVerified", "createdAt", "updatedAt")
-					 VALUES ($1, $2, false, NOW(), NOW())
-					 ON CONFLICT (id) DO NOTHING`,
-				[userId, 'test-2-1-int-002@example.com']
-			);
+			// Step 1: Create a real Better Auth session using the dev bypass (Story 2.2 seam)
+			const rawCookie = await getDevBypassCookie(devServerUrl);
+			const cookiePair = extractCookiePair(rawCookie);
 
-			// Seed a test session row (simulating Better Auth session)
-			const sessionToken = 'test-session-token-2-1-int-002';
-			const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min from now
-			await client.query(
-				`INSERT INTO sessions (id, token, "userId", "expiresAt", "createdAt", "updatedAt")
-					 VALUES ($1, $2, $3, $4, NOW(), NOW())
-					 ON CONFLICT (id) DO NOTHING`,
-				[`session-${userId}`, sessionToken, userId, expiresAt]
-			);
+			// Extract the session token value for DB lookup
+			const tokenMatch = cookiePair.match(/better-auth\.session_token=([^;]+)/);
+			expect(tokenMatch, 'Could not extract session token from bypass cookie').not.toBeNull();
+			const sessionToken = tokenMatch![1];
 
-			// Verify session exists before logout
-			const sessionBefore = await client.query(`SELECT id FROM sessions WHERE token = $1`, [
-				sessionToken
-			]);
+			// Verify session exists in DB before sign-out
+			const sessionBefore = await client.query<{ id: string }>(
+				`SELECT id FROM sessions WHERE token = $1`,
+				[sessionToken]
+			);
 			expect(sessionBefore.rowCount, 'Session row must exist before sign-out').toBeGreaterThan(0);
 
-			// POST /auth/sign-out with session cookie
-			const devServerUrl = process.env['DEV_SERVER_URL'] ?? 'http://localhost:3000';
+			// Step 2: POST /auth/sign-out with the real session cookie
 			const signOutResponse = await fetch(`${devServerUrl}/auth/sign-out`, {
 				method: 'POST',
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}`,
+					Cookie: cookiePair,
 					'Content-Type': 'application/json'
 				},
 				redirect: 'manual'
@@ -272,16 +265,17 @@ describe('Story 2.1 — Session Lifecycle: Logout Destroys Session (AC-4)', () =
 			// Better Auth sign-out should succeed (2xx or 3xx to home/login)
 			expect(signOutResponse.status, 'Sign-out response must not be 5xx').toBeLessThan(500);
 
-			// Verify session row is destroyed in DB
-			const sessionAfter = await client.query(`SELECT id FROM sessions WHERE token = $1`, [
-				sessionToken
-			]);
+			// Step 3: Verify session row is destroyed in DB
+			const sessionAfter = await client.query<{ id: string }>(
+				`SELECT id FROM sessions WHERE token = $1`,
+				[sessionToken]
+			);
 			expect(sessionAfter.rowCount, 'Session row must be deleted after sign-out').toBe(0);
 
-			// Subsequent (app) GET with the old cookie must redirect to /login
+			// Step 4: Subsequent (app) GET with the old cookie must redirect to /login
 			const appResponse = await fetch(`${devServerUrl}/dashboard`, {
 				headers: {
-					Cookie: `better-auth.session_token=${sessionToken}` // expired/deleted token
+					Cookie: cookiePair // token now deleted from DB
 				},
 				redirect: 'manual'
 			});
