@@ -48,12 +48,25 @@ export const routeGuards: Array<{
 // ---------------------------------------------------------------------------
 
 // Paths under /auth/** that are SvelteKit-native routes and must NOT be delegated to
-// Better Auth's handler (svelteKitHandler intercepts all /auth/** otherwise).
-// Story 2.2: /auth/dev-bypass is a standalone +server.ts route handled by SvelteKit,
-// not a Better Auth endpoint.
+// Better Auth's handler. svelteKitHandler intercepts all /auth/** because the catch-all
+// src/routes/auth/[...all]/+server.ts delegates to it; standalone +server.ts routes
+// nested under /auth/ must be explicitly excluded here so they are resolved directly.
+//
+// Why not use event.route.id: the catch-all /auth/[...all] gives every Better Auth
+// request a non-null route.id too, so a generic "non-null means skip" check would
+// prevent Better Auth from handling sign-in and callback flows.
+//
+// When adding a new SvelteKit-native route under /auth/**, add its path here.
 const BETTER_AUTH_PASSTHROUGH_PATHS = new Set(['/auth/dev-bypass']);
 
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
+	// Passthrough for SvelteKit-native routes under /auth/** that must NOT be delegated
+	// to Better Auth. Checked BEFORE auth.api.getSession() so these routes avoid an
+	// unnecessary DB session-lookup round-trip (they manage their own session lifecycle).
+	if (BETTER_AUTH_PASSTHROUGH_PATHS.has(event.url.pathname)) {
+		return resolve(event);
+	}
+
 	// Wrap the ENTIRE handler body in eventStorage.run(event, ...) so the sveltekitCookies
 	// plugin's after-hook always has a valid RequestEvent via AsyncLocalStorage — regardless
 	// of which code path triggers it (including auth.api.getSession() clearing an expired
@@ -78,13 +91,6 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		} else {
 			event.locals.session = null;
 			event.locals.user = null;
-		}
-
-		// Passthrough for SvelteKit-native routes under /auth/** that must NOT be handled
-		// by Better Auth (e.g. /auth/dev-bypass). Without this, svelteKitHandler intercepts
-		// all /auth/** requests and Better Auth returns 404 for unknown paths.
-		if (BETTER_AUTH_PASSTHROUGH_PATHS.has(event.url.pathname)) {
-			return resolve(event);
 		}
 
 		return svelteKitHandler({ auth, event, resolve, building });
