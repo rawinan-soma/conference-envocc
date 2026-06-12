@@ -51,7 +51,6 @@ export function requireUser(event: RequestEvent): User {
 export function requireAdmin(event: RequestEvent): User {
 	const user = requireUser(event);
 
-	// @ts-expect-error — isAdmin field will be added when admin roles are implemented (Story 2.4)
 	if (!user.isAdmin) {
 		error(403, 'Forbidden: admin access required');
 	}

@@ -13,6 +13,12 @@ const EnvSchema = v.object({
 	AUTHENTIK_CLIENT_SECRET: v.optional(v.pipe(v.string(), v.minLength(1))),
 	AUTHENTIK_ISSUER: v.optional(v.pipe(v.string(), v.minLength(1))),
 
+	// Dev Auth Bypass (Story 2.2)
+	// DEV ONLY — never set in production. Enables /auth/dev-bypass without Authentik.
+	// Treat any non-empty string as truthy. Guard logic (=== 'true' && NODE_ENV !== 'production')
+	// belongs in the bypass handler, not here.
+	AUTH_DEV_BYPASS: v.optional(v.string()),
+
 	SMTP_HOST: v.optional(v.pipe(v.string(), v.minLength(1))),
 	SMTP_PORT: v.optional(
 		v.pipe(
