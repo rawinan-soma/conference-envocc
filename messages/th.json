@@ -31,5 +31,27 @@
 	"profile_error_first_name_required": "First name is required.",
 	"profile_error_last_name_required": "Last name is required.",
 	"profile_error_phone_required": "Phone is required.",
-	"profile_error_organization_required": "Organization is required."
+	"profile_error_organization_required": "Organization is required.",
+
+	"room_list_title": "Rooms",
+	"room_list_empty": "No rooms yet. Create the first room.",
+	"room_create_title": "Create room",
+	"room_edit_title": "Edit room",
+	"room_name_label": "Room name",
+	"room_floor_label": "Floor",
+	"room_capacity_label": "Capacity (persons)",
+	"room_features_label": "Features",
+	"room_feature_projector": "Projector",
+	"room_feature_whiteboard": "Whiteboard",
+	"room_feature_vc": "Video conferencing",
+	"room_feature_tv": "TV",
+	"room_create_button": "Create room",
+	"room_save_button": "Save changes",
+	"room_created_toast": "Room created.",
+	"room_updated_toast": "Room updated.",
+	"room_error_name_required": "Room name is required.",
+	"room_error_floor_required": "Floor is required.",
+	"room_error_capacity_min": "Capacity must be at least 1.",
+	"room_not_found": "Room not found.",
+	"room_cancel_button": "Cancel"
 }

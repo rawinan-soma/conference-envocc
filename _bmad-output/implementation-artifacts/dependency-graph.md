@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-12T15:00:00+07:00 (reconciled: PR #111/2.5 merged; story 2.7 now unblocked; epic 2 in-progress)_
+_Last updated: 2026-06-12T16:00:00+07:00 (reconciled: PR #112/2.7 merged; epic 2 complete; epic 3 stories now unblocked)_
 
 ## Stories
 
@@ -20,11 +20,11 @@ _Last updated: 2026-06-12T15:00:00+07:00 (reconciled: PR #111/2.5 merged; story 
 | 2.4 | 2 | Roles & assignment model | done | #13 | #108 | merged | 2.1 | ✅ Yes (done) |
 | 2.5 | 2 | Authorization guard dispatcher | done | #14 | #111 | merged | 2.1, 2.4 | ✅ Yes (done) |
 | 2.6 | 2 | Fixed session timeout | done | #15 | #110 | merged | 2.1 | ✅ Yes (done) |
-| 2.7 | 2 | Authorization negative-test pattern & audit on mutations | backlog | #16 | — | — | 2.5 | ✅ Yes |
-| 3.1 | 3 | Create and edit rooms | backlog | #17 | — | — | epic 2 complete | ❌ No (epic 2 not complete) |
-| 3.2 | 3 | Room photo upload | backlog | #18 | — | — | 3.1 | ❌ No (epic 2 not complete) |
-| 3.3 | 3 | Deactivate a room | backlog | #19 | — | — | 3.1 | ❌ No (epic 2 not complete) |
-| 3.4 | 3 | Block time slots | backlog | #20 | — | — | 3.1 | ❌ No (epic 2 not complete) |
+| 2.7 | 2 | Authorization negative-test pattern & audit on mutations | done | #16 | #112 | merged | 2.5 | ✅ Yes (done) |
+| 3.1 | 3 | Create and edit rooms | backlog | #17 | — | — | epic 2 complete | ✅ Yes |
+| 3.2 | 3 | Room photo upload | backlog | #18 | — | — | 3.1 | ❌ No (3.1 not merged) |
+| 3.3 | 3 | Deactivate a room | backlog | #19 | — | — | 3.1 | ❌ No (3.1 not merged) |
+| 3.4 | 3 | Block time slots | backlog | #20 | — | — | 3.1 | ❌ No (3.1 not merged) |
 | 4.1 | 4 | Conflict translation & EXCLUDE predicate | backlog | #21 | — | — | epic 3 complete | ❌ No (epic 3 not complete) |
 | 4.2 | 4 | Room calendar read-model | backlog | #22 | — | — | 4.1 | ❌ No (epic 3 not complete) |
 | 4.3 | 4 | Room Calendar view | backlog | #23 | — | — | 4.2 | ❌ No (epic 3 not complete) |
@@ -66,17 +66,17 @@ _Last updated: 2026-06-12T15:00:00+07:00 (reconciled: PR #111/2.5 merged; story 
 - **1.8** depends on: 1.3, 1.7
 - **1.9** depends on: 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8
 
-### Epic 2 (in-progress — 2.1/2.2/2.3/2.4/2.5/2.6 merged; 2.7 unblocked)
+### Epic 2 (COMPLETE — all PRs merged)
 - **2.1** depends on: epic 1 complete ✅ **DONE (PR #106 merged)**
 - **2.2** depends on: 2.1 ✅ **DONE (PR #107 merged)**
 - **2.3** depends on: 2.1 ✅ **DONE (PR #109 merged)**
 - **2.4** depends on: 2.1 ✅ **DONE (PR #108 merged)**
 - **2.5** depends on: 2.1, 2.4 ✅ **DONE (PR #111 merged)**
 - **2.6** depends on: 2.1 ✅ **DONE (PR #110 merged)**
-- **2.7** depends on: 2.5 ✅ **READY**
+- **2.7** depends on: 2.5 ✅ **DONE (PR #112 merged)**
 
-### Epic 3 (requires epic 2 complete)
-- **3.1** depends on: epic 2 complete
+### Epic 3 (requires epic 2 complete ✅ — UNBLOCKED)
+- **3.1** depends on: epic 2 complete ✅ **READY**
 - **3.2** depends on: 3.1
 - **3.3** depends on: 3.1
 - **3.4** depends on: 3.1
@@ -123,9 +123,9 @@ _Last updated: 2026-06-12T15:00:00+07:00 (reconciled: PR #111/2.5 merged; story 
 
 - **Epic 1:** COMPLETE. All 9 stories merged to main.
 
-- **Epic 2:** Stories 2.1–2.6 are all merged (including 2.5 PR #111). Story 2.7 (Authorization negative-test pattern & audit on mutations) is now unblocked and Ready to Work.
+- **Epic 2:** COMPLETE. All 7 stories merged to main (including 2.7 PR #112).
 
-- **Epic 3:** After 3.1 merges, stories 3.2, 3.3, and 3.4 can all start in parallel.
+- **Epic 3:** Story 3.1 is now Ready to Work (epic 2 is fully complete). After 3.1 merges, stories 3.2, 3.3, and 3.4 can all start in parallel.
 
 - **Epic 4:** Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last.
 
@@ -133,10 +133,10 @@ _Last updated: 2026-06-12T15:00:00+07:00 (reconciled: PR #111/2.5 merged; story 
 
 - **Epic 6:** Stories 6.1, 6.2, 6.3, 6.4 can all start in parallel once epic 5 is complete. Stories 6.5 and 6.6 require 6.4.
 
-- **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 to also be merged (which it will be by this point). Story 7.5 requires 2.7. Story 7.6 requires 2.4.
+- **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 to also be merged (which it will be by this point). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Stories 2.1 (PR #106), 2.2 (PR #107), 2.3 (PR #109), 2.4 (PR #108), 2.5 (PR #111), and 2.6 (PR #110) are all merged. Story 2.7 (Authorization negative-test pattern & audit on mutations) is now unblocked and Ready to Work.
+**Current state:** Epics 1 and 2 are fully complete (all PRs merged). Story 3.1 (Create and edit rooms) is the next story to work — it is now unblocked and Ready to Work.
 
-**Current bottleneck:** Story 2.7 is the final gate for epic 2 — once 2.7 merges, epic 2 completes and epic 3 can begin. Sequential chain: 2.7 → epic 3.
+**Current bottleneck:** Story 3.1 is the gate for epic 3. After 3.1 merges, 3.2/3.3/3.4 can proceed in parallel.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.

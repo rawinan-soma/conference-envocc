@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-09 22:01:41 +0700
-last_updated: 2026-06-12  # stories 2.2 → done (PR #107 merged); 2.4 → done (PR #108 merged); 2.3 → done (PR #109 merged); 2.6 → done (PR #110 merged); 2.5 → done (PR #111 merged); 2.7 → done (PR #112 merged)
+last_updated: 2026-06-12  # stories 2.2 → done (PR #107 merged); 2.4 → done (PR #108 merged); 2.3 → done (PR #109 merged); 2.6 → done (PR #110 merged); 2.5 → done (PR #111 merged); 2.7 → done (PR #112 merged); epic-2 → done (all stories merged); 3.1 → done (code review passed)
 project: conference-envocc
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
   epic-1-retrospective: optional
 
   # ── Epic 2: Identity & Access ──
-  epic-2: in-progress
+  epic-2: done
   2-1-sign-in-with-authentik-oidc: done
   2-2-local-dev-auth-bypass: done
   2-3-self-service-profile: done
@@ -68,7 +68,7 @@ development_status:
 
   # ── Epic 3: Room Inventory ──
   epic-3: backlog
-  3-1-create-and-edit-rooms: backlog
+  3-1-create-and-edit-rooms: done
   3-2-room-photo-upload: backlog
   3-3-deactivate-a-room: backlog
   3-4-block-time-slots: backlog
