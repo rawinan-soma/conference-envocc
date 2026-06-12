@@ -64,6 +64,28 @@ export const auth = betterAuth({
 	// /api/auth — svelteKitHandler's isAuthPath() and the OIDC redirectURI would not align
 	// with the /auth route zone, breaking the sign-in and callback flow.
 	basePath: '/auth',
+	// Expose app-owned columns to Better Auth's session pipeline so they are included in
+	// the user object returned by auth.api.getSession() and stored in event.locals.user.
+	//
+	// Without this, Better Auth's output transformer (transformSingleOutput in the adapter
+	// factory) only iterates over its own core schema fields (id, name, email, …) and
+	// silently drops any extra columns — including our is_admin column — even though the
+	// Drizzle SELECT returns the full row. The result: event.locals.user.isAdmin is always
+	// undefined at runtime, and requireAdmin() always throws 403.
+	//
+	// fieldName: 'isAdmin' — the camelCase key as returned by Drizzle (which maps the
+	// is_admin DB column to isAdmin in result rows when camelCase:true is set).
+	// Better Auth's output transformer uses fieldName to locate the value in the raw row.
+	user: {
+		additionalFields: {
+			isAdmin: {
+				type: 'boolean' as const,
+				fieldName: 'isAdmin', // camelCase: Drizzle adapter maps is_admin → isAdmin in result rows
+				defaultValue: false,
+				input: false // never settable via Better Auth's user-creation API
+			}
+		}
+	},
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		camelCase: true,

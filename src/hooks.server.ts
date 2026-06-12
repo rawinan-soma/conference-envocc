@@ -9,6 +9,7 @@ import { env } from '$env/dynamic/private';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { auth, eventStorage } from '$lib/server/auth';
+import { requireAdmin } from '$lib/server/auth/guards';
 import { getProfileByUserId } from '$lib/server/services/profile-service';
 import { validateEnv } from '$lib/server/env';
 
@@ -56,6 +57,22 @@ export const routeGuards: Array<{
 			if (event.locals.profileComplete === false) {
 				redirect(302, '/profile/complete');
 			}
+		}
+	},
+	{
+		// All /admin/** routes require admin privileges.
+		// Story 3.1: pushed here so all Epic 3+ admin routes are protected without per-route
+		// duplication. requireAdmin() throws error(403) for non-admins and redirect(302, '/login')
+		// for unauthenticated users (via requireUser() inside requireAdmin()).
+		//
+		// This guard runs AFTER the authenticated-session guard above, so event.locals.session
+		// is already populated (or the first guard has already redirected to /login).
+		//
+		// Pattern: /^\/admin(?:\/|$)/ matches /admin, /admin/, /admin/rooms, /admin/rooms/123/edit, etc.
+		// Does NOT match /administrator or other paths that merely start with "admin".
+		pattern: /^\/admin(?:\/|$)/,
+		guard: (event) => {
+			requireAdmin(event);
 		}
 	}
 ];
