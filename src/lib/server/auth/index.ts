@@ -21,8 +21,8 @@ import { genericOAuth } from 'better-auth/plugins/generic-oauth';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 
 import { db } from '../db/index.js'; // relative — safe for non-SvelteKit context
+import { accounts, sessions, users, verifications } from '../db/schema/auth.js'; // explicit schema for Drizzle adapter
 import { env } from '../env.js'; // relative — same reason
-import { accounts, sessions, users, verifications } from '../db/schema/auth.js'; // relative — same reason
 
 // Warn if auth env vars are absent at module load time.
 // env.ts validateEnv() is the primary fail-fast gate (called on import); this warning

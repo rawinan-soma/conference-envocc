@@ -9,6 +9,7 @@ import { env } from '$env/dynamic/private';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { auth, eventStorage } from '$lib/server/auth';
+import { getProfileByUserId } from '$lib/server/services/profile-service';
 import { validateEnv } from '$lib/server/env';
 
 // Validate at module load — fails fast on missing secrets
@@ -30,21 +31,36 @@ export const routeGuards: Array<{
 	guard: (event: Parameters<Handle>[0]['event']) => void;
 }> = [
 	{
-		// All (app) routes require authentication.
+		// All (app) routes require:
+		//   1. An authenticated session (redirect → /login if missing)
+		//   2. A completed profile (redirect → /profile/complete if missing)
+		//
 		// The SvelteKit route group "/(app)/" maps to URL paths under / (not literally /(app)/).
 		// Public routes explicitly excluded: /login, /auth (bare or with subpath), /r/[token]/**, /, /skeleton (dev probe)
-		pattern: /^\/(?!(?:login|auth(?:\/|$)|r\/|skeleton|$))/,
+		// Profile completion route explicitly excluded: /profile/complete (would cause infinite redirect loop)
+		//
+		// Each exemption is end-anchored with (?:\/|$) so the negative lookahead only matches the
+		// exact segment(s), not arbitrary prefixes. Without anchoring, "/profile/completeX",
+		// "/loginx", "/skeletonx" would all be (incorrectly) treated as exempt and bypass the guard.
+		pattern: /^\/(?!(?:login|auth|r|skeleton|profile\/complete)(?:\/|$)|$)/,
 		guard: (event) => {
 			const session = event.locals.session;
 			if (!session) {
 				redirect(302, '/login');
+			}
+			// Redirect authenticated users with incomplete profiles to the completion form.
+			// event.locals.profileComplete is populated by handleBetterAuth before this guard runs.
+			// Note: profileComplete === null means unauthenticated (handled above).
+			//       profileComplete === false means authenticated but profile not yet created.
+			if (event.locals.profileComplete === false) {
+				redirect(302, '/profile/complete');
 			}
 		}
 	}
 ];
 
 // ---------------------------------------------------------------------------
-// Better Auth handler — populates event.locals.session and event.locals.user
+// Better Auth handler — populates event.locals.session, user, userProfile, profileComplete
 // ---------------------------------------------------------------------------
 
 // Paths under /auth/** that are SvelteKit-native routes and must NOT be delegated to
@@ -88,9 +104,25 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 			event.locals.session = sessionData.session;
 			// @ts-expect-error — Better Auth user type maps to our Drizzle schema types
 			event.locals.user = sessionData.user;
+			// Check profile completeness once per request (avoids per-route DB hit).
+			// This is one extra DB query per authenticated request — acceptable for MVP.
+			// Try/catch ensures a DB error (timeout, pool exhaustion) degrades gracefully
+			// (treats profile as incomplete → redirect to /profile/complete) rather than
+			// converting every authenticated request into an unhandled 500.
+			let profile = null;
+			try {
+				profile = await getProfileByUserId(sessionData.user.id);
+			} catch {
+				// DB unavailable — fall through with profile = null (profileComplete = false).
+				// The guard will redirect to /profile/complete; the DB error will surface there.
+			}
+			event.locals.userProfile = profile;
+			event.locals.profileComplete = profile !== null;
 		} else {
 			event.locals.session = null;
 			event.locals.user = null;
+			event.locals.userProfile = null;
+			event.locals.profileComplete = null;
 		}
 
 		return svelteKitHandler({ auth, event, resolve, building });
