@@ -308,9 +308,8 @@ describe('Story 1.8 — Worker Integration Tests Activated (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 3.1 — DB Schema: Partial index on rooms (is_active) WHERE is_active = true (AC-1, R-009)', () => {
-	test.skip('[P1] 3.1-UNIT-002 — rooms table has a partial index WHERE is_active = true in migrated schema', async () => {
-		// THIS TEST WILL FAIL — rooms table not yet created (Task 1).
-		// Activate after Task 1.3 (migration with manual partial index addition).
+	test('[P1] 3.1-UNIT-002 — rooms table has a partial index WHERE is_active = true in migrated schema', async () => {
+		// ACTIVE — Story 3.1 Task 1: rooms schema + migration with partial index created.
 		//
 		// From story dev notes Task 1.3:
 		//   After generating the migration with `bun run db:generate`, manually add:

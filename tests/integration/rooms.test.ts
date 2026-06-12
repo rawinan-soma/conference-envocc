@@ -147,7 +147,7 @@ async function seedAdminUser(
 	const email = opts.email ?? `test-admin-3.1-${randomUUID().slice(0, 8)}@example.com`;
 
 	await client.query(
-		`INSERT INTO users (id, email, "createdAt", "updatedAt", "isAdmin")
+		`INSERT INTO users (id, email, "createdAt", "updatedAt", is_admin)
      VALUES ($1, $2, NOW(), NOW(), true)
      ON CONFLICT (id) DO NOTHING`,
 		[userId, email]
@@ -170,7 +170,7 @@ async function seedOrganizerUserWithSession(
 
 	// Seed user with is_admin=false (organizer role — the default)
 	await client.query(
-		`INSERT INTO users (id, email, "createdAt", "updatedAt", "isAdmin")
+		`INSERT INTO users (id, email, "createdAt", "updatedAt", is_admin)
      VALUES ($1, $2, NOW(), NOW(), false)
      ON CONFLICT (id) DO NOTHING`,
 		[userId, email]
@@ -203,17 +203,6 @@ async function seedOrganizerUserWithSession(
 const DEV_SERVER_URL = process.env['DEV_SERVER_URL'] ?? 'http://localhost:3000';
 
 // ---------------------------------------------------------------------------
-// Minimal room input used across tests
-// ---------------------------------------------------------------------------
-
-const VALID_ROOM_INPUT = {
-	name: 'Conference Room A',
-	floor: '1',
-	capacity: 10,
-	features: ['projector', 'whiteboard'] as string[]
-};
-
-// ---------------------------------------------------------------------------
 // 3.1-INT-001 — Admin creates room → appears in list [P0]
 // ---------------------------------------------------------------------------
 
@@ -222,9 +211,8 @@ describe('Story 3.1 — Room Create: Admin creates a room and it appears in the 
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.1-INT-001 — createRoom() inserts a room row and listRooms() returns it with correct fields', async () => {
-		// THIS TEST WILL FAIL — room-service.ts not yet created (Task 3).
-		// Activate after Task 1 (schema), Task 2 (Valibot schema), Task 3 (service).
+	test('[P0] 3.1-INT-001 — createRoom() inserts a room row and listRooms() returns it with correct fields', async () => {
+		// ACTIVE — Story 3.1: room-service.ts created with createRoom/listRooms (Tasks 1–3).
 		//
 		// AC-1: Given I am an admin, When I submit the create-room form with name, floor,
 		//       capacity, and features, Then the room is saved to the database and appears
@@ -371,9 +359,8 @@ describe('Story 3.1 — Room Edit: Submitting edit form updates the room row (AC
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.1-INT-003 — updateRoom() saves changed fields; prior values replaced', async () => {
-		// THIS TEST WILL FAIL — room-service.ts updateRoom not yet implemented (Task 3.1).
-		// Activate after Task 3 (room-service.ts with updateRoom).
+	test('[P0] 3.1-INT-003 — updateRoom() saves changed fields; prior values replaced', async () => {
+		// ACTIVE — Story 3.1: room-service.ts created with updateRoom (Task 3).
 		//
 		// AC-2: Given an existing room, When I submit the edit-room form with changed values,
 		//       Then the room row is updated and the new values appear in the room list.
@@ -489,9 +476,8 @@ describe('Story 3.1 — Audit Log: Room create/edit writes audit_log row (AC-5)'
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.1-INT-008a — createRoom() writes audit_log row with entity=room, action=create, actor_id, non-null diff', async () => {
-		// THIS TEST WILL FAIL — room-service.ts createRoom audit log not yet implemented.
-		// Activate after Task 3 (room-service.ts) with writeAuditLog in createRoom transaction.
+	test('[P0] 3.1-INT-008a — createRoom() writes audit_log row with entity=room, action=create, actor_id, non-null diff', async () => {
+		// ACTIVE — Story 3.1: createRoom writes audit_log in transaction (Task 3).
 		//
 		// AC-5: Given a room create that commits successfully, When the transaction completes,
 		//       Then an audit_log row is written with entity='room', action='create',
@@ -555,9 +541,8 @@ describe('Story 3.1 — Audit Log: Room create/edit writes audit_log row (AC-5)'
 		expect(created.id, 'createRoom must return the inserted room').toBeTruthy();
 	});
 
-	test.skip('[P0] 3.1-INT-008b — updateRoom() writes audit_log row with entity=room, action=update, non-null diff of changed fields', async () => {
-		// THIS TEST WILL FAIL — room-service.ts updateRoom audit log not yet implemented.
-		// Activate after Task 3 (room-service.ts) with writeAuditLog in updateRoom transaction.
+	test('[P0] 3.1-INT-008b — updateRoom() writes audit_log row with entity=room, action=update, non-null diff of changed fields', async () => {
+		// ACTIVE — Story 3.1: updateRoom writes audit_log in transaction (Task 3).
 		//
 		// AC-5: Given a room edit that commits successfully, When the transaction completes,
 		//       Then an audit_log row is written with action='update' and diff containing
@@ -631,9 +616,8 @@ describe('Story 3.1 — Room Features: All 3 features stored correctly (AC-1, R-
 		await truncateRoomTables();
 	});
 
-	test.skip('[P1] 3.1-INT-004 — Room with all 3 features selected → features array contains projector, whiteboard, vc', async () => {
-		// THIS TEST WILL FAIL — room-service.ts not yet implemented (Task 3).
-		// Activate after Task 3 (room-service.ts) + Task 1 (schema with features text[]).
+	test('[P1] 3.1-INT-004 — Room with all 3 features selected → features array contains projector, whiteboard, vc', async () => {
+		// ACTIVE — Story 3.1: createRoom + getRoomById implemented (Tasks 1–3).
 		//
 		// AC-1: features multi-select stores projector/whiteboard/vc as enum values.
 		// Risk R-007: Features stored incorrectly or as free-form strings.
@@ -690,9 +674,8 @@ describe('Story 3.1 — Room Features: No features → empty array, not null (AC
 		await truncateRoomTables();
 	});
 
-	test.skip('[P1] 3.1-INT-005 — Room created with no features → features column equals [] (not null)', async () => {
-		// THIS TEST WILL FAIL — room-service.ts not yet implemented (Task 3).
-		// Activate after Task 3 + Task 1 (schema: features default([]) NOT NULL).
+	test('[P1] 3.1-INT-005 — Room created with no features → features column equals [] (not null)', async () => {
+		// ACTIVE — Story 3.1: features column is text[] NOT NULL DEFAULT '{}' (Task 1).
 		//
 		// AC-1: features column is text[] NOT NULL with default [].
 		// Risk R-007: Empty features stored as null instead of [].
@@ -803,9 +786,8 @@ describe('Story 3.1 — Authorization: Non-admin PATCH room edit → 403 (AC-4, 
 // ---------------------------------------------------------------------------
 
 describe('Story 3.1 — Static Source Assertion: requireAdmin guard registered in routeGuards (AC-6, R-002)', () => {
-	test.skip('[P1] 3.1-UNIT-001 — hooks.server.ts registers a requireAdmin guard for /admin routes in routeGuards', async () => {
-		// THIS TEST WILL FAIL — Task 4 (hooks.server.ts guard push) not yet implemented.
-		// Activate after Task 4.
+	test('[P1] 3.1-UNIT-001 — hooks.server.ts registers a requireAdmin guard for /admin routes in routeGuards', async () => {
+		// ACTIVE — Story 3.1: requireAdmin guard pushed to routeGuards (Task 4).
 		//
 		// AC-6: The routeGuards registry in hooks.server.ts must have a requireAdmin guard
 		//       registered for the /admin/rooms/** pattern so all admin room routes are
