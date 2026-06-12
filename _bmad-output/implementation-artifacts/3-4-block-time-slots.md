@@ -55,6 +55,17 @@ So that maintenance/reserved periods are unavailable.
   - [x] 6.3 Run `bun run test:integration` — all Story 3.4 tests pass; no regressions in existing tests.
   - [x] 6.4 Run `bun run build` — build must succeed.
 
+### Review Findings
+
+Code review (2026-06-13) — Blind Hunter / Edge Case Hunter / Acceptance Auditor lenses. All 6 ACs verified implemented; 7 integration tests + 1 schema test cover them.
+
+- [x] [Review][Patch] Wire success feedback for create/delete — `room_block_created_toast` / `room_block_deleted_toast` were defined but never rendered (dead keys, no admin success feedback) [src/routes/(app)/admin/rooms/[id]/blocks/+page.svelte] — fixed: added `onResult` toast on create form and `use:enhance` deleted-toast on remove forms, following the established profile-route pattern.
+- [x] [Review][Dismiss] th.json holds English placeholders — by design (Thai is production-required; Rawinan translates; no Thai literals in code).
+- [x] [Review][Dismiss] `datetime-local` (no seconds) vs valibot `isoDateTime` — empirically verified `isoDateTime` ACCEPTS `YYYY-MM-DDTHH:mm`; the form-to-schema path works.
+- [x] [Review][Dismiss] `deleteBlockSlot` not scoped to the URL room / no existence check — inside the admin trust boundary; no AC requires room-scoping; idempotent delete is acceptable.
+- [x] [Review][Dismiss] `endAt > startAt` string comparison — correct for the fixed-width `datetime-local` format the form emits.
+- [x] [Review][Defer] `audit_log.id` declared `uuid()` but `$defaultFn` returns a `uuidv7()` string — pre-existing in audit-log schema, not introduced by this story.
+
 ## Dev Notes
 
 ### Architecture Requirements

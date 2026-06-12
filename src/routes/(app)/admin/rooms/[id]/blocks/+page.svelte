@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance as formEnhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import type { Pathname } from '$app/types';
 	import { superForm } from 'sveltekit-superforms';
@@ -12,8 +13,20 @@
 
 	let { data }: { data: PageData } = $props();
 
+	let createdSuccess = $state(false);
+	let deletedSuccess = $state(false);
+
 	// svelte-ignore state_referenced_locally
-	const { form, errors, enhance, submitting } = superForm(data.form);
+	const { form, errors, enhance, submitting } = superForm(data.form, {
+		onResult({ result }) {
+			if (result.type === 'success') {
+				createdSuccess = true;
+				setTimeout(() => {
+					createdSuccess = false;
+				}, 3000);
+			}
+		}
+	});
 </script>
 
 <svelte:head>
@@ -37,6 +50,15 @@
 
 	<!-- Existing blocks list -->
 	<section class="mb-10" aria-label="Existing time blocks">
+		{#if deletedSuccess}
+			<div
+				role="status"
+				aria-live="polite"
+				class="mb-5 rounded-md border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800"
+			>
+				{m.room_block_deleted_toast()}
+			</div>
+		{/if}
 		{#if data.blocks.length === 0}
 			<p class="text-sm text-muted-foreground">{m.room_block_list_empty()}</p>
 		{:else}
@@ -49,7 +71,21 @@
 								<span class="text-xs text-muted-foreground">{block.reason}</span>
 							{/if}
 						</div>
-						<form method="POST" action="?/remove">
+						<form
+							method="POST"
+							action="?/remove"
+							use:formEnhance={() => {
+								return async ({ result, update }) => {
+									await update();
+									if (result.type === 'success') {
+										deletedSuccess = true;
+										setTimeout(() => {
+											deletedSuccess = false;
+										}, 3000);
+									}
+								};
+							}}
+						>
 							<input type="hidden" name="blockId" value={block.id} />
 							<Button type="submit" variant="destructive" size="sm">
 								{m.room_block_delete_button()}
@@ -64,6 +100,16 @@
 	<!-- Create block form -->
 	<section aria-label="Create time block">
 		<h2 class="mb-4 text-lg font-semibold">{m.room_block_create_title()}</h2>
+
+		{#if createdSuccess}
+			<div
+				role="status"
+				aria-live="polite"
+				class="mb-5 rounded-md border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800"
+			>
+				{m.room_block_created_toast()}
+			</div>
+		{/if}
 
 		<form method="POST" action="?/create" use:enhance class="flex flex-col gap-5">
 			<!-- Start -->
