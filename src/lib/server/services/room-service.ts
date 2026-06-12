@@ -8,7 +8,7 @@
  * Only active rooms are returned by listRooms (respects the is_active soft-delete flag).
  * getRoomById returns any room (including inactive) — used internally by the edit route.
  */
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
 import type { RoomFeature, RoomInput } from '$lib/schemas/room.js';
@@ -36,7 +36,11 @@ type RoomInputBroad = Omit<RoomInput, 'features'> & {
  * Leverages the partial index `idx_rooms_is_active WHERE is_active = true` (Task 1.3).
  */
 export async function listRooms(): Promise<Room[]> {
-	return db.select().from(rooms).where(eq(rooms.isActive, true));
+	return db
+		.select()
+		.from(rooms)
+		.where(eq(rooms.isActive, true))
+		.orderBy(asc(rooms.floor), asc(rooms.name));
 }
 
 // ---------------------------------------------------------------------------

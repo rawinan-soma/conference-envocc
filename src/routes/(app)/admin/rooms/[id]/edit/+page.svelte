@@ -95,7 +95,8 @@
 							onchange={(e) => {
 								const checked = (e.target as HTMLInputElement).checked;
 								if (checked) {
-									$form.features = [...($form.features ?? []), feature];
+									const current = $form.features ?? [];
+									$form.features = current.includes(feature) ? current : [...current, feature];
 								} else {
 									$form.features = ($form.features ?? []).filter((f: string) => f !== feature);
 								}
