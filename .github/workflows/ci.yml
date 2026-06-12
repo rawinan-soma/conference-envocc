@@ -105,6 +105,8 @@ jobs:
           SMTP_PORT: '1025'
           SMTP_FROM: test@test.local
           SMTP_DISPLAY_NAME: Test
+          # Story 2.2: enable dev bypass route so integration tests can obtain sessions without Authentik
+          AUTH_DEV_BYPASS: 'true'
       - name: Wait for dev server to be ready
         run: bunx wait-on http://localhost:3000 --timeout 60000
       - name: Run integration tests
@@ -117,6 +119,8 @@ jobs:
           SMTP_FROM: test@test.local
           SMTP_DISPLAY_NAME: Test
           MAILPIT_URL: http://localhost:8025
+          # Story 2.2: the test process reads this for the 2.2-UNIT-001 static assertion
+          AUTH_DEV_BYPASS: 'true'
 
   test-e2e:
     name: E2E Tests (Playwright + axe-core)
@@ -178,6 +182,8 @@ jobs:
           SMTP_FROM: test@test.local
           SMTP_DISPLAY_NAME: Test
           MAILPIT_URL: http://localhost:8025
+          # Story 2.2: E2E tests use dev bypass for session setup without Authentik
+          AUTH_DEV_BYPASS: 'true'
 
   build-images:
     name: Build Docker Images
