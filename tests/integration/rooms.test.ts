@@ -1622,18 +1622,21 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 });
 
 // ---------------------------------------------------------------------------
-// 3.2-UNIT-002 — UPLOAD_DIR env var in compose.yaml matches volume mount [P2]
+// 3.2-UNIT-002 — UPLOAD_DIR env var in docker-compose.prod.yml matches volume mount [P2]
 // ---------------------------------------------------------------------------
 
-describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR env var matches volume mount in compose.yaml (AC-6, R-005)', () => {
-	test('[P2] 3.2-UNIT-002 — compose.yaml declares UPLOAD_DIR env var and a named uploads volume mounted at that path', async () => {
-		// ACTIVATED — compose.yaml updated with UPLOAD_DIR + uploads volume. Story 3.2 complete (feat: commit 88e89ff).
+describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR env var matches volume mount in docker-compose.prod.yml (AC-6, R-005)', () => {
+	test('[P2] 3.2-UNIT-002 — docker-compose.prod.yml declares UPLOAD_DIR env var and a named uploads volume mounted at that path', async () => {
+		// ACTIVATED — docker-compose.prod.yml wires UPLOAD_DIR + uploads volume. Story 3.2 complete.
 		//
 		// AC-6 + R-005: The upload directory is resolved from UPLOAD_DIR env var (12-factor).
-		//               compose.yaml must declare a named volume and mount it at the path
-		//               UPLOAD_DIR resolves to, so files persist across container restarts.
+		//               The production compose file must declare a named volume and mount it at
+		//               the path UPLOAD_DIR resolves to, so files persist across container restarts.
 		//
-		// Strategy: Source-level inspection of compose.yaml.
+		// Note: compose.yaml (dev) only starts db + mailpit; the web service runs on the host
+		//       via `bun run dev`. The production wiring lives in docker-compose.prod.yml.
+		//
+		// Strategy: Source-level inspection of docker-compose.prod.yml.
 		// Assert: (1) UPLOAD_DIR env var is declared in the web service environment section,
 		//         (2) an uploads volume is declared in top-level volumes section,
 		//         (3) the volume is mounted in the web service.
@@ -1643,42 +1646,45 @@ describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR env var matches volu
 		const { fileURLToPath } = await import('url');
 
 		const PROJECT_ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
-		const COMPOSE_PATH = resolve(PROJECT_ROOT, 'compose.yaml');
+		const COMPOSE_PATH = resolve(PROJECT_ROOT, 'docker-compose.prod.yml');
 
 		const composeSource = readFileSync(COMPOSE_PATH, 'utf-8');
 
 		// Assert UPLOAD_DIR is declared as an environment variable in the web service
 		expect(
 			composeSource,
-			'compose.yaml must declare UPLOAD_DIR in the web service environment section'
+			'docker-compose.prod.yml must declare UPLOAD_DIR in the web service environment section'
 		).toContain('UPLOAD_DIR');
 
 		// Assert a named uploads volume is declared at the top level
 		expect(
 			composeSource,
-			'compose.yaml must declare a named uploads volume in the top-level volumes section'
+			'docker-compose.prod.yml must declare a named uploads volume in the top-level volumes section'
 		).toMatch(/^volumes:/m);
 
 		expect(
 			composeSource,
-			'compose.yaml volumes section must include an uploads volume entry'
+			'docker-compose.prod.yml volumes section must include an uploads volume entry'
 		).toMatch(/volumes:[\s\S]*uploads/);
 
 		// Assert the volume is mounted (appears in the web service volumes list)
 		expect(
 			composeSource,
-			'compose.yaml must mount the uploads volume in the web service volumes section'
-		).toContain('uploads');
+			'docker-compose.prod.yml must mount the uploads volume in the web service volumes section'
+		).toContain('uploads:/app/uploads');
 
 		// Assert UPLOAD_DIR has an explicit non-empty value
 		const uploadDirMatch = composeSource.match(/UPLOAD_DIR[=:]\s*([^\s\n]+)/);
 		expect(
 			uploadDirMatch,
-			'UPLOAD_DIR must have an explicit value in compose.yaml environment section'
+			'UPLOAD_DIR must have an explicit value in docker-compose.prod.yml environment section'
 		).not.toBeNull();
 
 		const uploadDirValue = uploadDirMatch?.[1]?.trim();
-		expect(uploadDirValue, 'UPLOAD_DIR value in compose.yaml must be non-empty').toBeTruthy();
+		expect(
+			uploadDirValue,
+			'UPLOAD_DIR value in docker-compose.prod.yml must be non-empty'
+		).toBeTruthy();
 	});
 });
 
