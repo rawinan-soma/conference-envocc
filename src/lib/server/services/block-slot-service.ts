@@ -103,8 +103,19 @@ export async function createBlockSlot(
 			}
 			block = inserted;
 		} catch (err: unknown) {
-			// Catch Postgres 23P01 (exclusion_violation) from the EXCLUDE constraint (AC-4)
-			if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23P01') {
+			// Catch Postgres 23P01 (exclusion_violation) from the EXCLUDE constraint (AC-4).
+			// Drizzle may wrap pg errors in DrizzleQueryError, so walk the cause chain to find
+			// the original pg error code (pattern from skeleton/+page.server.ts).
+			let pgCode: string | undefined;
+			let cur: unknown = err;
+			while (cur instanceof Error) {
+				if ('code' in cur && typeof (cur as { code?: unknown }).code === 'string') {
+					pgCode = (cur as { code: string }).code;
+					break;
+				}
+				cur = cur.cause;
+			}
+			if (pgCode === '23P01') {
 				throw new ConflictError('room_block_conflict_error');
 			}
 			throw err;
