@@ -308,7 +308,7 @@ describe('Story 1.8 — Worker Integration Tests Activated (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 3.4 — DB Schema: room_blocks table, during tstzrange column, and EXCLUDE constraint (AC-1, AC-4)', () => {
-	test.skip('[P1] 3.4-UNIT-001 — room_blocks table exists with during tstzrange column and room_blocks_no_overlap EXCLUDE constraint after migration', async () => {
+	test('[P1] 3.4-UNIT-001 — room_blocks table exists with during tstzrange column and room_blocks_no_overlap EXCLUDE constraint after migration', async () => {
 		// THIS TEST WILL FAIL — room_blocks table and migration not yet created (Task 1).
 		// Activate after Task 1.1–1.3 (room-blocks.ts schema + drizzle/0006_room_blocks.sql migration
 		// applied via bun run db:migrate).

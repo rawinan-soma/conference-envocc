@@ -806,7 +806,7 @@ describe('Story 3.4 — Block Create: createBlockSlot() inserts a block and list
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.4-INT-001 — createBlockSlot() inserts a room_blocks row; listBlockSlotsForRoom() returns it with correct fields', async () => {
+	test('[P0] 3.4-INT-001 — createBlockSlot() inserts a room_blocks row; listBlockSlotsForRoom() returns it with correct fields', async () => {
 		// THIS TEST WILL FAIL — block-slot-service.ts and room_blocks table not yet created (Tasks 1–3).
 		// Activate after Task 1 (schema + migration), Task 2 (BlockSlotSchema), Task 3 (service).
 		//
@@ -864,7 +864,7 @@ describe('Story 3.4 — Block Conflict: Block over an existing booking → 422 c
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.4-INT-002 — createBlockSlot() over an existing booking rejects with 422 conflict (application-level pre-check)', async () => {
+	test('[P0] 3.4-INT-002 — createBlockSlot() over an existing booking rejects with 422 conflict (application-level pre-check)', async () => {
 		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
 		// Activate after Task 3 (service with app-level booking overlap pre-check).
 		//
@@ -903,14 +903,9 @@ describe('Story 3.4 — Block Conflict: Block over an existing booking → 422 c
 		const bookingClient = await pool.connect();
 		try {
 			await bookingClient.query(
-				`INSERT INTO bookings (id, room_id, during, status, "createdAt")
-         VALUES ($1, $2, tstzrange($3::timestamptz, $4::timestamptz, '[)'), 'active', NOW())`,
-				[
-					`booking-conflict-3.4-${randomUUID().slice(0, 8)}`,
-					room.id,
-					'2026-07-02T10:00:00.000Z',
-					'2026-07-02T11:00:00.000Z'
-				]
+				`INSERT INTO bookings (room_id, during, status)
+         VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				[room.id, '2026-07-02T10:00:00.000Z', '2026-07-02T11:00:00.000Z']
 			);
 		} finally {
 			bookingClient.release();
@@ -953,7 +948,7 @@ describe('Story 3.4 — Block EXCLUDE Constraint: Two overlapping blocks for sam
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.4-INT-003 — createBlockSlot() with an overlapping existing block raises DB 23P01 (EXCLUDE violation) mapped to 422', async () => {
+	test('[P0] 3.4-INT-003 — createBlockSlot() with an overlapping existing block raises DB 23P01 (EXCLUDE violation) mapped to 422', async () => {
 		// THIS TEST WILL FAIL — room_blocks EXCLUDE constraint and service not yet created (Tasks 1, 3).
 		// Activate after Task 1 (migration with EXCLUDE USING gist) and Task 3 (service catches 23P01).
 		//
@@ -1099,7 +1094,7 @@ describe('Story 3.4 — Block Delete: deleteBlockSlot() removes the block (AC-2)
 		await truncateRoomTables();
 	});
 
-	test.skip('[P1] 3.4-INT-005 — deleteBlockSlot() removes the room_blocks row; listBlockSlotsForRoom() returns empty list', async () => {
+	test('[P1] 3.4-INT-005 — deleteBlockSlot() removes the room_blocks row; listBlockSlotsForRoom() returns empty list', async () => {
 		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
 		// Activate after Task 3 (deleteBlockSlot implemented).
 		//
@@ -1161,7 +1156,7 @@ describe('Story 3.4 — Audit Log: createBlockSlot() writes audit_log row (AC-6)
 		await truncateRoomTables();
 	});
 
-	test.skip('[P2] 3.4-INT-006 — createBlockSlot() writes audit_log row with entity=room_block, action=create, actor_id, non-null diff', async () => {
+	test('[P2] 3.4-INT-006 — createBlockSlot() writes audit_log row with entity=room_block, action=create, actor_id, non-null diff', async () => {
 		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
 		// Activate after Task 3 (createBlockSlot writes writeAuditLog in transaction).
 		//
@@ -1240,7 +1235,7 @@ describe('Story 3.4 — Non-Overlapping Blocks: Two non-overlapping blocks for s
 		await truncateRoomTables();
 	});
 
-	test.skip('[P2] 3.4-INT-007 — Two non-overlapping blocks for the same room can both be created without error', async () => {
+	test('[P2] 3.4-INT-007 — Two non-overlapping blocks for the same room can both be created without error', async () => {
 		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
 		// Activate after Task 3 (createBlockSlot + room_blocks EXCLUDE constraint in place).
 		//
