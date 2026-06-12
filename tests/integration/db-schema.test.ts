@@ -302,3 +302,45 @@ describe('Story 1.8 — Worker Integration Tests Activated (AC-4)', () => {
 		).toBe(0);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// 3.1-UNIT-002 — Partial index on rooms WHERE is_active = true exists [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.1 — DB Schema: Partial index on rooms (is_active) WHERE is_active = true (AC-1, R-009)', () => {
+	test.skip('[P1] 3.1-UNIT-002 — rooms table has a partial index WHERE is_active = true in migrated schema', async () => {
+		// THIS TEST WILL FAIL — rooms table not yet created (Task 1).
+		// Activate after Task 1.3 (migration with manual partial index addition).
+		//
+		// From story dev notes Task 1.3:
+		//   After generating the migration with `bun run db:generate`, manually add:
+		//   CREATE INDEX idx_rooms_is_active ON rooms (id) WHERE is_active = true;
+		//
+		// Risk R-009: Room list query unindexed — sequential scan on large rooms table
+		//   under org load risks NFR-003 < 3s threshold.
+		//
+		// Strategy: Query pg_indexes for the rooms table and assert an index
+		//   with a WHERE clause referencing is_active = true exists.
+		// Pattern: same pool-based assertion as the EXCLUDE constraint test above.
+
+		const result = await pool.query<{ indexname: string; indexdef: string }>(
+			`SELECT indexname, indexdef
+         FROM pg_indexes
+         WHERE tablename = 'rooms'
+           AND indexdef ILIKE '%where%is_active%true%'`
+		);
+
+		expect(
+			result.rows.length,
+			'No partial index WHERE is_active = true found on rooms table — ' +
+				'Task 1.3 requires manually adding the partial index to the migration SQL: ' +
+				'CREATE INDEX idx_rooms_is_active ON rooms (id) WHERE is_active = true;'
+		).toBeGreaterThan(0);
+
+		const index = result.rows[0];
+		expect(index?.indexname, 'Partial index must have a non-empty name').toBeTruthy();
+		expect(index?.indexdef, 'Partial index definition must reference the rooms table').toContain(
+			'rooms'
+		);
+	});
+});
