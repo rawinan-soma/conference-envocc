@@ -10,7 +10,7 @@
  *   (migrations 0002_better_auth.sql, 0004_user_profiles.sql).
  *
  * features is stored as text[] NOT NULL with default {} (empty array).
- * Allowed values: 'projector' | 'whiteboard' | 'vc' — validated at the service layer
+ * Allowed values: 'projector' | 'whiteboard' | 'vc' | 'tv' — validated at the service layer
  * via the RoomSchema Valibot schema.
  *
  * is_active is used as a soft-delete flag. A partial index (WHERE is_active = true)

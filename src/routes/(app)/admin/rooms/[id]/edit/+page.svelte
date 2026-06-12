@@ -107,7 +107,9 @@
 							? m.room_feature_projector()
 							: feature === 'whiteboard'
 								? m.room_feature_whiteboard()
-								: m.room_feature_vc()}
+								: feature === 'vc'
+									? m.room_feature_vc()
+									: m.room_feature_tv()}
 					</label>
 				{/each}
 			</div>

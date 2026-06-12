@@ -3,7 +3,7 @@
 --
 -- Creates rooms table to store bookable conference rooms managed by admins.
 -- Features is a text array (NOT NULL, default {}) validated at the service layer
--- to the allowed enum values: 'projector', 'whiteboard', 'vc'.
+-- to the allowed enum values: 'projector', 'whiteboard', 'vc', 'tv'.
 -- is_active is a soft-delete flag — false hides the room from the bookable calendar.
 --
 -- Column naming convention note:

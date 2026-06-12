@@ -9,7 +9,7 @@
  */
 import * as v from 'valibot';
 
-export const ROOM_FEATURES = ['projector', 'whiteboard', 'vc'] as const;
+export const ROOM_FEATURES = ['projector', 'whiteboard', 'vc', 'tv'] as const;
 export type RoomFeature = (typeof ROOM_FEATURES)[number];
 
 export const RoomSchema = v.object({

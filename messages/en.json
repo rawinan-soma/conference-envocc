@@ -44,6 +44,7 @@
 	"room_feature_projector": "Projector",
 	"room_feature_whiteboard": "Whiteboard",
 	"room_feature_vc": "Video conferencing",
+	"room_feature_tv": "TV",
 	"room_create_button": "Create room",
 	"room_save_button": "Save changes",
 	"room_created_toast": "Room created.",
