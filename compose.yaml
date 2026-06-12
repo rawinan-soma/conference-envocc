@@ -18,19 +18,9 @@ services:
       - '1025:1025' # SMTP
       - '8025:8025' # Web UI at http://localhost:8025
 
-  web:
-    # Placeholder web service entry — enables volume mount config for Story 3.2.
-    # In production, this service runs the built SvelteKit app.
-    image: node:22-alpine
-    restart: unless-stopped
-    environment:
-      # Room photo upload volume path (Story 3.2 AC-6 / R-005)
-      # Resolved exclusively from this env var — no hardcoded paths (12-factor).
-      UPLOAD_DIR: /app/uploads
-    volumes:
-      - uploads:/app/uploads
-
 volumes:
   pgdata:
   # Named volume for room photo uploads — persists across container restarts (R-005).
+  # In production (docker-compose.prod.yml), the web service mounts this volume at
+  # UPLOAD_DIR: /app/uploads
   uploads:
