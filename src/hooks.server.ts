@@ -63,19 +63,36 @@ export const routeGuards: Array<{
 // Better Auth handler — populates event.locals.session, user, userProfile, profileComplete
 // ---------------------------------------------------------------------------
 
+// Paths under /auth/** that are SvelteKit-native routes and must NOT be delegated to
+// Better Auth's handler. svelteKitHandler intercepts all /auth/** because the catch-all
+// src/routes/auth/[...all]/+server.ts delegates to it; standalone +server.ts routes
+// nested under /auth/ must be explicitly excluded here so they are resolved directly.
+//
+// Why not use event.route.id: the catch-all /auth/[...all] gives every Better Auth
+// request a non-null route.id too, so a generic "non-null means skip" check would
+// prevent Better Auth from handling sign-in and callback flows.
+//
+// When adding a new SvelteKit-native route under /auth/**, add its path here.
+const BETTER_AUTH_PASSTHROUGH_PATHS = new Set(['/auth/dev-bypass']);
+
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	// Wrap the entire request's async call tree in eventStorage.run(event, ...) so that:
-	//   1. auth.api.getSession()'s after-hooks (sveltekitCookies) can call getRequestEvent()
-	//      without getting undefined from AsyncLocalStorage.
-	//   2. svelteKitHandler can write Set-Cookie headers via the same per-request event.
-	//
-	// IMPORTANT: auth.api.getSession() MUST be called inside eventStorage.run().
-	// The sveltekitCookies plugin's after hook (matcher: always true, flag: "json")
-	// runs after every direct auth.api.* call and calls getRequestEvent(). If the
-	// event is not in AsyncLocalStorage, getRequestEvent() throws — causing a 500.
+	// Passthrough for SvelteKit-native routes under /auth/** that must NOT be delegated
+	// to Better Auth. Checked BEFORE auth.api.getSession() so these routes avoid an
+	// unnecessary DB session-lookup round-trip (they manage their own session lifecycle).
+	if (BETTER_AUTH_PASSTHROUGH_PATHS.has(event.url.pathname)) {
+		return resolve(event);
+	}
+
+	// Wrap the ENTIRE handler body in eventStorage.run(event, ...) so the sveltekitCookies
+	// plugin's after-hook always has a valid RequestEvent via AsyncLocalStorage — regardless
+	// of which code path triggers it (including auth.api.getSession() clearing an expired
+	// session cookie). Without this, getSession() can fire the sveltekitCookies after-hook
+	// before the storage context is established, causing:
+	//   "sveltekitCookies: no RequestEvent in AsyncLocalStorage"
 	//
 	// AsyncLocalStorage guarantees per-request isolation: concurrent requests each have
-	// their own storage slot, so request B cannot overwrite request A's event reference.
+	// their own storage slot, so request B cannot overwrite request A's event reference
+	// (unlike a module-level mutable singleton, which was a concurrency hazard).
 	return eventStorage.run(event, async () => {
 		// Populate event.locals from the current session cookie.
 		// auth.api.getSession() performs one DB round-trip to verify the session token.

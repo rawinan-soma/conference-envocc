@@ -1,4 +1,4 @@
--- Migration: 0003_user_profiles
+-- Migration: 0004_user_profiles
 -- Story 2.3: Self-service profile
 --
 -- Creates user_profiles table to store app-owned profile fields for each authenticated user.

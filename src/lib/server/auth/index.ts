@@ -67,16 +67,12 @@ export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		camelCase: true,
-		// Explicit schema mapping: Drizzle adapter looks up models by singular name
-		// ("session", "user", "account", "verification") but our schema exports use
-		// plural names ("sessions", "users", etc.). Passing schema explicitly fixes
-		// the "model not found" error that occurs when findSession() is called.
-		schema: {
-			user: users,
-			session: sessions,
-			account: accounts,
-			verification: verifications
-		}
+		// Explicitly map Better Auth's singular model names to our Drizzle table exports.
+		// Better Auth's internal adapter uses model names like "user", "session", "account",
+		// "verification" (singular). Our schema exports use plural names ("users", "sessions",
+		// etc.). Without this mapping, db._.fullSchema["session"] returns undefined and
+		// auth.api.getSession() fails with "model not found".
+		schema: { user: users, session: sessions, account: accounts, verification: verifications }
 	}),
 	session: {
 		expiresIn: 1800, // 30 minutes — FR-093: FIXED, never configurable
