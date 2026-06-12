@@ -4,7 +4,7 @@ baseline_commit: d8a9624569dbdb04e417cb29c18fc91954bdb34b
 
 # Story 3.1: Create and Edit Rooms
 
-Status: review
+Status: done
 
 ## Story
 
@@ -87,6 +87,14 @@ Follow the ATDD checklist at `_bmad-output/test-artifacts/atdd-checklist-3-1-cre
 - Routes: `src/routes/(app)/admin/rooms/` (new directory tree)
 - Tests: `tests/integration/rooms.test.ts` (already scaffolded — activate skips)
 - Tests: `tests/integration/db-schema.test.ts` (activate `3.1-UNIT-002`)
+
+## Review Findings
+
+Code review (2026-06-12) — Blind Hunter + Edge Case Hunter + Acceptance Auditor. All 6 ACs verified implemented with matching test coverage; implementation faithfully follows the established `profile-service` / `hooks.server.ts` patterns.
+
+- [x] [Review][Patch] `createRoom` validated the insert result after writing the audit log — moved the `if (!room)` guard before `writeAuditLog` for fail-fast consistency with `createProfile` [src/lib/server/services/room-service.ts:80]
+
+Dismissed as noise (4): intentional belt-and-suspenders double `requireAdmin` (documented, needed for typed actor); partial index keyed on `id` (spec-mandated, Task 1.3); `room.features` cast in edit load (documented, service-layer enforced); `state_referenced_locally` svelte-ignore (standard superforms pattern used project-wide).
 
 ## Dev Agent Record
 

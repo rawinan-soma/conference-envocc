@@ -77,6 +77,12 @@ export async function createRoom(actorId: string, input: RoomInputBroad): Promis
 			})
 			.returning();
 
+		if (!room) {
+			// Defensive: a successful INSERT ... RETURNING always yields a row.
+			// Check before writing the audit log so we fail fast (the tx rolls back either way).
+			throw new Error('createRoom: insert returned no row');
+		}
+
 		await writeAuditLog(tx, {
 			actorId,
 			entity: 'room',
@@ -89,9 +95,6 @@ export async function createRoom(actorId: string, input: RoomInputBroad): Promis
 			}
 		});
 
-		if (!room) {
-			throw new Error('createRoom: insert returned no row');
-		}
 		return room;
 	});
 }
