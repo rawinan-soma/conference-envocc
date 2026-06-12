@@ -79,7 +79,9 @@
 					aria-describedby={$errors.startAt ? 'startAt-error' : undefined}
 				/>
 				{#if $errors.startAt}
-					<p id="startAt-error" class="text-xs text-destructive">{$errors.startAt[0]}</p>
+					<p id="startAt-error" class="text-xs text-destructive">
+						{m.room_block_validation_start_invalid()}
+					</p>
 				{/if}
 			</div>
 
@@ -96,7 +98,9 @@
 					aria-describedby={$errors.endAt ? 'endAt-error' : undefined}
 				/>
 				{#if $errors.endAt}
-					<p id="endAt-error" class="text-xs text-destructive">{$errors.endAt[0]}</p>
+					<p id="endAt-error" class="text-xs text-destructive">
+						{m.room_block_validation_end_invalid()}
+					</p>
 				{/if}
 			</div>
 
@@ -109,7 +113,15 @@
 			<!-- Cross-field errors (end-after-start, conflict) -->
 			{#if $errors._errors}
 				{#each $errors._errors as err (err)}
-					<p class="text-xs text-destructive">{err}</p>
+					<p class="text-xs text-destructive">
+						{#if err === 'room_block_conflict_booking'}
+							{m.room_block_conflict_booking()}
+						{:else if err === 'room_block_conflict_error'}
+							{m.room_block_conflict_error()}
+						{:else}
+							{m.room_block_validation_end_after_start()}
+						{/if}
+					</p>
 				{/each}
 			{/if}
 

@@ -67,5 +67,7 @@
 	"room_block_delete_button": "Remove",
 	"room_block_conflict_error": "This time range conflicts with an existing block.",
 	"room_block_conflict_booking": "This time range conflicts with an existing booking.",
+	"room_block_validation_start_invalid": "Start must be a valid date and time.",
+	"room_block_validation_end_invalid": "End must be a valid date and time.",
 	"room_block_validation_end_after_start": "End time must be after start time."
 }
