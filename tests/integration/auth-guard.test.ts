@@ -70,8 +70,9 @@ const HOOKS_SERVER_SOURCE = fs.readFileSync(HOOKS_SERVER_PATH, 'utf-8');
 // ---------------------------------------------------------------------------
 // Known routeGuards pattern (verified against HOOKS_SERVER_SOURCE in UNIT-001)
 // Pattern: /^\/(?!(?:login|auth|r|skeleton|profile\/complete)(?:\/|$)|$)/
-// Used by tests that need to verify the allow-list logic directly.
-// UNIT-001 asserts this literal is present verbatim in hooks.server.ts.
+// Used by structural tests (INT-001a, INT-005a) to verify allow-list logic directly.
+// UNIT-001 asserts this literal is present verbatim in hooks.server.ts, keeping
+// this constant in sync with the production pattern.
 // ---------------------------------------------------------------------------
 
 const ROUTE_GUARD_PATTERN = /^\/(?!(?:login|auth|r|skeleton|profile\/complete)(?:\/|$)|$)/;
@@ -285,9 +286,18 @@ describe('Story 2.5 — Guard Dispatcher: routeGuards Extensibility (R-006)', ()
 			'routeGuards must include /r/ in the allow-list regex (public r/[token] exemption)'
 		).toMatch(/login\|auth\|r\|skeleton/);
 
+		// 6. ROUTE_GUARD_PATTERN constant (used by INT-001a/INT-005a) matches the source.
+		//    This prevents silent divergence when the production pattern is updated.
+		expect(
+			HOOKS_SERVER_SOURCE,
+			'ROUTE_GUARD_PATTERN constant must be present verbatim in hooks.server.ts — update the constant in this file if the production pattern changes'
+		).toContain(ROUTE_GUARD_PATTERN.source);
+
 		// Simulate a future E3–E7 story pushing a new guard to the array.
 		// Demonstrates the contract: routeGuards is a mutable exported array.
-		type GuardEntry = { pattern: RegExp; guard: (event: unknown) => void };
+		// GuardEntry mirrors the production type (void | Promise<void>) so async guards
+		// can be tested without type errors.
+		type GuardEntry = { pattern: RegExp; guard: (event: unknown) => void | Promise<void> };
 		const mockRegistry: GuardEntry[] = [{ pattern: /^\/existing/, guard: () => {} }];
 		const initialLength = mockRegistry.length;
 
