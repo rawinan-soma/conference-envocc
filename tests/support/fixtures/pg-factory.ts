@@ -67,27 +67,51 @@ const TRUNCATABLE_TABLES = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// Options
+// ---------------------------------------------------------------------------
+
+export interface CreatePgFactoryOptions {
+	/**
+	 * Skip running `drizzle-kit migrate` inside the factory.
+	 * Set to `true` when the Vitest global setup (integration-setup.ts) already
+	 * ran migrations — avoids a redundant second migration execution and the
+	 * extra ~10-60s it adds to test startup.
+	 *
+	 * Default: false (runs migrations for standalone/non-global-setup usage).
+	 */
+	skipMigrations?: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // createPgFactory
 // ---------------------------------------------------------------------------
 
 /**
- * Creates a pg.Pool connected to the given database URL, runs drizzle-kit migrate
- * to apply the latest schema, and returns helpers for test teardown and isolation.
+ * Creates a pg.Pool connected to the given database URL, optionally runs
+ * drizzle-kit migrate, and returns helpers for test teardown and isolation.
  *
  * @param databaseUrl - PostgreSQL connection string (e.g. from Testcontainers or CI)
+ * @param options - Optional configuration (see CreatePgFactoryOptions)
  * @returns PgFactoryResult with pool, truncateAll, and cleanup
  *
  * @throws Error if migrations fail (misconfigured schema or missing drizzle files)
  */
-export async function createPgFactory(databaseUrl: string): Promise<PgFactoryResult> {
-	// Run migrations before test suite starts
-	// drizzle-kit reads drizzle.config.ts and applies all migrations in drizzle/
-	execSync('bunx drizzle-kit migrate', {
-		cwd: PROJECT_ROOT,
-		env: { ...process.env, DATABASE_URL: databaseUrl },
-		stdio: 'pipe',
-		timeout: 60_000
-	});
+export async function createPgFactory(
+	databaseUrl: string,
+	options: CreatePgFactoryOptions = {}
+): Promise<PgFactoryResult> {
+	const { skipMigrations = false } = options;
+
+	if (!skipMigrations) {
+		// Run migrations before test suite starts
+		// drizzle-kit reads drizzle.config.ts and applies all migrations in drizzle/
+		execSync('bunx drizzle-kit migrate', {
+			cwd: PROJECT_ROOT,
+			env: { ...process.env, DATABASE_URL: databaseUrl },
+			stdio: 'pipe',
+			timeout: 60_000
+		});
+	}
 
 	const pool = new pg.Pool({ connectionString: databaseUrl });
 

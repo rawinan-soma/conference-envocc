@@ -75,7 +75,7 @@ export const auth = betterAuth({
 		schema: { user: users, session: sessions, account: accounts, verification: verifications }
 	}),
 	session: {
-		expiresIn: 1800, // 30 minutes — FR-093: FIXED, never configurable
+		expiresIn: 1800, // FR-093: FIXED 30-min timeout — NEVER make configurable
 		updateAge: 900 // refresh session cookie every 15 min of activity
 	},
 	plugins: [
