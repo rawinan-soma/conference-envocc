@@ -12,7 +12,9 @@ export const users = pgTable('users', {
 	emailVerified: boolean('emailVerified').notNull().default(false),
 	image: text('image'),
 	createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
-	updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow()
+	updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
+	// App-owned column (not managed by Better Auth). Snake_case column name per architecture §Naming Patterns.
+	isAdmin: boolean('is_admin').notNull().default(false)
 });
 
 export const sessions = pgTable('sessions', {
