@@ -4,7 +4,7 @@ baseline_commit: 6ca5729
 
 # Story 2.5: Authorization Guard Dispatcher
 
-Status: review
+Status: done
 
 ## Story
 
@@ -58,6 +58,12 @@ So that later epics append rules instead of rewriting the hook.
   - [x] 4.2 Run `bun run check` — zero TypeScript errors.
   - [x] 4.3 Run `bun run test` (unit + integration) — all tests pass (pre-existing failures in other stories unrelated to 2.5; 6 new 2.5 tests all green).
   - [x] 4.4 Run `bun run build` — clean build (pre-existing failure due to missing DATABASE_URL in local env; verified same failure on baseline commit).
+
+### Review Findings
+
+Code review (bmad-code-review, 2026-06-12) — 3 adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor). All 7 ACs verified covered. Tests green (auth-guard: 6 pass + 2 env-gated skips; roles: 5 pass). No `decision-needed` or `patch` findings. 5 findings dismissed as noise/false-positive/by-design; 1 deferred.
+
+- [x] [Review][Defer] `requireUser` expired-session branch untested [src/lib/server/auth/guards.ts:36] — deferred, pre-existing; session-timeout enforcement is owned by Story 2.6 (out of scope for 2.5)
 
 ## Dev Notes
 

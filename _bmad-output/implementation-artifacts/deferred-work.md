@@ -22,3 +22,7 @@
 ## Deferred from: code review of 2-1-sign-in-with-authentik-oidc (2026-06-11)
 
 - Route-guard regex in `src/hooks.server.ts` (`/^\/(?!(?:login|auth\/|r\/|$))/`) is not boundary-anchored: hypothetical paths like `/loginabc` or `/authxyz` would slip the negative lookahead and skip the auth guard. No such routes exist today, so this is cosmetic robustness only. Tighten the lookahead (e.g. `(?:login|auth|r)(?:\/|$)`) when the route table grows or when Story 2.5 reworks the guard dispatcher.
+
+## Deferred from: code review of 2-5-authorization-guard-dispatcher (2026-06-12)
+
+- `requireUser` in `src/lib/server/auth/guards.ts` has a defensive expired-session branch (`session.expiresAt < new Date()` → redirect 302) that has no direct test coverage. Pre-existing guard code (Story 2.1). Session-timeout enforcement is owned by Story 2.6 (`session.expiresIn: 1800`), so explicit coverage of this belt-and-suspenders branch is out of scope for 2.5. Add a unit test for the expired-session redirect when revisiting session lifecycle.
