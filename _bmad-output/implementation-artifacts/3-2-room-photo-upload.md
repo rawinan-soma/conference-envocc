@@ -233,7 +233,7 @@ All 7 tasks completed. Story 3.2 implementation includes:
 - Upload form Svelte page with current photo display, file input, error display
 - Photo upload links added to room list page and room edit page
 - All Paraglide message keys added to both `en.json` and `th.json`
-- All service-level and static tests (6 of 8 Story 3.2 tests) pass; 2 HTTP-level tests (INT-003, INT-004, INT-005) skipped without DEV_SERVER_URL
+- All service-level and static tests (6 of 9 Story 3.2 tests) pass; 3 HTTP-level tests (INT-003, INT-004, INT-005) skipped without DEV_SERVER_URL — AC-3 and AC-4 are implemented but verified only by skipped tests; not executed this run
 - Zero TypeScript errors, zero lint errors, build passes with DATABASE_URL set
 
 ### File List
