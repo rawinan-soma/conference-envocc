@@ -51,7 +51,7 @@
 						</a>
 						<form
 							method="POST"
-							action={`/admin/rooms/${room.id}/deactivate?/deactivate`}
+							action={`${resolve(`/admin/rooms/${room.id}/deactivate` as Pathname)}?/deactivate`}
 							onsubmit={(e) => {
 								if (!confirm(m.room_deactivate_confirm())) {
 									e.preventDefault();
