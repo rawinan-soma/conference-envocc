@@ -1140,7 +1140,7 @@ describe('Story 3.4 — Block Delete: deleteBlockSlot() removes the block (AC-2)
 
 		expect(block.id, 'Block must be created before deletion').toBeTruthy();
 
-		await deleteBlockSlot(actorId, block.id);
+		await deleteBlockSlot(actorId, block.id, room.id);
 
 		const blocks = await listBlockSlotsForRoom(room.id);
 		expect(blocks.length, 'listBlockSlotsForRoom must return empty after deletion').toBe(0);

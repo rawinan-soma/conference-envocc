@@ -10,7 +10,7 @@
  * but requireAdmin is called here for the typed User actor ID.
  */
 import { error, fail } from '@sveltejs/kit';
-import { superValidate } from 'sveltekit-superforms';
+import { setError, superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 
 import { BlockSlotSchema } from '$lib/schemas/block-slot';
@@ -44,24 +44,28 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
 	create: async (event) => {
 		const user = requireAdmin(event);
+		const roomId = event.params.id;
 
-		const room = await getRoomById(event.params.id);
+		// Validate form and check room existence in parallel (both are independent)
+		const [room, form] = await Promise.all([
+			getRoomById(roomId),
+			superValidate(event.request, valibot(BlockSlotSchema))
+		]);
+
 		if (!room) {
 			error(404, 'Room not found');
 		}
-
-		const form = await superValidate(event.request, valibot(BlockSlotSchema));
 
 		if (!form.valid) {
 			return fail(422, { form });
 		}
 
 		try {
-			await createBlockSlot(user.id, room.id, form.data);
+			await createBlockSlot(user.id, roomId, form.data);
 		} catch (err: unknown) {
 			if (err instanceof ConflictError) {
-				form.errors._errors = [err.key];
-				return fail(422, { form });
+				// setError sets form.valid = false and returns ActionFailure<{ form }>
+				return setError(form, '', err.key);
 			}
 			throw err;
 		}
@@ -81,7 +85,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing blockId' });
 		}
 
-		await deleteBlockSlot(user.id, blockId);
+		await deleteBlockSlot(user.id, blockId, event.params.id);
 
 		return {};
 	}

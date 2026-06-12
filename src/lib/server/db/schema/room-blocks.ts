@@ -15,10 +15,10 @@
  *
  * See also: drizzle/0006_room_blocks.sql (hand-written — drizzle-kit generate fails for uuidv7)
  */
-import { text, timestamp } from 'drizzle-orm/pg-core';
-import { pgTable } from 'drizzle-orm/pg-core';
-import { customType } from 'drizzle-orm/pg-core';
+import { customType, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';
+
+import { rooms } from './rooms.js';
 
 // Custom type for tstzrange — no native Drizzle support
 // Follows bookings.ts pattern
@@ -33,7 +33,9 @@ export const roomBlocks = pgTable('room_blocks', {
 	id: text('id')
 		.primaryKey()
 		.$defaultFn(() => uuidv7()),
-	roomId: text('room_id').notNull(),
+	roomId: text('room_id')
+		.notNull()
+		.references(() => rooms.id, { onDelete: 'cascade' }),
 	during: tstzrange('during').notNull(),
 	reason: text('reason'),
 	createdBy: text('created_by').notNull(),

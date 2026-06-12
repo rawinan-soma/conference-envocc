@@ -13,6 +13,30 @@
 
 	let { data }: { data: PageData } = $props();
 
+	/**
+	 * Format a Postgres tstzrange string (e.g. `["2026-07-01 09:00:00+00","2026-07-01 10:00:00+00")`)
+	 * into a human-readable date/time range using the project locale (Asia/Bangkok).
+	 */
+	function formatRange(range: string): string {
+		// Strip leading bound character ([  or () and trailing bound character
+		const inner = range.replace(/^[[(]/, '').replace(/[)\]]$/, '');
+		const [start, end] = inner.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
+		if (!start || !end) return range;
+		const fmt = new Intl.DateTimeFormat('en-GB', {
+			timeZone: 'Asia/Bangkok',
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+		try {
+			return `${fmt.format(new Date(start))} – ${fmt.format(new Date(end))}`;
+		} catch {
+			return range;
+		}
+	}
+
 	let createdSuccess = $state(false);
 	let deletedSuccess = $state(false);
 
@@ -66,7 +90,7 @@
 				{#each data.blocks as block (block.id)}
 					<li class="flex items-center justify-between px-4 py-3">
 						<div class="flex flex-col gap-0.5">
-							<span class="text-sm font-medium">{block.during}</span>
+							<span class="text-sm font-medium">{formatRange(block.during)}</span>
 							{#if block.reason}
 								<span class="text-xs text-muted-foreground">{block.reason}</span>
 							{/if}

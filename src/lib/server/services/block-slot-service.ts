@@ -16,7 +16,7 @@
  *
  * Audit log (AC-6): Every createBlockSlot writes an audit_log row inside the same transaction.
  */
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
 import type { BlockSlotInput } from '$lib/schemas/block-slot.js';
@@ -93,7 +93,7 @@ export async function createBlockSlot(
 					id: uuidv7(),
 					roomId,
 					during: sql`tstzrange(${input.startAt}::timestamptz, ${input.endAt}::timestamptz, '[)')`,
-					reason: input.reason ?? null,
+					reason: input.reason || null,
 					createdBy: actorId
 				})
 				.returning();
@@ -139,14 +139,24 @@ export async function createBlockSlot(
 // ---------------------------------------------------------------------------
 
 /**
- * Delete a time block by its ID.
+ * Delete a time block by its ID, scoped to the given room.
+ *
+ * Scoping by roomId prevents cross-room deletions when the blockId is supplied
+ * by a client (i.e. the URL room param must match the block's room).
  *
  * @param actorId - Admin user ID performing the action (for future audit if needed)
  * @param blockId - ID of the block to remove
+ * @param roomId  - Room that must own the block (ownership guard)
  */
-export async function deleteBlockSlot(actorId: string, blockId: string): Promise<void> {
+export async function deleteBlockSlot(
+	actorId: string,
+	blockId: string,
+	roomId: string
+): Promise<void> {
 	await db.transaction(async (tx) => {
-		await tx.delete(roomBlocks).where(eq(roomBlocks.id, blockId));
+		await tx
+			.delete(roomBlocks)
+			.where(and(eq(roomBlocks.id, blockId), eq(roomBlocks.roomId, roomId)));
 
 		// Audit the delete for completeness (ACs don't require it, but it's good practice)
 		await writeAuditLog(tx, {
