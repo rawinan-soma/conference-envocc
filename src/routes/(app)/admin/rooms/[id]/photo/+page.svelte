@@ -6,6 +6,14 @@
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	// Map the server's stable validation code to a localized message (no raw English).
+	const errorMessages = {
+		no_file: m.room_photo_error_no_file,
+		invalid_type: m.room_photo_error_invalid_type,
+		too_large: m.room_photo_error_too_large
+	};
+	const errorMessage = $derived(form?.code ? errorMessages[form.code]() : null);
 </script>
 
 <svelte:head>
@@ -36,8 +44,8 @@
 	</section>
 
 	<!-- Error message -->
-	{#if form?.error}
-		<p class="mb-4 text-sm text-destructive" role="alert">{form.error}</p>
+	{#if errorMessage}
+		<p class="mb-4 text-sm text-destructive" role="alert">{errorMessage}</p>
 	{/if}
 
 	<!-- Upload form -->

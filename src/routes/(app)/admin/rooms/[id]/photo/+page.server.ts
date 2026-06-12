@@ -11,7 +11,7 @@
  * AC-1: Admin uploads valid image → stored on volume, photo_path saved, audit log written.
  * AC-2: Non-image MIME type or oversized file → HTTP 422, no file written, row unchanged.
  */
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 
 import { requireAdmin } from '$lib/server/auth/guards';
 import { PhotoValidationError, uploadRoomPhoto } from '$lib/server/services/room-service';
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const room = await getRoomById(event.params.id);
 	if (!room) {
-		throw new Error(`Room not found: ${event.params.id}`);
+		error(404, 'Room not found');
 	}
 
 	return { room };
@@ -40,8 +40,9 @@ export const actions: Actions = {
 		// SvelteKit request.formData() returns Web API FormData; file fields are File (Blob) objects
 		const file = formData.get('photo') as File | null;
 
+		// Return a stable code (not raw English) so the page can render a localized message.
 		if (!file || file.size === 0) {
-			return fail(422, { error: 'No file provided' });
+			return fail(422, { code: 'no_file' as const });
 		}
 
 		// Convert Web API File (Blob) to Node.js Buffer for the service layer
@@ -55,7 +56,7 @@ export const actions: Actions = {
 			});
 		} catch (err: unknown) {
 			if (err instanceof PhotoValidationError) {
-				return fail(422, { error: err.message });
+				return fail(422, { code: err.code });
 			}
 			throw err;
 		}

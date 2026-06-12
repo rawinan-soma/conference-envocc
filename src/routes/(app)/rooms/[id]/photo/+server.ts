@@ -71,6 +71,10 @@ export const GET: RequestHandler = async (event) => {
 		fileBuffer.byteOffset + fileBuffer.byteLength
 	) as ArrayBuffer;
 	return new Response(arrayBuffer, {
-		headers: { 'Content-Type': contentType }
+		headers: {
+			'Content-Type': contentType,
+			// Prevent the browser from MIME-sniffing user-uploaded bytes into an executable type.
+			'X-Content-Type-Options': 'nosniff'
+		}
 	});
 };
