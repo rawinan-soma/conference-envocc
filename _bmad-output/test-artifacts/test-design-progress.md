@@ -9,7 +9,7 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-11'
+lastSaved: '2026-06-12'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -98,3 +98,49 @@ IDOR template (`tests/support/helpers/idor-template.ts`) seeded in Story 2.7 for
 
 Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-2.md`
 Revision: v1 (2026-06-11) — initial generation; all 7 stories backlog; 42 scenarios; 6 high-priority risks with mitigation plans; IDOR template pattern documented.
+
+---
+
+# Epic 2 Test Design Run (v2 Update) — 2026-06-12
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "Epic 2 — Identity & Access" + sprint-status.yaml present)
+- **Epic**: Epic 2 — Identity & Access (7 stories; 2.1–2.4, 2.6 done; 2.5 and 2.7 backlog)
+- **Prerequisites confirmed**: ATDD checklists for 2.1, 2.3, 2.6 loaded; actual test files inspected
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Better Auth + Drizzle + PostgreSQL + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **Pact.js utils**: disabled (tea_use_pactjs_utils: false)
+- **Stories done since v1**: 2.1 (OIDC sign-in), 2.2 (dev bypass), 2.3 (self-service profile), 2.4 (roles model), 2.6 (session timeout) — PRs #107–110
+- **New test files confirmed**: `auth-bypass.test.ts` (507L, active), `roles.test.ts` (232L, active), `profile.test.ts` (1082L, active), `session-timeout.test.ts` (454L, P0+P1 active), `dev-bypass.ts` helper
+- **Skipped/todo tests**: `auth.test.ts` 7 skip, `auth-guard.test.ts` 12 todo, `auth.spec.ts` 11 skip, `profile.spec.ts` 12 skip
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+- R-001 (dev bypass in production): **MITIGATED** — `auth-bypass.test.ts` active; `dev-bypass.ts` seam created
+- R-002 (guard dispatcher): **OPEN** — `auth-guard.test.ts` has 12 todo stubs awaiting Story 2.5
+- R-003 (IDOR bypass): **OPEN** — `idor-template.ts` not yet created; awaiting Story 2.7
+- R-004 (session timeout): **MITIGATED** — `session-timeout.test.ts` active; `2.6-INT-001` passing
+- R-005 (profile gate): **MITIGATED** — `profile.test.ts` all P0 tests passing
+- R-006 (guard extensibility): **OPEN** — `2.5-UNIT-001` todo awaiting Story 2.5
+- R-008 (email mutability): **MITIGATED** — `2.3-INT-004` passing in `profile.test.ts`
+
+## Step 4: Coverage Plan
+
+- P0: 10 active, 3 todo (Story 2.5), 1 planned (Story 2.7)
+- P1: 10 active, 4 todo (Story 2.5), 3 skip (E2E activation pending)
+- P2: 2 active, 1 todo (2.5), 1 todo (on-demand), 1 planned (2.7), 3 skip
+- P3: 3 todo/skip (all on-demand)
+- Remaining effort: ~21–38h (~3–5 engineering days)
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-2.md`
+Revision: v2 (2026-06-12) — updated post Stories 2.1, 2.2, 2.3, 2.4, 2.6 completion.
+R-001, R-004, R-005 mitigated. R-002, R-003, R-006 open (Stories 2.5/2.7).
+Status column added to all coverage tables. Test file inventory added to appendix.
+23 E2E tests remain skipped; 12 auth-guard todos; `idor-template.ts` not yet created.
