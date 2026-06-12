@@ -114,7 +114,15 @@ afterAll(async () => {
 async function truncateRoomTables(): Promise<void> {
 	const client = await pool.connect();
 	try {
-		for (const table of ['rooms', 'audit_log', 'user_profiles', 'sessions', 'accounts', 'users']) {
+		for (const table of [
+			'bookings',
+			'rooms',
+			'audit_log',
+			'user_profiles',
+			'sessions',
+			'accounts',
+			'users'
+		]) {
 			const result = await client.query<{ exists: boolean }>(
 				`SELECT EXISTS (
           SELECT 1 FROM information_schema.tables
@@ -935,7 +943,7 @@ describe('Story 3.4 — Block Conflict: Block over an existing booking → 422 c
 		expect(
 			errorCode,
 			'Conflict error must carry a 422-indicative code (statusCode=422 or ConflictError name)'
-		).toBeDefined();
+		).toBe('422');
 	});
 });
 
@@ -1011,7 +1019,7 @@ describe('Story 3.4 — Block EXCLUDE Constraint: Two overlapping blocks for sam
 		expect(
 			errorCode,
 			'Conflict error must carry a 422-indicative code (statusCode=422 or ConflictError name)'
-		).toBeDefined();
+		).toBe('422');
 	});
 });
 
