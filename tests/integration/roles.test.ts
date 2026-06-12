@@ -51,51 +51,7 @@ import type { PgFactoryResult } from '../support/fixtures/pg-factory.js';
 // ---------------------------------------------------------------------------
 
 import { requireAdmin } from '$lib/server/auth/guards.js';
-
-// ---------------------------------------------------------------------------
-// Helpers (used by INT-002 / INT-003 unit-level tests — no DB required)
-// ---------------------------------------------------------------------------
-
-/**
- * Fixed timestamps used in mock events — deterministic, never clock-sensitive.
- * Using a far-future session expiry ensures requireUser's expiry check always
- * passes for mock sessions regardless of when the test suite runs.
- */
-const MOCK_TIMESTAMP = new Date('2026-01-01T00:00:00.000Z');
-const MOCK_SESSION_EXPIRES_AT = new Date('2099-12-31T23:59:59.000Z');
-
-/**
- * Build a minimal mock RequestEvent with controlled user and session in locals.
- * Used for unit-level tests of requireAdmin (no real HTTP, no real session).
- */
-function makeMockEvent(userOverrides: Record<string, unknown> | null): {
-	locals: {
-		user: Record<string, unknown> | null;
-		session: { expiresAt: Date } | null;
-	};
-} {
-	if (userOverrides === null) {
-		return { locals: { user: null, session: null } };
-	}
-	return {
-		locals: {
-			user: {
-				id: 'test-user-uuid-001',
-				name: 'Test User',
-				email: 'testuser@envocc.test',
-				emailVerified: true,
-				image: null,
-				createdAt: MOCK_TIMESTAMP,
-				updatedAt: MOCK_TIMESTAMP,
-				isAdmin: false,
-				...userOverrides
-			},
-			session: {
-				expiresAt: MOCK_SESSION_EXPIRES_AT
-			}
-		}
-	};
-}
+import { makeMockEvent } from '../support/helpers/mock-event.js';
 
 // ---------------------------------------------------------------------------
 // 2.4-INT-001 — New user defaults to organizer (is_admin=false) [P1]
