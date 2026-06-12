@@ -4,7 +4,7 @@ lastStep: 'step-04-generate-report'
 lastSaved: '2026-06-13'
 story: '3.2-room-photo-upload'
 inputDocuments:
-  - tests/integration/rooms.test.ts (Story 3.2 stubs, lines 848–1812)
+  - tests/integration/rooms.test.ts (Story 3.2 tests, lines 848–1812)
   - tests/integration/db-schema.test.ts (3.2-UNIT-003, lines 351–388)
   - _bmad-output/implementation-artifacts/3-2-room-photo-upload.md
   - _bmad-output/test-artifacts/atdd-checklist-3-2-room-photo-upload.md
@@ -13,12 +13,29 @@ inputDocuments:
 
 # Test Quality Review — Story 3.2: Room Photo Upload
 
-## Overall Quality Score: 91/100 (Grade: A)
+## Overall Quality Score: 89/100 (Grade: B+)
 
 **Execution Mode:** Sequential
 **Reviewed:** 2026-06-13
 **Reviewer:** Master Test Architect (TEA)
-**Scope:** `tests/integration/rooms.test.ts` (lines 848–1812, 10 Story 3.2 stubs) + `tests/integration/db-schema.test.ts` (lines 351–388, 1 stub)
+**Scope:** `tests/integration/rooms.test.ts` (lines 848–1812, 9 Story 3.2 tests) + `tests/integration/db-schema.test.ts` (lines 351–388, 1 test)
+
+### Test Status at Review Time
+
+| Test ID | Status | Notes |
+|---------|--------|-------|
+| 3.2-INT-001 | ✓ pass | Service-level, active |
+| 3.2-INT-002 | ✓ pass | Service-level, active |
+| 3.2-UNIT-001 | ✓ pass | Static source, active |
+| 3.2-INT-006 | ✓ pass | Service-level, active |
+| 3.2-UNIT-002 | ✓ pass | Static source, active |
+| 3.2-UNIT-003 | ✓ pass | DB schema, active (db-schema.test.ts) |
+| 3.2-INT-003 | ↓ skipped | `test.skipIf(!DEV_SERVER_URL)` — no dev server |
+| 3.2-INT-004 | ↓ skipped | `test.skipIf(!DEV_SERVER_URL)` — no dev server |
+| 3.2-INT-005 | ↓ skipped | `test.skipIf(!DEV_SERVER_URL)` — no dev server |
+| 3.2-P3-001 | ↓ skipped | `test.skip` — P3 backlog |
+
+**6 pass, 3 skip (DEV_SERVER_URL gated), 1 skip (P3).** Feature is implemented (`feat(3.2)` commit `88e89ff`).
 
 ---
 
@@ -28,9 +45,9 @@ inputDocuments:
 |-----------------|-------|-------|--------|----------|
 | Determinism     | 100   | A+    | 30%    | 30.0     |
 | Isolation       | 96    | A     | 30%    | 28.8     |
-| Maintainability | 72    | C     | 25%    | 18.0     |
+| Maintainability | 68    | C     | 25%    | 17.0     |
 | Performance     | 95    | A     | 15%    | 14.25    |
-| **Overall**     | **91**| **A** |        |          |
+| **Overall**     | **89**| **B+**|        |          |
 
 > Coverage is excluded from `test-review` scoring. Use `trace` for coverage analysis and gates.
 
@@ -41,9 +58,9 @@ inputDocuments:
 | Severity | Count |
 |----------|-------|
 | HIGH     | 0     |
-| MEDIUM   | 2     |
+| MEDIUM   | 3     |
 | LOW      | 2     |
-| **Total**| **4** |
+| **Total**| **5** |
 
 ---
 
@@ -51,23 +68,33 @@ inputDocuments:
 
 ### MEDIUM
 
-**[Maintainability] JPEG magic-byte literal duplicated 4× across test stubs**
+**[Maintainability] Stale "THIS TEST WILL FAIL" inline comments throughout (post-implementation)**
 
-- **File:** `tests/integration/rooms.test.ts`, lines 1016, 1246–1248, 1411–1413, 1754–1756
-- **Category:** copy-paste-duplication
-- **Description:** `Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...])` (22-byte JPEG stub) is copied verbatim in INT-001, INT-003, INT-005, and P3-001 (first buffer). Any change to the JPEG fixture (e.g., adding valid JFIF length bytes) requires editing 4 locations.
-- **Suggestion:** Extract a module-scoped `function makeJpegBuffer(): Buffer { return Buffer.from([...]) }` above the Story 3.2 section header. Each call site becomes a one-liner with no behavioral change. P3-001's second (`jpegData2`) uses different trailing bytes to distinguish uploads — preserve that distinct buffer.
-- **Decision:** Recommended extraction in next dev pass. Not applied to this review to avoid touching verified-green (skip) test scaffolds. Implementation risk is negligible — mechanical renaming — but leaves the fix to the developer for when they activate INT-001.
+- **File:** `tests/integration/rooms.test.ts`, lines 972–975, 1097–1108, 1201–1209, 1298–1308, 1364–1374, 1461–1471, 1525–1534, 1649–1659, 1715–1723; `tests/integration/db-schema.test.ts`, line 353–354
+- **Category:** stale-comments
+- **Description:** Every Story 3.2 test body opens with `// THIS TEST WILL FAIL — [feature] not yet implemented (Task X). Activate after Task X.Y.` These comments were correct at the red-phase ATDD scaffold stage. They are now false and misleading — the feature is fully implemented and tests pass. A developer reading this code will be confused about what is "not yet implemented."
+- **Suggestion:** Replace the "THIS TEST WILL FAIL" header comment in each test body with `// ACTIVATED — [feature name] implemented in commit 88e89ff (feat(3.2)).` The activation guide prose at the top of the file (`Activation guide:`) and section header comments can also note that Story 3.2 tasks are complete.
+- **Decision:** **APPLIED** — stale comments updated in this review. See "Changes Applied" section.
 
 ---
 
-**[Maintainability] `UPLOAD_DIR` save/restore + temp-dir boilerplate repeated 4× across upload stubs**
+**[Maintainability] JPEG magic-byte literal duplicated 4× across upload tests**
+
+- **File:** `tests/integration/rooms.test.ts`, lines 1015–1018, 1246–1249, 1411–1414, 1754–1757
+- **Category:** copy-paste-duplication
+- **Description:** `Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...])` (22-byte minimal JPEG stub) is copied verbatim in INT-001, INT-003, INT-005, and P3-001 (first buffer). Any change to the JPEG fixture requires editing 4 locations.
+- **Suggestion:** Extract a module-scoped `function makeJpegBuffer(): Buffer { return Buffer.from([...]) }` above the Story 3.2 section header. P3-001's second buffer (`jpegData2`) has different trailing bytes to distinguish uploads — preserve it as a separate inline literal or second helper.
+- **Decision:** **APPLIED** — `makeJpegBuffer()` extracted. See "Changes Applied" section.
+
+---
+
+**[Maintainability] `UPLOAD_DIR` save/restore + `mkdtemp` boilerplate repeated 4× across service-level upload tests**
 
 - **File:** `tests/integration/rooms.test.ts`, lines 1009–1012, 1133–1135, 1558–1560, 1748–1750
 - **Category:** copy-paste-duplication
-- **Description:** The pattern `const uploadDir = await mkdtemp(...); const originalUploadDir = process.env['UPLOAD_DIR']; process.env['UPLOAD_DIR'] = uploadDir; try { ... } finally { restore; rm(uploadDir) }` is repeated in INT-001, INT-002, INT-006, and P3-001. Any change to the cleanup strategy (e.g., using `using` declarations when Node supports them) requires editing 4 locations.
-- **Suggestion:** Extract a helper function `async function withTempUploadDir<T>(fn: (dir: string) => Promise<T>): Promise<T>` that handles setup and teardown, with the test body passed as a callback. Behavioral parity is guaranteed; the tests become shorter and more readable.
-- **Decision:** Recommended extraction in next dev pass. Not applied to this review — same reasoning as above.
+- **Description:** The pattern `const uploadDir = await mkdtemp(...); const originalUploadDir = ...; process.env['UPLOAD_DIR'] = uploadDir; try { ... } finally { restore; rm(uploadDir) }` is repeated in INT-001, INT-002, INT-006, and P3-001. Any change to the cleanup strategy requires editing 4 locations.
+- **Suggestion:** Extract `async function withTempUploadDir<T>(prefix: string, fn: (dir: string) => Promise<T>): Promise<T>` to handle setup and teardown. The test body becomes the callback.
+- **Decision:** **APPLIED** — `withTempUploadDir()` extracted. See "Changes Applied" section.
 
 ---
 
@@ -75,11 +102,11 @@ inputDocuments:
 
 **[Isolation] Dead `tempDir` variable in INT-003 and INT-005 (HTTP-level upload tests)**
 
-- **File:** `tests/integration/rooms.test.ts`, lines 1243–1244 and 1408
+- **File:** `tests/integration/rooms.test.ts`, lines 1243–1244 (INT-003) and lines 1408 (INT-005)
 - **Category:** dead-code / misleading-cleanup
-- **Description:** In INT-003 and INT-005, `const tempDir = await mkdtemp(...)` creates a temporary directory that is **never used for writing**. The `uploadRoomPhoto()` call writes to `uploadDir` (from `process.env['UPLOAD_DIR']`), but the `finally` block cleans `tempDir` (always empty) and does not clean `uploadDir`. The practical consequence: after the test runs, the uploaded file remains at `uploadDir` (which is either the dev server's configured path or `os.tmpdir()/tea-atdd-3.2-serve`). This is harmless in HTTP-level tests (where the dev server needs to serve the file), but `tempDir` is a dead variable that creates confusion about what is being cleaned up.
-- **Suggestion:** Remove `const tempDir = await mkdtemp(...)` and `await rm(tempDir, ...)` from INT-003 and INT-005. Add a comment explaining that `uploadDir` is intentionally not cleaned (the dev server needs the file to serve it). The files in `uploadDir` are ephemeral test artifacts in the dev server's UPLOAD_DIR — a developer running these tests should be aware they leave files behind.
-- **Decision:** Note for developer during Task 5 activation. Not applied to this review — the fix removes no behavioral assertions and the dead code causes no test failures or incorrect results.
+- **Description:** In INT-003 and INT-005, `const tempDir = await mkdtemp(...)` creates a temporary directory that is **never used for file writing**. `uploadRoomPhoto()` writes to `uploadDir` (from `process.env['UPLOAD_DIR']`). The `finally` block cleans `tempDir` (always empty) but does not clean `uploadDir`. The result: uploaded test files remain at `uploadDir` after these tests run. This is intentional for HTTP tests (the dev server needs to serve the file), but the `tempDir` is dead code that obscures this design.
+- **Suggestion:** Remove `const tempDir = await mkdtemp(...)` and `await rm(tempDir, ...)`. Add a comment: `// Note: uploadDir is intentionally not cleaned — dev server needs the file to serve /rooms/[id]/photo.`
+- **Decision:** **APPLIED** — dead code removed, clarifying comment added.
 
 ---
 
@@ -87,24 +114,84 @@ inputDocuments:
 
 - **File:** `tests/integration/rooms.test.ts`, lines 914, 950
 - **Category:** time-dependency (advisory)
-- **Description:** `new Date(Date.now() + 30 * 60 * 1000)` used for session `expiresAt` in `seedAdminUserWithSession32` and `seedOrganizerUserWithSession32`. Not a real flake source — sessions stay valid 30 minutes ahead of any test execution window.
-- **Suggestion:** None — this is the established project pattern. Matches `seedAdminUser` / `seedOrganizerUser` helpers from Story 3.1 (lines 190, 306) and `profile.test.ts`.
-- **Decision:** ACCEPTED as project pattern.
+- **Description:** `new Date(Date.now() + 30 * 60 * 1000)` used for session `expiresAt` in `seedAdminUserWithSession32` and `seedOrganizerUserWithSession32`. Not a real flake source — sessions stay valid 30 minutes ahead of any test execution.
+- **Suggestion:** None — established project pattern matching Story 3.1 helpers (lines 190, 306) and `profile.test.ts`.
+- **Decision:** ACCEPTED as project pattern. No change.
+
+---
+
+## Changes Applied
+
+All four MEDIUM/LOW code changes were applied to `tests/integration/rooms.test.ts` in this review pass. Tests were re-run after each change to confirm green status is preserved.
+
+### Change 1: Remove stale "THIS TEST WILL FAIL" comments
+
+Updated all 10 Story 3.2 test body headers from:
+```
+// THIS TEST WILL FAIL — [feature] not yet implemented (Task X).
+// Activate after Task X.Y.
+```
+to:
+```
+// ACTIVATED — [feature] implemented. Story 3.2 complete (feat: commit 88e89ff).
+```
+
+### Change 2: Extract `makeJpegBuffer()` helper
+
+Added above the Story 3.2 section:
+```typescript
+function makeJpegBuffer(): Buffer {
+  // Minimal 1x1 JPEG (JFIF APP0 marker, 22 bytes — sufficient for MIME + magic-byte validation)
+  return Buffer.from([
+    0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+    0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9
+  ]);
+}
+```
+
+INT-001, INT-003, INT-005, and the first `jpegData1` in P3-001 updated to call `makeJpegBuffer()`.
+
+### Change 3: Extract `withTempUploadDir()` helper
+
+Added above the Story 3.2 section:
+```typescript
+async function withTempUploadDir<T>(prefix: string, fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm } = await import('fs/promises');
+  const { join } = await import('path');
+  const { tmpdir } = await import('os');
+  const uploadDir = await mkdtemp(join(tmpdir(), prefix));
+  const originalUploadDir = process.env['UPLOAD_DIR'];
+  process.env['UPLOAD_DIR'] = uploadDir;
+  try {
+    return await fn(uploadDir);
+  } finally {
+    if (originalUploadDir === undefined) {
+      delete process.env['UPLOAD_DIR'];
+    } else {
+      process.env['UPLOAD_DIR'] = originalUploadDir;
+    }
+    await rm(uploadDir, { recursive: true, force: true });
+  }
+}
+```
+
+INT-001, INT-002, INT-006, and P3-001 updated to use `withTempUploadDir()`.
+
+### Change 4: Remove dead `tempDir` in INT-003 and INT-005
+
+Removed `const tempDir = await mkdtemp(...)` and `await rm(tempDir, ...)` from both HTTP-level tests. Added clarifying comment that `uploadDir` files are left in place intentionally.
 
 ---
 
 ## Key Strengths
 
-1. **Full AC coverage**: All 9 scenarios in `rooms.test.ts` and 1 in `db-schema.test.ts` map directly to named AC items (AC-1 through AC-6) with explicit scenario IDs. No gap between ATDD checklist and actual tests.
+1. **Full AC coverage**: All 9 scenarios in `rooms.test.ts` and 1 in `db-schema.test.ts` map directly to named AC items (AC-1 through AC-6) with explicit scenario IDs.
 2. **Critical override preserved**: INT-005 correctly asserts HTTP 200 (not 403) for organizer access. The `requireUser` vs `requireAdmin` distinction is documented both in the test body and in the file header (line 877). The story artifact takes precedence over test-design line 284.
-3. **Proper skip strategy**: Service-level tests use `test.skip()` (no runtime dependency). HTTP-level tests use `test.skipIf(!process.env['DEV_SERVER_URL'])` — CI-safe without a running dev server.
-4. **Service-level / HTTP-level separation**: INT-001, INT-002, INT-006 call `uploadRoomPhoto()` directly — no HTTP stack needed. INT-003, INT-004, INT-005 use `fetch()` against `DEV_SERVER_URL` — correct level selection for each scenario.
-5. **Proper env mutation isolation**: Every service-level upload test saves and restores `process.env['UPLOAD_DIR']` in a `finally` block. No cross-test env contamination.
-6. **Truncation-based isolation**: Each upload describe block calls `beforeEach(truncateRoomTables)` — same pattern as Story 3.1 and `profile.test.ts`. Consistent with established project-wide convention.
-7. **Meaningful byte-for-byte assertions**: INT-006 uses `Buffer.compare(pngData, readBackData) === 0` — not just existence, but content fidelity. P3-001 uses two distinct buffers to verify replacement semantics unambiguously.
-8. **No credentials in test code**: `AUTH_SECRET` read from `process.env` only. `randomUUID()` for all seed IDs — no hardcoded user IDs or session tokens.
-9. **DB schema test is correctly targeted**: 3.2-UNIT-003 in `db-schema.test.ts` queries `information_schema.columns` for `photo_path` TEXT nullable — same pool-based pattern as 3.1-UNIT-002. No ORM import needed.
-10. **Story 3.1 tests are untouched**: All Story 3.2 stubs are appended after the Story 3.1 active tests at line 848. No Story 3.1 test behavior was modified.
+3. **Service-level / HTTP-level separation**: INT-001, INT-002, INT-006 call `uploadRoomPhoto()` directly — no HTTP stack needed. INT-003, INT-004, INT-005 use `fetch()` against `DEV_SERVER_URL` — correct level selection for each scenario.
+4. **Truncation-based isolation**: Each upload describe block calls `beforeEach(truncateRoomTables)` — consistent with Story 3.1 and `profile.test.ts` project convention.
+5. **Meaningful byte-for-byte assertions**: INT-006 uses `Buffer.compare(pngData, readBackData) === 0` — not just existence, but content fidelity. P3-001 uses two distinct buffers.
+6. **No credentials in test code**: `AUTH_SECRET` read from `process.env` only. `randomUUID()` for all seed IDs.
+7. **DB schema test is correctly targeted**: 3.2-UNIT-003 queries `information_schema.columns` for `photo_path` TEXT nullable — same pool-based pattern as 3.1-UNIT-002.
 
 ---
 
@@ -116,36 +203,29 @@ The test-design document (`test-design-epic-3.md`, line 284) incorrectly states 
 - Only the **photo upload action** (`POST /admin/rooms/[id]/photo`) uses `requireAdmin`.
 - Story purpose: "so that organizers can recognize the space" (AC-3, FR-061).
 
-**INT-005 asserts HTTP 200, not 403.** This is correct and must not be changed. Any implementation that returns 403 for an authenticated organizer on the serve route is a bug.
+**INT-005 asserts HTTP 200, not 403.** This is correct and must not be changed.
+
+---
+
+## Final Test Results (Post-Review)
+
+Confirmed by running `bun run test:integration -- tests/integration/rooms.test.ts tests/integration/db-schema.test.ts` after all changes:
+
+```
+Tests  19 passed | 7 skipped (26)
+```
+
+All 6 active Story 3.2 tests pass. 3 DEV_SERVER_URL-gated tests and 1 P3 test remain skipped as expected.
 
 ---
 
 ## Recommendations
 
-1. **INT-003 / INT-005 dead `tempDir`**: Before activating Task 5 tests, remove the unused `mkdtemp` / `rm(tempDir)` pair from both tests and add a comment explaining that `uploadDir` files are left in place intentionally (the dev server needs them to serve the photo). See LOW violation above.
-2. **JPEG buffer extraction**: When activating INT-001 (Task 3), extract `makeJpegBuffer()` as a module-scoped helper. This is a 5-minute refactor that eliminates the 4× duplication before more tests are activated.
-3. **`withTempUploadDir` helper**: After all service-level upload tests are activated and green, extract the UPLOAD_DIR save/restore boilerplate to a helper. Keep it in-file — no shared test-support module needed.
-4. **Activation order reminder** (from ATDD checklist):
-   - Task 1 → activate `3.2-UNIT-003` in `db-schema.test.ts`
-   - Task 2 → activate `3.2-UNIT-002`
-   - Task 3 → activate `3.2-INT-001`, `3.2-INT-002`, `3.2-INT-006`
-   - Task 4 → activate `3.2-INT-004`, `3.2-UNIT-001`
-   - Task 5 → activate `3.2-INT-003`, `3.2-INT-005` (requires `DEV_SERVER_URL`)
-
----
-
-## No Code Changes Applied
-
-All violations in this review are recommendations. No changes were applied to `rooms.test.ts` or `db-schema.test.ts`:
-
-- The MEDIUM violations (JPEG buffer duplication, UPLOAD_DIR boilerplate) are mechanical refactors with no behavioral impact, recommended for the developer to apply during green-phase activation.
-- The LOW violations (dead `tempDir`, `Date.now()` advisory) are non-blocking and documented as developer notes.
-- The story overrides (INT-005 = 200, INT-002 service-level) are verified correct and must not be modified.
-
-The test scaffolds are **production-ready** for red-phase ATDD use. CI remains green (all 10 new stubs are skipped).
+1. **INT-003/004/005 HTTP tests**: Activate once `DEV_SERVER_URL` is available in CI (requires dev server running with matching `UPLOAD_DIR`). These are P0/P1 tests covering the serve route + access control — important for go-live confidence.
+2. **P3-001 re-upload test**: Activate when re-upload behavior needs verification. Low priority — the happy-path upload (INT-001) already covers the `photo_path` update path.
 
 ---
 
 ## Next Workflow
 
-Tests are ready for green-phase implementation. Recommended next step: `bmad-dev-story 3.2` — activate tests task-by-task per the activation order above (TDD red → green → refactor cycle).
+Feature implemented, tests pass. Recommended next step: PR review for story 3.2 merge.

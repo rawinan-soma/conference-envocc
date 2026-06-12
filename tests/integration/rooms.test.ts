@@ -849,6 +849,43 @@ describe('Story 3.1 — Static Source Assertion: requireAdmin guard registered i
 // STORY 3.2 — Room Photo Upload
 // ===========================================================================
 //
+// Shared test helpers (Story 3.2)
+
+/**
+ * Returns a minimal 22-byte JPEG buffer (JFIF APP0 marker) — sufficient for
+ * MIME-type and magic-byte validation in uploadRoomPhoto() tests.
+ */
+function makeJpegBuffer(): Buffer {
+	return Buffer.from([
+		0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+		0x00, 0x01, 0x00, 0x00, 0xff, 0xd9
+	]);
+}
+
+/**
+ * Creates a fresh temp directory, sets UPLOAD_DIR to it, runs `fn`, then
+ * restores the original UPLOAD_DIR value and removes the temp directory.
+ * Used by service-level upload tests that need an isolated UPLOAD_DIR.
+ */
+async function withTempUploadDir<T>(prefix: string, fn: (dir: string) => Promise<T>): Promise<T> {
+	const { mkdtemp, rm } = await import('fs/promises');
+	const { join } = await import('path');
+	const { tmpdir } = await import('os');
+	const uploadDir = await mkdtemp(join(tmpdir(), prefix));
+	const originalUploadDir = process.env['UPLOAD_DIR'];
+	process.env['UPLOAD_DIR'] = uploadDir;
+	try {
+		return await fn(uploadDir);
+	} finally {
+		if (originalUploadDir === undefined) {
+			delete process.env['UPLOAD_DIR'];
+		} else {
+			process.env['UPLOAD_DIR'] = originalUploadDir;
+		}
+		await rm(uploadDir, { recursive: true, force: true });
+	}
+}
+//
 // Test IDs (from test-design-epic-3.md + story 3.2 dev notes):
 //   P0:
 //   - 3.2-INT-001: Admin uploadRoomPhoto() → file on volume, photo_path in DB, audit_log row [P0]
@@ -969,8 +1006,7 @@ describe('Story 3.2 — Photo Upload: Admin uploads a photo → file on volume, 
 	});
 
 	test('[P0] 3.2-INT-001 — uploadRoomPhoto() writes file to UPLOAD_DIR, saves photo_path on room row, and writes audit_log in same transaction', async () => {
-		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
-		// Activate after Task 3.2 (uploadRoomPhoto() implemented in room-service.ts).
+		// ACTIVATED — uploadRoomPhoto() implemented. Story 3.2 complete (feat: commit 88e89ff).
 		//
 		// AC-1: Given an existing room and I am an admin, When I upload an image file
 		//       (JPEG/PNG/WebP, ≤10MB), Then the file is stored on the on-prem volume at
@@ -978,15 +1014,13 @@ describe('Story 3.2 — Photo Upload: Admin uploads a photo → file on volume, 
 		//       row, and an audit_log entry (entity='room', action='upload_photo', actor_id,
 		//       diff containing the new path) is written in the same transaction.
 		//
-		// Strategy: service-level call (no HTTP needed). Set UPLOAD_DIR to a temp directory
-		// so no real filesystem side effects. Assert: (1) file written to UPLOAD_DIR,
-		// (2) room.photoPath updated in DB, (3) audit_log row written.
+		// Strategy: service-level call (no HTTP needed). UPLOAD_DIR set to isolated temp dir
+		// via withTempUploadDir(). Assert: (1) file written, (2) photo_path in DB, (3) audit_log.
 
 		const { createRoom, uploadRoomPhoto } =
 			await import('../../src/lib/server/services/room-service.js');
-		const { mkdtemp, readFile, rm } = await import('fs/promises');
+		const { readFile } = await import('fs/promises');
 		const { join } = await import('path');
-		const { tmpdir } = await import('os');
 
 		const client = await pool.connect();
 		let actorId: string;
@@ -1005,17 +1039,8 @@ describe('Story 3.2 — Photo Upload: Admin uploads a photo → file on volume, 
 			client.release();
 		}
 
-		// Use a temp directory for UPLOAD_DIR so we don't pollute the real volume
-		const uploadDir = await mkdtemp(join(tmpdir(), 'tea-atdd-3.2-'));
-		const originalUploadDir = process.env['UPLOAD_DIR'];
-		process.env['UPLOAD_DIR'] = uploadDir;
-
-		try {
-			// Create a minimal 1x1 JPEG in memory (valid JPEG magic bytes)
-			const jpegData = Buffer.from([
-				0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00,
-				0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9
-			]);
+		await withTempUploadDir('tea-atdd-3.2-', async (uploadDir) => {
+			const jpegData = makeJpegBuffer();
 
 			const updated = await uploadRoomPhoto(actorId, roomId, {
 				data: jpegData,
@@ -1073,14 +1098,7 @@ describe('Story 3.2 — Photo Upload: Admin uploads a photo → file on volume, 
 
 			const diff = auditRow?.diff as Record<string, unknown>;
 			expect(diff, 'diff must contain photoPath key').toHaveProperty('photoPath');
-		} finally {
-			if (originalUploadDir === undefined) {
-				delete process.env['UPLOAD_DIR'];
-			} else {
-				process.env['UPLOAD_DIR'] = originalUploadDir;
-			}
-			await rm(uploadDir, { recursive: true, force: true });
-		}
+		});
 	});
 });
 
@@ -1094,24 +1112,18 @@ describe('Story 3.2 — Photo Upload Validation: Non-image MIME type rejected by
 	});
 
 	test('[P1] 3.2-INT-002 — uploadRoomPhoto() with non-image MIME type throws typed validation error and writes no file', async () => {
-		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
-		// Activate after Task 3.2 (MIME validation implemented in uploadRoomPhoto()).
+		// ACTIVATED — MIME validation implemented. Story 3.2 complete (feat: commit 88e89ff).
 		//
 		// AC-2: Given a file upload with a non-image MIME type (e.g., .txt, .pdf, .php),
-		//       When I submit the upload form, Then the server returns HTTP 422, no file
-		//       is written to disk, and the rooms row is unchanged.
+		//       When I submit the upload form, Then no file is written to disk and the rooms
+		//       row is unchanged. (HTTP 422 is the form-action layer — this is a service test.)
 		//
 		// Strategy: SERVICE-LEVEL test — call uploadRoomPhoto() with non-image MIME and
 		// assert it THROWS a typed validation error. Also assert no file was written.
-		// NOTE: Do NOT assert HTTP 422 here — 422 is the HTTP form-action layer (Task 6).
-		// Per story task 3.1: "3.2-INT-002 is a service-level test: call uploadRoomPhoto()
-		// with a non-image MIME type and assert it throws a typed validation error."
 
 		const { createRoom, uploadRoomPhoto } =
 			await import('../../src/lib/server/services/room-service.js');
-		const { mkdtemp, readdir, rm } = await import('fs/promises');
-		const { join } = await import('path');
-		const { tmpdir } = await import('os');
+		const { readdir } = await import('fs/promises');
 
 		const client = await pool.connect();
 		let actorId: string;
@@ -1130,11 +1142,7 @@ describe('Story 3.2 — Photo Upload Validation: Non-image MIME type rejected by
 			client.release();
 		}
 
-		const uploadDir = await mkdtemp(join(tmpdir(), 'tea-atdd-3.2-mime-'));
-		const originalUploadDir = process.env['UPLOAD_DIR'];
-		process.env['UPLOAD_DIR'] = uploadDir;
-
-		try {
+		await withTempUploadDir('tea-atdd-3.2-mime-', async (uploadDir) => {
 			const textFileData = Buffer.from('This is a text file — not an image');
 
 			// Assert that uploadRoomPhoto throws for a non-image MIME type
@@ -1174,14 +1182,7 @@ describe('Story 3.2 — Photo Upload Validation: Non-image MIME type rejected by
 				}),
 				'uploadRoomPhoto() must throw for application/pdf MIME type'
 			).rejects.toThrow();
-		} finally {
-			if (originalUploadDir === undefined) {
-				delete process.env['UPLOAD_DIR'];
-			} else {
-				process.env['UPLOAD_DIR'] = originalUploadDir;
-			}
-			await rm(uploadDir, { recursive: true, force: true });
-		}
+		});
 	});
 });
 
@@ -1198,9 +1199,8 @@ describe('Story 3.2 — Photo Serve: Authenticated admin can retrieve uploaded p
 		'[P1] 3.2-INT-003 — Authenticated admin GET /rooms/[id]/photo → HTTP 200 with Content-Type: image/*',
 		{ timeout: 15000 },
 		async () => {
-			// THIS TEST WILL FAIL — photo serve route not yet implemented (Task 5).
-			// Activate after Task 5.1 (+server.ts) + Task 5.2.
-			// Requires DEV_SERVER_URL + AUTH_SECRET in environment.
+			// ACTIVATED — photo serve route implemented. Story 3.2 complete (feat: commit 88e89ff).
+			// Requires DEV_SERVER_URL + AUTH_SECRET in environment (skipped otherwise).
 			//
 			// AC-3: Given an authenticated internal user (admin or organizer), When they GET
 			//       /rooms/[id]/photo, Then the server streams the image with the correct
@@ -1208,10 +1208,12 @@ describe('Story 3.2 — Photo Serve: Authenticated admin can retrieve uploaded p
 			//
 			// Strategy: Upload a photo via service-level call (sets photo_path in DB),
 			// then HTTP GET /rooms/[id]/photo with admin session cookie → assert 200 + image/*.
+			//
+			// Note: uploadDir is intentionally not cleaned after this test — the dev server
+			// needs the file at uploadDir to serve the /rooms/[id]/photo response.
 
 			const { createRoom, uploadRoomPhoto } =
 				await import('../../src/lib/server/services/room-service.js');
-			const { mkdtemp, rm } = await import('fs/promises');
 			const { join } = await import('path');
 			const { tmpdir } = await import('os');
 
@@ -1235,18 +1237,14 @@ describe('Story 3.2 — Photo Serve: Authenticated admin can retrieve uploaded p
 				client.release();
 			}
 
-			// Upload a photo via service — UPLOAD_DIR must match the dev server's config.
+			// UPLOAD_DIR must match what the dev server is configured to read from.
+			// If DEV_SERVER_URL is set, UPLOAD_DIR should also be set to the same path.
 			const uploadDir = process.env['UPLOAD_DIR'] ?? join(tmpdir(), 'tea-atdd-3.2-serve');
 			const originalUploadDir = process.env['UPLOAD_DIR'];
 			process.env['UPLOAD_DIR'] = uploadDir;
 
-			const tempDir = await mkdtemp(join(tmpdir(), 'tea-atdd-3.2-serve-'));
-
 			try {
-				const jpegData = Buffer.from([
-					0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00,
-					0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9
-				]);
+				const jpegData = makeJpegBuffer();
 
 				await uploadRoomPhoto(actorId, roomId, {
 					data: jpegData,
@@ -1276,7 +1274,7 @@ describe('Story 3.2 — Photo Serve: Authenticated admin can retrieve uploaded p
 				} else {
 					process.env['UPLOAD_DIR'] = originalUploadDir;
 				}
-				await rm(tempDir, { recursive: true, force: true });
+				// uploadDir is intentionally not cleaned — dev server needs the file to serve it.
 			}
 		}
 	);
@@ -1295,8 +1293,8 @@ describe('Story 3.2 — Photo Access Control: Unauthenticated GET /rooms/[id]/ph
 		'[P0] 3.2-INT-004 — Unauthenticated GET /rooms/[id]/photo → HTTP 302 (redirect to /login) or 403',
 		{ timeout: 15000 },
 		async () => {
-			// THIS TEST WILL FAIL — photo serve route + routeGuard not yet implemented (Task 4 + 5).
-			// Activate after Task 4.2 (routeGuard pushed in hooks.server.ts) and Task 5.1.
+			// ACTIVATED — photo serve route + routeGuard implemented. Story 3.2 complete (feat: commit 88e89ff).
+			// Requires DEV_SERVER_URL in environment (skipped otherwise).
 			//
 			// AC-4: Given an unauthenticated request, When they GET /rooms/[id]/photo, Then
 			//       the server returns a redirect to /login (302) or 403.
@@ -1361,8 +1359,8 @@ describe('Story 3.2 — Photo Access Control: Authenticated organizer GET /rooms
 		'[P1] 3.2-INT-005 — Authenticated non-admin organizer GET /rooms/[id]/photo → HTTP 200 (requireUser, not requireAdmin)',
 		{ timeout: 15000 },
 		async () => {
-			// THIS TEST WILL FAIL — photo serve route not yet implemented (Task 5).
-			// Activate after Task 5.1 (+server.ts with requireUser guard) + Task 5.2.
+			// ACTIVATED — photo serve route implemented. Story 3.2 complete (feat: commit 88e89ff).
+			// Requires DEV_SERVER_URL in environment (skipped otherwise).
 			//
 			// AC-3: Authenticated internal user (admin OR organizer) → 200.
 			//
@@ -1372,10 +1370,11 @@ describe('Story 3.2 — Photo Access Control: Authenticated organizer GET /rooms
 			//   - GET /rooms/[id]/photo uses requireUser (any authenticated user → 200).
 			//   - Only the UPLOAD action (/admin/rooms/[id]/photo POST) is requireAdmin.
 			//   - Story purpose: "so that organizers can recognize the space" (AC-3, FR-061).
+			//
+			// Note: uploadDir is intentionally not cleaned — dev server needs the file to serve it.
 
 			const { createRoom, uploadRoomPhoto } =
 				await import('../../src/lib/server/services/room-service.js');
-			const { mkdtemp, rm } = await import('fs/promises');
 			const { join } = await import('path');
 			const { tmpdir } = await import('os');
 
@@ -1401,17 +1400,13 @@ describe('Story 3.2 — Photo Access Control: Authenticated organizer GET /rooms
 				client.release();
 			}
 
+			// UPLOAD_DIR must match what the dev server is configured to read from.
 			const uploadDir = process.env['UPLOAD_DIR'] ?? join(tmpdir(), 'tea-atdd-3.2-org');
 			const originalUploadDir = process.env['UPLOAD_DIR'];
 			process.env['UPLOAD_DIR'] = uploadDir;
 
-			const tempDir = await mkdtemp(join(tmpdir(), 'tea-atdd-3.2-org-'));
-
 			try {
-				const jpegData = Buffer.from([
-					0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00,
-					0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9
-				]);
+				const jpegData = makeJpegBuffer();
 
 				await uploadRoomPhoto(actorId, roomId, {
 					data: jpegData,
@@ -1445,7 +1440,7 @@ describe('Story 3.2 — Photo Access Control: Authenticated organizer GET /rooms
 				} else {
 					process.env['UPLOAD_DIR'] = originalUploadDir;
 				}
-				await rm(tempDir, { recursive: true, force: true });
+				// uploadDir is intentionally not cleaned — dev server needs the file to serve it.
 			}
 		}
 	);
@@ -1457,8 +1452,7 @@ describe('Story 3.2 — Photo Access Control: Authenticated organizer GET /rooms
 
 describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR resolved from env var, not hardcoded (AC-6, R-005)', () => {
 	test('[P1] 3.2-UNIT-001 — room-service.ts resolves UPLOAD_DIR from process.env, never from a hardcoded path', async () => {
-		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
-		// Activate after Task 3.2 (uploadRoomPhoto() using process.env['UPLOAD_DIR']).
+		// ACTIVATED — uploadRoomPhoto() implemented. Story 3.2 complete (feat: commit 88e89ff).
 		//
 		// AC-6: Given the upload implementation, When UPLOAD_DIR is set via env var,
 		//       Then the upload directory is resolved exclusively from that env var
@@ -1522,8 +1516,7 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 	});
 
 	test('[P2] 3.2-INT-006 — uploadRoomPhoto() → file content at UPLOAD_DIR/<photoPath> matches uploaded data', async () => {
-		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
-		// Activate after Task 3.2 (uploadRoomPhoto() writes file to UPLOAD_DIR).
+		// ACTIVATED — uploadRoomPhoto() implemented. Story 3.2 complete (feat: commit 88e89ff).
 		//
 		// AC-1 + R-005: The uploaded file is stored at a path derived from UPLOAD_DIR
 		//               and that path is recorded in photo_path. The content at that
@@ -1534,9 +1527,8 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 
 		const { createRoom, uploadRoomPhoto } =
 			await import('../../src/lib/server/services/room-service.js');
-		const { mkdtemp, readFile, rm } = await import('fs/promises');
+		const { readFile } = await import('fs/promises');
 		const { join } = await import('path');
-		const { tmpdir } = await import('os');
 
 		const client = await pool.connect();
 		let actorId: string;
@@ -1555,11 +1547,7 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 			client.release();
 		}
 
-		const uploadDir = await mkdtemp(join(tmpdir(), 'tea-atdd-3.2-persist-'));
-		const originalUploadDir = process.env['UPLOAD_DIR'];
-		process.env['UPLOAD_DIR'] = uploadDir;
-
-		try {
+		await withTempUploadDir('tea-atdd-3.2-persist-', async (uploadDir) => {
 			// Use a PNG with distinctive magic bytes to verify read-back fidelity
 			const pngData = Buffer.from([
 				0x89,
@@ -1629,14 +1617,7 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 				Buffer.compare(pngData, readFromDb),
 				'File accessible via DB-recorded path must match original upload data'
 			).toBe(0);
-		} finally {
-			if (originalUploadDir === undefined) {
-				delete process.env['UPLOAD_DIR'];
-			} else {
-				process.env['UPLOAD_DIR'] = originalUploadDir;
-			}
-			await rm(uploadDir, { recursive: true, force: true });
-		}
+		});
 	});
 });
 
@@ -1646,8 +1627,7 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 
 describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR env var matches volume mount in compose.yaml (AC-6, R-005)', () => {
 	test('[P2] 3.2-UNIT-002 — compose.yaml declares UPLOAD_DIR env var and a named uploads volume mounted at that path', async () => {
-		// THIS TEST WILL FAIL — compose.yaml not yet updated with UPLOAD_DIR + volume (Task 2).
-		// Activate after Task 2.3 (UPLOAD_DIR env var + uploads volume declared in compose.yaml).
+		// ACTIVATED — compose.yaml updated with UPLOAD_DIR + uploads volume. Story 3.2 complete (feat: commit 88e89ff).
 		//
 		// AC-6 + R-005: The upload directory is resolved from UPLOAD_DIR env var (12-factor).
 		//               compose.yaml must declare a named volume and mount it at the path
@@ -1712,8 +1692,8 @@ describe('Story 3.2 — Photo Re-upload: Re-uploading replaces stored path (AC-1
 	});
 
 	test.skip('[P3] 3.2-P3-001 — uploadRoomPhoto() called twice on same room → photo_path updated to new path, new file readable', async () => {
-		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
-		// Activate optionally after Task 3.2. P3 priority — run on-demand only.
+		// P3 priority — activate on-demand when re-upload behavior needs verification.
+		// uploadRoomPhoto() is implemented; this test remains test.skip() as a backlog item.
 		//
 		// Story P3-001: Overwriting a photo (uploading again) replaces stored file and path.
 		// The DB photo_path must point to the latest upload; the new file must be readable.
@@ -1724,9 +1704,8 @@ describe('Story 3.2 — Photo Re-upload: Re-uploading replaces stored path (AC-1
 
 		const { createRoom, uploadRoomPhoto } =
 			await import('../../src/lib/server/services/room-service.js');
-		const { mkdtemp, readFile, rm } = await import('fs/promises');
+		const { readFile } = await import('fs/promises');
 		const { join } = await import('path');
-		const { tmpdir } = await import('os');
 
 		const client = await pool.connect();
 		let actorId: string;
@@ -1745,16 +1724,10 @@ describe('Story 3.2 — Photo Re-upload: Re-uploading replaces stored path (AC-1
 			client.release();
 		}
 
-		const uploadDir = await mkdtemp(join(tmpdir(), 'tea-atdd-3.2-reupload-'));
-		const originalUploadDir = process.env['UPLOAD_DIR'];
-		process.env['UPLOAD_DIR'] = uploadDir;
-
-		try {
-			// Two distinct JPEG buffers with differing bytes so read-back is unambiguous
-			const jpegData1 = Buffer.from([
-				0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00,
-				0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9
-			]);
+		await withTempUploadDir('tea-atdd-3.2-reupload-', async (uploadDir) => {
+			// Two distinct JPEG buffers with differing bytes so read-back is unambiguous.
+			// jpegData1 uses makeJpegBuffer(); jpegData2 has different marker bytes.
+			const jpegData1 = makeJpegBuffer();
 			const jpegData2 = Buffer.from([
 				0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x02, 0x02, 0x00, 0x00,
 				0x02, 0x00, 0x02, 0x00, 0x00, 0xff, 0xd9
@@ -1799,13 +1772,6 @@ describe('Story 3.2 — Photo Re-upload: Re-uploading replaces stored path (AC-1
 			expect(dbResult.rows[0]?.photo_path, 'DB photo_path must be updated to the new path').toBe(
 				path2
 			);
-		} finally {
-			if (originalUploadDir === undefined) {
-				delete process.env['UPLOAD_DIR'];
-			} else {
-				process.env['UPLOAD_DIR'] = originalUploadDir;
-			}
-			await rm(uploadDir, { recursive: true, force: true });
-		}
+		});
 	});
 });
