@@ -246,7 +246,7 @@ describe('Story 3.1 — Room Create: Admin creates a room and it appears in the 
 		expect(created.floor, 'Room floor must match input').toBe(input.floor);
 		expect(created.capacity, 'Room capacity must match input').toBe(input.capacity);
 		expect(created.features, 'Room features must match input').toEqual(
-			expect.arrayContaining(input.features)
+			expect.arrayContaining([...input.features])
 		);
 		expect(created.features.length, 'Features array length must match').toBe(input.features.length);
 
@@ -403,7 +403,7 @@ describe('Story 3.1 — Room Edit: Submitting edit form updates the room row (AC
 		expect(updated.floor, 'Room floor must reflect the update').toBe(updatedInput.floor);
 		expect(updated.capacity, 'Room capacity must reflect the update').toBe(updatedInput.capacity);
 		expect(updated.features, 'Room features must reflect the update').toEqual(
-			expect.arrayContaining(updatedInput.features)
+			expect.arrayContaining([...updatedInput.features])
 		);
 
 		// Verify via getRoomById
