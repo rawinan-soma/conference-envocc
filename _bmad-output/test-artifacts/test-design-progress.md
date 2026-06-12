@@ -10,6 +10,7 @@ stepsCompleted:
 lastStep: 'step-05-generate-output'
 nextStep: ''
 lastSaved: '2026-06-12'
+epicTwoRevision: v3
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -144,3 +145,47 @@ Revision: v2 (2026-06-12) — updated post Stories 2.1, 2.2, 2.3, 2.4, 2.6 compl
 R-001, R-004, R-005 mitigated. R-002, R-003, R-006 open (Stories 2.5/2.7).
 Status column added to all coverage tables. Test file inventory added to appendix.
 23 E2E tests remain skipped; 12 auth-guard todos; `idor-template.ts` not yet created.
+
+---
+
+# Epic 2 Test Design Run (v3 Update) — 2026-06-12
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "Epic 2 Authorization & Session Management" + sprint-status.yaml present)
+- **Epic**: Epic 2 — Identity & Access (7 stories; 2.1–2.6 done; 2.7 backlog)
+- **Prerequisites confirmed**: Story 2.5 implementation doc + test review loaded; sprint-status confirms PR #111 merged
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Better Auth + Drizzle + PostgreSQL + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **New since v2**: Story 2.5 done (PR #111) — `auth-guard.test.ts` activated (8 tests); `mock-event.ts` extracted; code review grade B (86/100)
+- **auth-guard.test.ts confirmed**: 8 tests (6 structural always-run + 2 HTTP `test.skipIf`); 0 todos remaining
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+- R-001 (dev bypass in production): **MITIGATED** ✅ — unchanged from v2
+- R-002 (guard dispatcher): **MITIGATED** ✅ — Story 2.5 done; `auth-guard.test.ts` active; 8 tests green
+- R-003 (IDOR bypass): **OPEN** — `idor-template.ts` not yet created; awaiting Story 2.7
+- R-004 (session timeout): **MITIGATED** ✅ — unchanged from v2
+- R-005 (profile gate): **MITIGATED** ✅ — unchanged from v2
+- R-006 (guard extensibility): **MITIGATED** ✅ — Story 2.5 done; `2.5-UNIT-001` green; code review sign-off
+- R-008 (email mutability): **MITIGATED** ✅ — unchanged from v2
+
+## Step 4: Coverage Plan
+
+- P0: 13 active, 1 planned (Story 2.7) — all Story 2.5 P0 tests now active
+- P1: 15 active, 2 skip (E2E Playwright webServer pending)
+- P2: 3 active, 1 todo (on-demand), 1 planned (2.7), 3 skip
+- P3: 3 todo/skip (all on-demand)
+- Remaining effort: ~8–16h (~1–2 engineering days)
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-2.md`
+Revision: v3 (2026-06-12) — updated post Story 2.5 completion (PR #111).
+R-001, R-002, R-004, R-005, R-006, R-008 all mitigated. R-003 open (Story 2.7 only).
+auth-guard.test.ts: 8 active tests; mock-event.ts helper extracted; test file inventory updated.
+13/14 P0 tests active. Only Story 2.7 work (IDOR template) remains before Epic 2 closes.
