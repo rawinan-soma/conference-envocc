@@ -324,7 +324,10 @@ describe('Story 3.1 — Room Create Validation: Empty name returns 422, no row c
 				'features[0]': 'projector'
 			}).toString();
 
-			const response = await fetch(`${DEV_SERVER_URL}/admin/rooms`, {
+			// SvelteKit named-action form POSTs require the ?/actionName query param.
+			// POSTing without it bypasses the action and hits no handler, resulting in a
+			// 403 from the admin route guard instead of the expected 422 validation error.
+			const response = await fetch(`${DEV_SERVER_URL}/admin/rooms?/create`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
@@ -463,6 +466,9 @@ describe('Story 3.1 — Authorization: Non-admin organizer POST room create → 
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 				expectedDenialStatuses: [403]
 			});
+			// testOwnershipEnforcement throws on failure; reaching here means the 403 was enforced.
+			// expect.assertions is required by vitest requireAssertions: true global config.
+			expect(true).toBe(true);
 		}
 	);
 });
@@ -777,6 +783,9 @@ describe('Story 3.1 — Authorization: Non-admin PATCH room edit → 403 (AC-4, 
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 				expectedDenialStatuses: [403]
 			});
+			// testOwnershipEnforcement throws on failure; reaching here means the 403 was enforced.
+			// expect.assertions is required by vitest requireAssertions: true global config.
+			expect(true).toBe(true);
 		}
 	);
 });
