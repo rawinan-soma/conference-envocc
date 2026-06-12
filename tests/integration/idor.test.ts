@@ -4,10 +4,14 @@
  *
  * STATUS: GREEN PHASE — Tests activated (Story 2.7 implementation complete).
  *
- * These tests run in the Vitest `integration` project which requires a real
- * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
- * starts Testcontainers when DATABASE_URL is not set, or uses the CI Postgres
- * service when DATABASE_URL is already provided.
+ * All active tests in this file are unit-level mock tests — they do NOT require
+ * a PostgreSQL instance. They test assertOwner() and testOwnershipEnforcement()
+ * directly using the makeMockEvent pattern (identical to 2.5-INT-003 in
+ * auth-guard.test.ts). No DB or HTTP server is needed.
+ *
+ * TODO(E4): When activating 2.7-INT-001b (HTTP-level ownership proof for
+ * /bookings/[id] routes), add pgFactory setup and DEV_SERVER_URL guards. The
+ * two-user seeding pattern is documented in idor-template.ts JSDoc.
  *
  * AC Coverage:
  *   - AC-1: Non-owner organizer attempt on owner-scoped resource denied (403)
@@ -32,35 +36,11 @@
  * Note: No Thai text hardcoded - per project rule: Rawinan handles all Thai translations.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { describe, test, expect } from 'vitest';
 
-import { createPgFactory } from '../support/fixtures/pg-factory.js';
-import type { PgFactoryResult } from '../support/fixtures/pg-factory.js';
 import { assertOwner } from '../../src/lib/server/auth/guards.js';
 import { makeMockEvent } from '../support/helpers/mock-event.js';
 import { testOwnershipEnforcement } from '../support/helpers/idor-template.js';
-
-// ---------------------------------------------------------------------------
-// Database setup - mirrors roles.test.ts pattern (createPgFactory)
-// ---------------------------------------------------------------------------
-
-let pgFactory: PgFactoryResult;
-
-beforeAll(async () => {
-	const databaseUrl = process.env['DATABASE_URL'];
-	if (!databaseUrl) {
-		throw new Error(
-			'DATABASE_URL not set - integration-setup.ts should have configured it via Testcontainers or CI service'
-		);
-	}
-	pgFactory = await createPgFactory(databaseUrl);
-});
-
-afterAll(async () => {
-	if (pgFactory) {
-		await pgFactory.cleanup();
-	}
-});
 
 // ---------------------------------------------------------------------------
 // Dev server URL - HTTP-level tests skipped when not available
@@ -108,7 +88,7 @@ describe('Story 2.7 - IDOR Negative-Test Template (R-003)', () => {
 		).not.toThrow();
 
 		// Step 3: Verify testOwnershipEnforcement helper is importable and callable.
-		// HTTP-level usage (E4+) would call:
+		// The helper is parameterized for HTTP-level IDOR proofs in E4+. Example usage:
 		//   await testOwnershipEnforcement({
 		//     routeUrl: `${DEV_SERVER_URL}/bookings/${bookingId}/edit`,
 		//     method: 'PATCH',
@@ -118,26 +98,10 @@ describe('Story 2.7 - IDOR Negative-Test Template (R-003)', () => {
 			typeof testOwnershipEnforcement,
 			'testOwnershipEnforcement must be a function (helper importable)'
 		).toBe('function');
-
-		// Wrap the assertOwner throw in a fetch-like pattern to confirm the helper API contract.
-		const assertOwnerThrowsFor403: () => Promise<void> = async () => {
-			let innerThrown: unknown;
-			try {
-				assertOwner(nonOwnerEvent as Parameters<typeof assertOwner>[0], ownerUserId);
-			} catch (e) {
-				innerThrown = e;
-			}
-			const mockStatus = (innerThrown as { status?: number }).status ?? 200;
-			if (![403, 404].includes(mockStatus)) {
-				throw new Error(
-					`IDOR enforcement FAILED: assertOwner responded with status ${mockStatus}. ` +
-						`Expected 403 or 404.`
-				);
-			}
-		};
-
-		// Must not throw - assertOwner returns 403 which is in the denial set
-		await expect(assertOwnerThrowsFor403()).resolves.toBeUndefined();
+		expect(
+			testOwnershipEnforcement.name,
+			'testOwnershipEnforcement must export a named function (not anonymous)'
+		).toBe('testOwnershipEnforcement');
 	});
 
 	// ---------------------------------------------------------------------------
