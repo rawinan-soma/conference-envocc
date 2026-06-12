@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-11T18:00:00+07:00 (reconciled: PR #106 merged for story 2.1; stories 2.2, 2.3, 2.4, 2.6 now unblocked)_
+_Last updated: 2026-06-12T08:00:00+07:00 (reconciled: PRs #107/2.2, #108/2.4, #109/2.3, #110/2.6 all merged; story 2.5 now unblocked)_
 
 ## Stories
 
@@ -15,11 +15,11 @@ _Last updated: 2026-06-11T18:00:00+07:00 (reconciled: PR #106 merged for story 2
 | 1.8 | 1 | Test harness & CI | done | #8 | #104 | merged | 1.3, 1.7 | ✅ Yes (done) |
 | 1.9 | 1 | Walking-skeleton vertical slice | done | #9 | #105 | merged | 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 | ✅ Yes (done) |
 | 2.1 | 2 | Sign in with Authentik (OIDC) | done | #10 | #106 | merged | epic 1 complete | ✅ Yes (done) |
-| 2.2 | 2 | Local dev auth bypass | backlog | #11 | — | — | 2.1 | ✅ Yes |
-| 2.3 | 2 | Self-service profile | backlog | #12 | — | — | 2.1 | ✅ Yes |
-| 2.4 | 2 | Roles & assignment model | backlog | #13 | — | — | 2.1 | ✅ Yes |
-| 2.5 | 2 | Authorization guard dispatcher | backlog | #14 | — | — | 2.1, 2.4 | ❌ No (awaiting 2.4) |
-| 2.6 | 2 | Fixed session timeout | backlog | #15 | — | — | 2.1 | ✅ Yes |
+| 2.2 | 2 | Local dev auth bypass | done | #11 | #107 | merged | 2.1 | ✅ Yes (done) |
+| 2.3 | 2 | Self-service profile | done | #12 | #109 | merged | 2.1 | ✅ Yes (done) |
+| 2.4 | 2 | Roles & assignment model | done | #13 | #108 | merged | 2.1 | ✅ Yes (done) |
+| 2.5 | 2 | Authorization guard dispatcher | backlog | #14 | — | — | 2.1, 2.4 | ✅ Yes |
+| 2.6 | 2 | Fixed session timeout | done | #15 | #110 | merged | 2.1 | ✅ Yes (done) |
 | 2.7 | 2 | Authorization negative-test pattern & audit on mutations | backlog | #16 | — | — | 2.5 | ❌ No (awaiting 2.5) |
 | 3.1 | 3 | Create and edit rooms | backlog | #17 | — | — | epic 2 complete | ❌ No (epic 2 not complete) |
 | 3.2 | 3 | Room photo upload | backlog | #18 | — | — | 3.1 | ❌ No (epic 2 not complete) |
@@ -66,13 +66,13 @@ _Last updated: 2026-06-11T18:00:00+07:00 (reconciled: PR #106 merged for story 2
 - **1.8** depends on: 1.3, 1.7
 - **1.9** depends on: 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8
 
-### Epic 2 (in-progress — 2.1 merged; 2.2, 2.3, 2.4, 2.6 unblocked)
+### Epic 2 (in-progress — 2.1/2.2/2.3/2.4/2.6 merged; 2.5 unblocked; 2.7 blocked behind 2.5)
 - **2.1** depends on: epic 1 complete ✅ **DONE (PR #106 merged)**
-- **2.2** depends on: 2.1 ✅ **READY**
-- **2.3** depends on: 2.1 ✅ **READY**
-- **2.4** depends on: 2.1 ✅ **READY**
-- **2.5** depends on: 2.1, 2.4
-- **2.6** depends on: 2.1 ✅ **READY**
+- **2.2** depends on: 2.1 ✅ **DONE (PR #107 merged)**
+- **2.3** depends on: 2.1 ✅ **DONE (PR #109 merged)**
+- **2.4** depends on: 2.1 ✅ **DONE (PR #108 merged)**
+- **2.5** depends on: 2.1, 2.4 ✅ **READY**
+- **2.6** depends on: 2.1 ✅ **DONE (PR #110 merged)**
 - **2.7** depends on: 2.5
 
 ### Epic 3 (requires epic 2 complete)
@@ -123,7 +123,7 @@ _Last updated: 2026-06-11T18:00:00+07:00 (reconciled: PR #106 merged for story 2
 
 - **Epic 1:** COMPLETE. All 9 stories merged to main.
 
-- **Epic 2:** Story 2.1 is the entry gate. After 2.1 merges, stories 2.2, 2.3, 2.4, and 2.6 can all start in parallel. Story 2.5 requires 2.4 first. Story 2.7 requires 2.5.
+- **Epic 2:** Stories 2.1–2.4 and 2.6 are all merged. Story 2.5 (Authorization guard dispatcher) is now unblocked (2.4 merged). Story 2.7 requires 2.5 first.
 
 - **Epic 3:** After 3.1 merges, stories 3.2, 3.3, and 3.4 can all start in parallel.
 
@@ -135,8 +135,8 @@ _Last updated: 2026-06-11T18:00:00+07:00 (reconciled: PR #106 merged for story 2
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 to also be merged (which it will be by this point). Story 7.5 requires 2.7. Story 7.6 requires 2.4.
 
-**Current state:** Story 2.1 (Sign in with Authentik OIDC) is merged (PR #106). Stories 2.2, 2.3, 2.4, and 2.6 are all now unblocked and Ready to Work in parallel. Story 2.5 is blocked behind 2.4. Story 2.7 is blocked behind 2.5.
+**Current state:** Stories 2.1 (PR #106), 2.2 (PR #107), 2.4 (PR #108), 2.3 (PR #109), and 2.6 (PR #110) are all merged. Story 2.5 (Authorization guard dispatcher) is now unblocked and Ready to Work. Story 2.7 is still blocked behind 2.5.
 
-**Current bottleneck:** No single bottleneck — 4 stories (2.2, 2.3, 2.4, 2.6) can proceed in parallel. Next sequential gate is 2.4 → 2.5 → 2.7.
+**Current bottleneck:** Story 2.5 is the next gate — once 2.5 merges, 2.7 unblocks, then epic 2 completes and epic 3 can begin. Sequential chain: 2.5 → 2.7 → epic 3.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
