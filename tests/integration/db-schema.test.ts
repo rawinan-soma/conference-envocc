@@ -304,6 +304,72 @@ describe('Story 1.8 — Worker Integration Tests Activated (AC-4)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 3.4-UNIT-001 — room_blocks table + tstzrange column + EXCLUDE constraint exists [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — DB Schema: room_blocks table, during tstzrange column, and EXCLUDE constraint (AC-1, AC-4)', () => {
+	test.skip('[P1] 3.4-UNIT-001 — room_blocks table exists with during tstzrange column and room_blocks_no_overlap EXCLUDE constraint after migration', async () => {
+		// THIS TEST WILL FAIL — room_blocks table and migration not yet created (Task 1).
+		// Activate after Task 1.1–1.3 (room-blocks.ts schema + drizzle/0006_room_blocks.sql migration
+		// applied via bun run db:migrate).
+		//
+		// AC-1: block is persisted in room_blocks
+		// AC-4: EXCLUDE constraint prevents two overlapping blocks for the same room
+		//
+		// Migration drizzle/0006_room_blocks.sql must:
+		//   1. CREATE TABLE room_blocks with a 'during tstzrange NOT NULL' column
+		//   2. ADD CONSTRAINT room_blocks_no_overlap EXCLUDE USING gist (room_id WITH =, during WITH &&)
+		//
+		// Strategy: direct DB assertions using pg_catalog — same pattern as 1.3-INT-001 (bookings EXCLUDE).
+
+		// 1. Assert the room_blocks table exists
+		const tableResult = await pool.query<{ exists: boolean }>(
+			`SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'room_blocks'
+      ) AS exists`
+		);
+		expect(
+			tableResult.rows[0]?.exists,
+			'room_blocks table must exist in the public schema — run migration drizzle/0006_room_blocks.sql'
+		).toBe(true);
+
+		// 2. Assert the during column has type tstzrange
+		const columnResult = await pool.query<{ data_type: string; udt_name: string }>(
+			`SELECT data_type, udt_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'room_blocks'
+         AND column_name = 'during'`
+		);
+		expect(columnResult.rows.length, 'room_blocks.during column must exist').toBe(1);
+		// PostgreSQL reports tstzrange as udt_name 'tstzrange' with data_type 'USER-DEFINED'
+		expect(
+			columnResult.rows[0]?.udt_name,
+			"room_blocks.during column must have udt_name 'tstzrange'"
+		).toBe('tstzrange');
+
+		// 3. Assert the EXCLUDE constraint room_blocks_no_overlap exists
+		const constraintResult = await pool.query<{ conname: string }>(
+			`SELECT conname
+       FROM pg_constraint
+       WHERE conrelid = 'room_blocks'::regclass
+         AND contype = 'x'`
+		);
+		expect(
+			constraintResult.rows.length,
+			'No EXCLUDE constraint found on room_blocks table — migration must include: ' +
+				'ALTER TABLE room_blocks ADD CONSTRAINT room_blocks_no_overlap EXCLUDE USING gist (room_id WITH =, during WITH &&)'
+		).toBeGreaterThan(0);
+
+		const constraintName = constraintResult.rows[0]?.conname;
+		expect(constraintName, "EXCLUDE constraint name must be 'room_blocks_no_overlap'").toBe(
+			'room_blocks_no_overlap'
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // 3.1-UNIT-002 — Partial index on rooms WHERE is_active = true exists [P1]
 // ---------------------------------------------------------------------------
 
