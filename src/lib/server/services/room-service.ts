@@ -206,8 +206,9 @@ export const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'
 
 /**
  * Map from MIME type to file extension for stored filenames.
+ * Exported so the serve route can derive its Content-Type map from the same source.
  */
-const MIME_TO_EXT: Record<(typeof ALLOWED_PHOTO_MIME_TYPES)[number], string> = {
+export const MIME_TO_EXT: Record<(typeof ALLOWED_PHOTO_MIME_TYPES)[number], string> = {
 	'image/jpeg': 'jpg',
 	'image/png': 'png',
 	'image/webp': 'webp'
@@ -279,8 +280,10 @@ export async function uploadRoomPhoto(
 		);
 	}
 
-	// Validate file size
-	const maxBytes = Number(process.env['PHOTO_MAX_BYTES'] ?? String(10 * 1024 * 1024));
+	// Validate file size — guard against NaN from a non-numeric env override
+	const rawMaxBytes = process.env['PHOTO_MAX_BYTES'];
+	const maxBytes =
+		rawMaxBytes && /^\d+$/.test(rawMaxBytes) ? Number(rawMaxBytes) : 10 * 1024 * 1024;
 	if (file.size > maxBytes) {
 		throw new PhotoValidationError(
 			'too_large',

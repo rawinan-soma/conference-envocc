@@ -14,8 +14,11 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 
 import { requireAdmin } from '$lib/server/auth/guards';
-import { PhotoValidationError, uploadRoomPhoto } from '$lib/server/services/room-service';
-import { getRoomById } from '$lib/server/services/room-service';
+import {
+	PhotoValidationError,
+	getRoomById,
+	uploadRoomPhoto
+} from '$lib/server/services/room-service';
 
 import type { Actions, PageServerLoad } from './$types';
 
@@ -57,6 +60,10 @@ export const actions: Actions = {
 		} catch (err: unknown) {
 			if (err instanceof PhotoValidationError) {
 				return fail(422, { code: err.code });
+			}
+			// Room deleted between load and upload — surface a 404 rather than a 500.
+			if (err instanceof Error && err.message.includes('no room row matched')) {
+				error(404, 'Room not found');
 			}
 			throw err;
 		}

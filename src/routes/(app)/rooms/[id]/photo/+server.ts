@@ -14,20 +14,17 @@ import * as path from 'path';
 import { error } from '@sveltejs/kit';
 
 import { requireUser } from '$lib/server/auth/guards';
-import { getRoomById } from '$lib/server/services/room-service';
+import { MIME_TO_EXT, getRoomById } from '$lib/server/services/room-service';
 
 import type { RequestHandler } from './$types';
 
 /**
  * Map from stored file extension to Content-Type header value.
- * Derived from the file extension stored in photo_path (not from the original MIME type
- * submitted at upload time — we trust our own stored filenames).
+ * Derived by inverting MIME_TO_EXT so both maps share the same source of truth.
  */
-const EXT_TO_CONTENT_TYPE: Record<string, string> = {
-	jpg: 'image/jpeg',
-	png: 'image/png',
-	webp: 'image/webp'
-};
+const EXT_TO_CONTENT_TYPE: Record<string, string> = Object.fromEntries(
+	Object.entries(MIME_TO_EXT).map(([mime, ext]) => [ext, mime])
+);
 
 export const GET: RequestHandler = async (event) => {
 	// Belt-and-suspenders: routeGuard in hooks.server.ts already enforces requireUser,
@@ -45,7 +42,10 @@ export const GET: RequestHandler = async (event) => {
 		error(500, 'UPLOAD_DIR is not configured');
 	}
 
-	const fullPath = path.join(uploadDir, room.photoPath);
+	// path.basename() prevents path traversal in case room.photoPath contains separators.
+	// The write path already uses basename; apply the same defence on read.
+	const safeName = path.basename(room.photoPath);
+	const fullPath = path.join(uploadDir, safeName);
 
 	let fileBuffer: Buffer;
 	try {
@@ -58,8 +58,8 @@ export const GET: RequestHandler = async (event) => {
 		throw err;
 	}
 
-	// Derive Content-Type from the stored file extension
-	const ext = room.photoPath.split('.').pop()?.toLowerCase() ?? '';
+	// Derive Content-Type from the stored file extension using the same safe name
+	const ext = path.extname(safeName).slice(1).toLowerCase();
 	const contentType = EXT_TO_CONTENT_TYPE[ext] ?? 'application/octet-stream';
 
 	// Node.js Buffer is a Uint8Array subclass; slice to a plain ArrayBuffer for the
