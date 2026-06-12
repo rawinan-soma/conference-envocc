@@ -1,25 +1,15 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 3.1: Create and Edit Rooms
- * Integration Tests: Room CRUD, validation, authorization, audit log
+ * Integration Tests — Story 3.1: Create and Edit Rooms
+ *                   — Story 3.3: Deactivate a Room
  *
- * TDD RED PHASE: All tests are marked test.skip() (or test.skipIf()) and will remain
- * skipped until the developer activates them task-by-task during implementation.
+ * Room CRUD, validation, authorization, audit log, and soft-delete.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
  * starts Testcontainers when DATABASE_URL is not set, or uses the CI Postgres
  * service when DATABASE_URL is already provided.
  *
- * Activation guide:
- *   1. Remove `test.skip(` → `test(` (or `test.skipIf(` → `test.skipIf(`) for the
- *      current task's test(s).
- *   2. Ensure Postgres is running (via Testcontainers or CI service).
- *   3. Run: `bun run test:integration` — verify it FAILS first (red).
- *   4. Implement the feature (per task in story 3.1).
- *   5. Run again — verify it PASSES (green).
- *   6. Commit passing tests.
- *
- * AC Coverage:
+ * Story 3.1 AC Coverage:
  *   - AC-1: Admin creates a room → saved to DB + appears in room list with correct fields
  *   - AC-2: Edit-room form with changed values → room row updated + new values in list
  *   - AC-3: Empty name → HTTP 422, field-level error, no room row inserted
@@ -27,7 +17,7 @@
  *   - AC-5: Create/edit that commits → audit_log row (entity='room', action, actor_id, diff)
  *   - AC-6: routeGuards registry has requireAdmin guard for /admin/rooms/** pattern
  *
- * Scenario IDs (from test-design-epic-3.md):
+ * Story 3.1 Scenario IDs (from test-design-epic-3.md):
  *   P0:
  *   - 3.1-INT-001: Admin creates room → appears in list [P0]
  *   - 3.1-INT-002: Empty name rejected → 422, no row inserted [P0]
@@ -41,16 +31,31 @@
  *   - 3.1-UNIT-001: requireAdmin guard registered for /admin/rooms/** in routeGuards [P1]
  *   (3.1-UNIT-002 is in db-schema.test.ts — partial index assertion)
  *
+ * Story 3.3 AC Coverage:
+ *   - AC-1: Deactivated room absent from listRooms(); row persists in DB with is_active=false
+ *   - AC-2: Same listRooms() query used by admin list and Epic 4 booking selector
+ *   - AC-3: Non-admin POST /admin/rooms/[id]/deactivate → 403
+ *   - AC-4: deactivateRoom() writes audit_log row (entity='room', action='deactivate', diff)
+ *
+ * Story 3.3 Scenario IDs (from test-design-epic-3.md):
+ *   P0:
+ *   - 3.3-INT-001: Deactivated room absent from listRooms() (AC-1, AC-2) [P0]
+ *   - 3.3-INT-002: Deactivated room row persists in DB with is_active=false (AC-1) [P0]
+ *   P1:
+ *   - 3.3-INT-003: Non-admin POST /admin/rooms/[id]/deactivate → 403 (AC-3) [P1]
+ *   - 3.3-INT-005: deactivateRoom() writes audit_log row (AC-4) [P1]
+ *   (3.3-INT-004 is E4-bounded — booking selector does not exist yet; covered via INT-001/002)
+ *
  * Prerequisites:
  *   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
- *   - Story 3.1 implemented: rooms table, room-service.ts, admin routes, requireAdmin guard
+ *   - Stories 3.1 and 3.3 implemented: rooms table, room-service.ts, admin routes, requireAdmin guard
  *   - drizzle-kit migrate applied (includes rooms table + partial index)
  *   - DEV_SERVER_URL env var for HTTP-level tests (default: http://localhost:3000)
  *   - AUTH_DEV_BYPASS=true for dev server HTTP tests
  *
  * Architecture requirements (from story dev notes):
  *   - Route handlers call room-service.ts — never call Drizzle directly
- *   - Every create/update mutation writes audit_log in the same transaction
+ *   - Every create/update/deactivate mutation writes audit_log in the same transaction
  *   - Admin routes protected by requireAdmin pushed to routeGuards (not per-route inline)
  *   - Dev bypass user has is_admin=false — NOT usable for admin success tests
  *   - HTTP-level admin tests use service-level calls (no auth needed) for success paths
@@ -798,17 +803,12 @@ describe('Story 3.1 — Authorization: Non-admin PATCH room edit → 403 (AC-4, 
 });
 
 // ---------------------------------------------------------------------------
-// Story 3.3 Test Stubs — Deactivate a Room (RED PHASE)
+// Story 3.3 — Deactivate a Room (GREEN)
 // ---------------------------------------------------------------------------
 //
-// All tests below are scaffolded with test.skip() or test.skipIf() and will remain
-// skipped until the developer activates them task-by-task during implementation.
-//
-// Activation guide (from story 3.3 dev notes):
-//   Task 1: Activate 3.3-INT-001, 3.3-INT-002, 3.3-INT-005 → run → expect FAIL
-//            → implement deactivateRoom() → run → expect PASS (green)
-//   Task 2: Activate 3.3-INT-003 → run → expect FAIL
-//            → implement deactivate route → run → expect PASS (green)
+// All tests below are active (no test.skip). deactivateRoom() is implemented
+// and all service-level tests pass. 3.3-INT-003 uses test.skipIf(!DEV_SERVER_URL)
+// for HTTP-level IDOR verification — it correctly skips without a running dev server.
 //
 // AC Coverage:
 //   - AC-1, AC-2: 3.3-INT-001 (deactivated room absent from listRooms())
@@ -830,10 +830,6 @@ describe('Story 3.3 — Room Deactivate: Deactivated room absent from listRooms(
 	});
 
 	test('[P0] 3.3-INT-001 — createRoom() then deactivateRoom() → room absent from listRooms()', async () => {
-		// THIS TEST WILL FAIL — deactivateRoom() not yet exported from room-service.ts (Task 1.2).
-		// Activate after Task 1.1 (write stub) → remove test.skip → expect red.
-		// Then implement deactivateRoom (Task 1.3) → expect green (Task 1.4).
-		//
 		// AC-1: Given a room with no future bookings, When I deactivate it,
 		//       Then it disappears from the bookable room list (listRooms() returns only active rooms).
 		// AC-2: Given a deactivated room, When the room-list query runs,
@@ -891,9 +887,6 @@ describe('Story 3.3 — Room Deactivate: Deactivated room row persists in DB wit
 	});
 
 	test('[P0] 3.3-INT-002 — deactivateRoom() performs soft delete: DB row remains with is_active=false', async () => {
-		// THIS TEST WILL FAIL — deactivateRoom() not yet exported from room-service.ts (Task 1.2).
-		// Activate alongside 3.3-INT-001 (same task group).
-		//
 		// AC-1: Deactivation is a soft delete — the room row remains in the database
 		//       with is_active=false (not hard deleted).
 		//
@@ -963,10 +956,6 @@ describe('Story 3.3 — Authorization: Non-admin POST room deactivate → 403 (A
 		'[P1] 3.3-INT-003 — Non-admin (organizer) POST /admin/rooms/[id]/deactivate → 403 (IDOR proof)',
 		{ timeout: 15000 },
 		async () => {
-			// THIS TEST WILL FAIL — deactivate route not yet implemented (Task 2.2).
-			// Activate after Task 2.1 (write stub).
-			// Then implement the deactivate route (Task 2.2) → expect green (Task 2.3).
-			//
 			// AC-3: Given an authenticated non-admin user (organizer),
 			//       When they attempt POST to /admin/rooms/[id]/deactivate,
 			//       Then the server returns 403.
@@ -1027,9 +1016,6 @@ describe('Story 3.3 — Audit Log: deactivateRoom() writes audit_log row (AC-4)'
 	});
 
 	test('[P1] 3.3-INT-005 — deactivateRoom() writes audit_log row with entity=room, action=deactivate, actor_id, diff.isActive.new===false', async () => {
-		// THIS TEST WILL FAIL — deactivateRoom() not yet exported from room-service.ts (Task 1.2).
-		// Activate alongside 3.3-INT-001 and 3.3-INT-002 (same task group, Task 1).
-		//
 		// AC-4: Given a successful deactivation, When the transaction commits,
 		//       Then an audit_log row is written with entity='room', action='deactivate',
 		//       actor_id, and diff = { isActive: { old: true, new: false } }.
