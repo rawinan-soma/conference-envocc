@@ -771,84 +771,90 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 		await truncateProfileTables();
 	});
 
-	test('[P1] 2.7-INT-002 — Profile form completion → audit_log row written with entity=user_profile, action=create', async () => {
-		// THIS TEST WILL FAIL — profile-service.ts createProfile not yet implemented (Task 3).
-		// Activate after Tasks 3, 5 (profile service + form action creating profile in transaction).
-		//
-		// AC-8: Given a completed profile mutation (create or update),
-		//       When the server action commits the transaction,
-		//       Then an audit_log row is written atomically.
-		//
-		// Risk R-011: Audit-log write missing on profile mutations.
-		//
-		// Strategy:
-		//   1. Seed user with no profile; seed session.
-		//   2. Record audit_log count before POST.
-		//   3. POST /profile/complete with all valid fields.
-		//   4. Assert audit_log count increased by 1.
-		//   5. Assert the new row has entity='user_profile', action='create', actorId=userId.
+	test.skipIf(!process.env['DEV_SERVER_URL'])(
+		'[P1] 2.7-INT-002 — Profile form completion → audit_log row written with entity=user_profile, action=create',
+		// ACTIVE — Story 2.7 done; profile service implemented with audit.
+		// HTTP-based test: requires DEV_SERVER_URL env var pointing to a running SvelteKit dev server.
+		// Skipped when DEV_SERVER_URL is not set (matching the skipIf pattern from auth-guard.test.ts).
+		async () => {
+			// AC-8: Given a completed profile mutation (create or update),
+			//       When the server action commits the transaction,
+			//       Then an audit_log row is written atomically.
+			//
+			// Risk R-011: Audit-log write missing on profile mutations.
+			//
+			// Strategy:
+			//   1. Seed user with no profile; seed session.
+			//   2. Record audit_log count before POST.
+			//   3. POST /profile/complete with all valid fields.
+			//   4. Assert audit_log count increased by 1.
+			//   5. Assert the new row has entity='user_profile', action='create', actorId=userId.
 
-		const client = await pool.connect();
-		try {
-			const { userId } = await seedIncompleteProfileUser(client);
-			const { sessionCookie } = await seedUserSession(client, userId);
+			const client = await pool.connect();
+			try {
+				const { userId } = await seedIncompleteProfileUser(client);
+				const { sessionCookie } = await seedUserSession(client, userId);
 
-			// Count audit_log rows before
-			const countBefore = await client.query<{ count: string }>(
-				`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile'`
-			);
-			const auditCountBefore = parseInt(countBefore.rows[0]?.['count'] ?? '0', 10);
+				// Count audit_log rows before
+				const countBefore = await client.query<{ count: string }>(
+					`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile'`
+				);
+				const auditCountBefore = parseInt(countBefore.rows[0]?.['count'] ?? '0', 10);
 
-			// POST valid profile data
-			const formData = new URLSearchParams({
-				title: 'Mr.',
-				firstName: 'Audit',
-				lastName: 'Tester',
-				phone: '+66801234567',
-				organization: 'Audit Org'
-			});
+				// POST valid profile data
+				const formData = new URLSearchParams({
+					title: 'Mr.',
+					firstName: 'Audit',
+					lastName: 'Tester',
+					phone: '+66801234567',
+					organization: 'Audit Org'
+				});
 
-			await fetch(`${DEV_SERVER_URL}/profile/complete`, {
-				method: 'POST',
-				headers: {
-					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded',
-					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
-				},
-				body: formData.toString(),
-				redirect: 'manual'
-			});
+				await fetch(`${DEV_SERVER_URL}/profile/complete`, {
+					method: 'POST',
+					headers: {
+						Cookie: sessionCookie,
+						'Content-Type': 'application/x-www-form-urlencoded',
+						Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
+					},
+					body: formData.toString(),
+					redirect: 'manual'
+				});
 
-			// Count audit_log rows after
-			const countAfter = await client.query<{ count: string }>(
-				`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile'`
-			);
-			const auditCountAfter = parseInt(countAfter.rows[0]?.['count'] ?? '0', 10);
+				// Count audit_log rows after
+				const countAfter = await client.query<{ count: string }>(
+					`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile'`
+				);
+				const auditCountAfter = parseInt(countAfter.rows[0]?.['count'] ?? '0', 10);
 
-			expect(
-				auditCountAfter,
-				'audit_log count for entity=user_profile must increase by 1 after profile creation'
-			).toBe(auditCountBefore + 1);
+				expect(
+					auditCountAfter,
+					'audit_log count for entity=user_profile must increase by 1 after profile creation'
+				).toBe(auditCountBefore + 1);
 
-			// Assert row content
-			const auditRow = await client.query(
-				// audit_log uses snake_case column names (actor_id, created_at) per migration 0001.
-				`SELECT * FROM audit_log WHERE entity = 'user_profile' AND actor_id = $1 ORDER BY created_at DESC LIMIT 1`,
-				[userId]
-			);
-			expect(auditRow.rowCount, 'audit_log row must exist for this user').toBeGreaterThan(0);
+				// Assert row content
+				const auditRow = await client.query(
+					// audit_log uses snake_case column names (actor_id, created_at) per migration 0001.
+					`SELECT * FROM audit_log WHERE entity = 'user_profile' AND actor_id = $1 ORDER BY created_at DESC LIMIT 1`,
+					[userId]
+				);
+				expect(auditRow.rowCount, 'audit_log row must exist for this user').toBeGreaterThan(0);
 
-			const audit = auditRow.rows[0];
-			expect(audit['entity'], 'audit entity must be user_profile').toBe('user_profile');
-			expect(audit['action'], 'audit action must be create').toBe('create');
-			expect(audit['actor_id'], 'audit actor_id must match the user who submitted the form').toBe(
-				userId
-			);
-			expect(audit['diff'], 'audit diff must be non-null and contain profile fields').toBeTruthy();
-		} finally {
-			client.release();
+				const audit = auditRow.rows[0];
+				expect(audit['entity'], 'audit entity must be user_profile').toBe('user_profile');
+				expect(audit['action'], 'audit action must be create').toBe('create');
+				expect(audit['actor_id'], 'audit actor_id must match the user who submitted the form').toBe(
+					userId
+				);
+				expect(
+					audit['diff'],
+					'audit diff must be non-null and contain profile fields'
+				).toBeTruthy();
+			} finally {
+				client.release();
+			}
 		}
-	});
+	);
 });
 
 // ---------------------------------------------------------------------------
@@ -860,81 +866,86 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 		await truncateProfileTables();
 	});
 
-	test('[P1] 2.7-INT-003 — Profile edit with new phone → audit_log row written with action=update and diff containing changed field', async () => {
-		// THIS TEST WILL FAIL — profile-service.ts updateProfile not yet implemented (Task 3).
-		// Activate after Tasks 3, 6 (profile service + edit route).
-		//
-		// AC-8: When the server action commits the transaction (update),
-		//       an audit_log row is written with action='update' and diff containing
-		//       changed field names/values.
-		//
-		// Risk R-011: Audit log missing on profile mutations.
-		//
-		// Strategy:
-		//   1. Seed user with completed profile; seed session.
-		//   2. Record audit_log count.
-		//   3. POST /profile with an updated phone value.
-		//   4. Assert audit_log count +1 with action='update'.
-		//   5. Assert diff contains the changed phone field.
+	test.skipIf(!process.env['DEV_SERVER_URL'])(
+		'[P1] 2.7-INT-003 — Profile edit with new phone → audit_log row written with action=update and diff containing changed field',
+		// ACTIVE — Story 2.7 done; profile service implemented with audit.
+		// HTTP-based test: requires DEV_SERVER_URL env var pointing to a running SvelteKit dev server.
+		// Skipped when DEV_SERVER_URL is not set (matching the skipIf pattern from auth-guard.test.ts).
+		async () => {
+			// Activate after Tasks 3, 6 (profile service + edit route).
+			//
+			// AC-8: When the server action commits the transaction (update),
+			//       an audit_log row is written with action='update' and diff containing
+			//       changed field names/values.
+			//
+			// Risk R-011: Audit log missing on profile mutations.
+			//
+			// Strategy:
+			//   1. Seed user with completed profile; seed session.
+			//   2. Record audit_log count.
+			//   3. POST /profile with an updated phone value.
+			//   4. Assert audit_log count +1 with action='update'.
+			//   5. Assert diff contains the changed phone field.
 
-		const client = await pool.connect();
-		try {
-			const { userId } = await seedCompletedProfileUser(client);
-			const { sessionCookie } = await seedUserSession(client, userId);
+			const client = await pool.connect();
+			try {
+				const { userId } = await seedCompletedProfileUser(client);
+				const { sessionCookie } = await seedUserSession(client, userId);
 
-			const countBefore = await client.query<{ count: string }>(
-				`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile' AND action = 'update'`
-			);
-			const auditCountBefore = parseInt(countBefore.rows[0]?.['count'] ?? '0', 10);
+				const countBefore = await client.query<{ count: string }>(
+					`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile' AND action = 'update'`
+				);
+				const auditCountBefore = parseInt(countBefore.rows[0]?.['count'] ?? '0', 10);
 
-			const newPhone = '+66899988877';
-			const formData = new URLSearchParams({
-				title: 'Mr.',
-				firstName: 'Test',
-				lastName: 'User',
-				phone: newPhone,
-				organization: 'Test Org'
-			});
+				const newPhone = '+66899988877';
+				const formData = new URLSearchParams({
+					title: 'Mr.',
+					firstName: 'Test',
+					lastName: 'User',
+					phone: newPhone,
+					organization: 'Test Org'
+				});
 
-			await fetch(`${DEV_SERVER_URL}/profile`, {
-				method: 'POST',
-				headers: {
-					Cookie: sessionCookie,
-					'Content-Type': 'application/x-www-form-urlencoded',
-					Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
-				},
-				body: formData.toString(),
-				redirect: 'manual'
-			});
+				await fetch(`${DEV_SERVER_URL}/profile`, {
+					method: 'POST',
+					headers: {
+						Cookie: sessionCookie,
+						'Content-Type': 'application/x-www-form-urlencoded',
+						Accept: 'text/html' // force SvelteKit's non-JSON action path for real HTTP status codes
+					},
+					body: formData.toString(),
+					redirect: 'manual'
+				});
 
-			const countAfter = await client.query<{ count: string }>(
-				`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile' AND action = 'update'`
-			);
-			const auditCountAfter = parseInt(countAfter.rows[0]?.['count'] ?? '0', 10);
+				const countAfter = await client.query<{ count: string }>(
+					`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile' AND action = 'update'`
+				);
+				const auditCountAfter = parseInt(countAfter.rows[0]?.['count'] ?? '0', 10);
 
-			expect(
-				auditCountAfter,
-				'audit_log count for update action must increase by 1 after profile edit'
-			).toBe(auditCountBefore + 1);
+				expect(
+					auditCountAfter,
+					'audit_log count for update action must increase by 1 after profile edit'
+				).toBe(auditCountBefore + 1);
 
-			// Assert the diff contains the phone field change
-			const auditRow = await client.query(
-				// audit_log uses snake_case column names (actor_id, created_at) per migration 0001.
-				`SELECT diff FROM audit_log WHERE entity = 'user_profile' AND actor_id = $1 AND action = 'update' ORDER BY created_at DESC LIMIT 1`,
-				[userId]
-			);
-			expect(auditRow.rowCount, 'audit_log update row must exist').toBeGreaterThan(0);
+				// Assert the diff contains the phone field change
+				const auditRow = await client.query(
+					// audit_log uses snake_case column names (actor_id, created_at) per migration 0001.
+					`SELECT diff FROM audit_log WHERE entity = 'user_profile' AND actor_id = $1 AND action = 'update' ORDER BY created_at DESC LIMIT 1`,
+					[userId]
+				);
+				expect(auditRow.rowCount, 'audit_log update row must exist').toBeGreaterThan(0);
 
-			const diff = auditRow.rows[0]?.['diff'];
-			// diff should contain the phone field (exact shape depends on updateProfile implementation)
-			const diffStr = typeof diff === 'string' ? diff : JSON.stringify(diff ?? {});
-			expect(diffStr, 'audit diff must reference the phone field that was changed').toContain(
-				'phone'
-			);
-		} finally {
-			client.release();
+				const diff = auditRow.rows[0]?.['diff'];
+				// diff should contain the phone field (exact shape depends on updateProfile implementation)
+				const diffStr = typeof diff === 'string' ? diff : JSON.stringify(diff ?? {});
+				expect(diffStr, 'audit diff must reference the phone field that was changed').toContain(
+					'phone'
+				);
+			} finally {
+				client.release();
+			}
 		}
-	});
+	);
 });
 
 // ---------------------------------------------------------------------------
@@ -947,7 +958,8 @@ describe('Story 2.7 (via 2.3) — Audit Log: Rolled-back Transaction Writes No a
 	});
 
 	test('[P1] 2.7-INT-004 — DB error mid-transaction → audit_log count unchanged (atomic rollback)', async () => {
-		// THIS TEST WILL FAIL — profile-service.ts transaction handling not yet implemented (Task 3).
+		// ACTIVE — Story 2.7 done; profile service implemented with audit.
+		// Direct service import test — no DEV_SERVER_URL needed. Runs in all CI environments.
 		// Activate after Task 3 (createProfile/updateProfile wrapped in db.transaction()).
 		//
 		// AC-8: audit_log row is written ATOMICALLY — if the profile insert fails,
