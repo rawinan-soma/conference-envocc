@@ -13,7 +13,7 @@
 import { error, redirect } from '@sveltejs/kit';
 
 import { requireAdmin } from '$lib/server/auth/guards';
-import { deactivateRoom, getRoomById } from '$lib/server/services/room-service';
+import { deactivateRoom } from '$lib/server/services/room-service';
 
 import type { Actions } from './$types';
 
@@ -21,12 +21,14 @@ export const actions: Actions = {
 	deactivate: async (event) => {
 		const user = requireAdmin(event);
 
-		const room = await getRoomById(event.params.id);
-		if (!room) {
-			error(404, 'Room not found');
+		try {
+			await deactivateRoom(user.id, event.params.id);
+		} catch (err) {
+			if (err instanceof Error && err.message.includes('room not found')) {
+				error(404, 'Room not found');
+			}
+			throw err;
 		}
-
-		await deactivateRoom(user.id, room.id);
 
 		redirect(302, '/admin/rooms');
 	}

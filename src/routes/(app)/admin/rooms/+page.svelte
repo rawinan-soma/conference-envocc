@@ -49,7 +49,15 @@
 						>
 							{m.room_edit_title()}
 						</a>
-						<form method="POST" action={`/admin/rooms/${room.id}/deactivate?/deactivate`}>
+						<form
+							method="POST"
+							action={`/admin/rooms/${room.id}/deactivate?/deactivate`}
+							onsubmit={(e) => {
+								if (!confirm(m.room_deactivate_confirm())) {
+									e.preventDefault();
+								}
+							}}
+						>
 							<button
 								type="submit"
 								class="text-sm font-medium text-destructive hover:underline focus-visible:underline focus-visible:outline-none"

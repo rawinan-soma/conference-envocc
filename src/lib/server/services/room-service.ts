@@ -8,7 +8,7 @@
  * Only active rooms are returned by listRooms (respects the is_active soft-delete flag).
  * getRoomById returns any room (including inactive) — used internally by the edit route.
  */
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
 import type { RoomFeature, RoomInput } from '$lib/schemas/room.js';
@@ -122,25 +122,23 @@ export async function deactivateRoom(actorId: string, roomId: string): Promise<R
 		throw new Error('deactivateRoom: room not found');
 	}
 
-	// Idempotent no-op: room already inactive — skip UPDATE + audit log.
-	// Avoids writing a false audit row claiming { old: true } when it was already false.
-	// Mirrors the no-op guard in updateRoom.
-	if (!existing.isActive) {
-		return existing;
-	}
-
 	return db.transaction(async (tx) => {
+		// Guard is inside the transaction: UPDATE only if currently active.
+		// This is atomic — prevents concurrent double-deactivation from writing
+		// duplicate audit rows (idempotency without a TOCTOU window).
 		const [room] = await tx
 			.update(rooms)
 			.set({
 				isActive: false,
 				updatedAt: new Date()
 			})
-			.where(eq(rooms.id, roomId))
+			.where(and(eq(rooms.id, roomId), eq(rooms.isActive, true)))
 			.returning();
 
+		// Zero rows returned means the room was already inactive (race condition lost
+		// or idempotent call). Return the pre-fetched state without writing an audit row.
 		if (!room) {
-			throw new Error(`deactivateRoom: no room row matched for update (id=${roomId})`);
+			return existing;
 		}
 
 		await writeAuditLog(tx, {
