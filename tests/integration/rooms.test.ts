@@ -327,10 +327,17 @@ describe('Story 3.1 — Room Create Validation: Empty name returns 422, no row c
 			// SvelteKit named-action form POSTs require the ?/actionName query param.
 			// POSTing without it bypasses the action and hits no handler, resulting in a
 			// 403 from the admin route guard instead of the expected 422 validation error.
+			//
+			// Accept: 'text/html' forces SvelteKit to use the non-JSON form action path,
+			// which returns real HTTP status codes (422 for fail(), 302 for redirect()).
+			// Without it, SvelteKit defaults to the JSON action path (Accept: */*)
+			// which always returns HTTP 200 with the result encoded in the JSON body.
+			// This is the same pattern used by profile.test.ts 2.3-INT-003.
 			const response = await fetch(`${DEV_SERVER_URL}/admin/rooms?/create`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html',
 					Cookie: adminSession
 				},
 				body,
