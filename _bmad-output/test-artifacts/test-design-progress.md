@@ -11,6 +11,7 @@ lastStep: 'step-05-generate-output'
 nextStep: ''
 lastSaved: '2026-06-12'
 epicTwoRevision: v3
+epicThreeRevision: v1
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -189,3 +190,44 @@ Revision: v3 (2026-06-12) — updated post Story 2.5 completion (PR #111).
 R-001, R-002, R-004, R-005, R-006, R-008 all mitigated. R-003 open (Story 2.7 only).
 auth-guard.test.ts: 8 active tests; mock-event.ts helper extracted; test file inventory updated.
 13/14 P0 tests active. Only Story 2.7 work (IDOR template) remains before Epic 2 closes.
+
+---
+
+# Epic 3 Test Design Run — 2026-06-12
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "Epic 3 Room Inventory" + sprint-status.yaml present)
+- **Epic**: Epic 3 — Room Inventory (4 stories; 3.1–3.4 all backlog; epic-3 backlog)
+- **Prerequisites confirmed**: Epic + stories with acceptance criteria available; architecture.md available; Epic 1 and Epic 2 done
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Drizzle + PostgreSQL + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **Pact.js utils**: disabled (tea_use_pactjs_utils: false)
+- **Existing test infrastructure confirmed**: Testcontainers Postgres tier active; audit.ts helper available; CI pipeline live; `idor-template.ts` available (Story 2.7 done)
+- **FRs in scope**: FR-060 (add/edit/deactivate rooms), FR-061 (room record fields incl. photo), FR-062 (block time slots)
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+Key risks identified: photo route without auth guard (SEC, P×I=6), IDOR on admin room routes (SEC, 6), block slot vs. booking overlap not enforced (DATA, 6), deactivated room visible in booking selector (BUS, 6), photo storage path lost on restart (TECH, 6).
+Medium: empty name validation missing (BUS, 4), features enum stored incorrectly (BUS, 4), audit log missing on mutations (BUS, 4), room list unindexed (PERF, 3), photo MIME type not validated (SEC, 4), block conflict error swallowed (BUS, 4).
+Total: 11 risks (5 high ≥6, 6 medium/low).
+
+## Step 4: Coverage Plan
+
+Coverage matrix: 12 P0 (~24–36h), 14 P1 (~18–28h), 8 P2 (~6–12h), 3 P3 (~2–4h). Total 37 scenarios (~50–80h ~7–10 days).
+Execution: PR gate (P0+P1 Vitest+Playwright < 15 min via Testcontainers Postgres); nightly (P2 + Docker compose + photo volume smoke); on-demand (P3).
+Key reuse: `testOwnershipEnforcement()` from `idor-template.ts` for all admin room mutation IDOR proofs.
+New file: `tests/integration/rooms.test.ts`; new file: `tests/e2e/rooms.spec.ts`; append to `tests/integration/db-schema.test.ts`.
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-3.md`
+Revision: v1 (2026-06-12) — initial generation; all 4 stories backlog.
+5 high-priority risks (R-001 through R-005) identified with mitigation plans.
+12 P0 + 14 P1 + 8 P2 + 3 P3 scenarios planned.
+Reuses `idor-template.ts` (Story 2.7) and E1 Testcontainers fixture without modification.
+Planned test files: `rooms.test.ts` (new), `rooms.spec.ts` (new), `db-schema.test.ts` (append).
