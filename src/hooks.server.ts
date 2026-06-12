@@ -22,13 +22,14 @@ validateEnv(env as Record<string, string | undefined>);
 // modifying the hook body. Export is required for test assertions (2.5-UNIT-001).
 //
 // Pattern:
-//   { pattern: RegExp; guard: (event: Parameters<Handle>[0]['event']) => void }
+//   { pattern: RegExp; guard: (event: Parameters<Handle>[0]['event']) => void | Promise<void> }
 //   The guard throws redirect(302, '/login') or error(403) as appropriate.
+//   Async guards are awaited by handleAuthGuard — safe to use async checks (e.g. DB lookups).
 // ---------------------------------------------------------------------------
 
 export const routeGuards: Array<{
 	pattern: RegExp;
-	guard: (event: Parameters<Handle>[0]['event']) => void;
+	guard: (event: Parameters<Handle>[0]['event']) => void | Promise<void>;
 }> = [
 	{
 		// All (app) routes require:
@@ -136,7 +137,7 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 const handleAuthGuard: Handle = async ({ event, resolve }) => {
 	for (const { pattern, guard } of routeGuards) {
 		if (pattern.test(event.url.pathname)) {
-			guard(event);
+			await guard(event);
 		}
 	}
 	return resolve(event);

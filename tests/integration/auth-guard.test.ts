@@ -51,17 +51,27 @@ import { requireAdmin, assertOwner } from '../../src/lib/server/auth/guards.js';
 import { makeMockEvent } from '../support/helpers/mock-event.js';
 
 // ---------------------------------------------------------------------------
-// Project root resolution
+// Project root resolution + static fixture cache
 // ---------------------------------------------------------------------------
 
 // auth-guard.test.ts lives at tests/integration/auth-guard.test.ts
 // Go up 3 levels: auth-guard.test.ts → integration → tests → project root
 const PROJECT_ROOT = path.resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 
+// hooks.server.ts source — read once at module level (static during the test run).
+// Used by INT-004, INT-005a, and UNIT-001 for source-inspection assertions.
+// existsSync guard gives a clear error instead of an opaque ENOENT if the file moves.
+const HOOKS_SERVER_PATH = path.join(PROJECT_ROOT, 'src', 'hooks.server.ts');
+if (!fs.existsSync(HOOKS_SERVER_PATH)) {
+	throw new Error(`hooks.server.ts not found at ${HOOKS_SERVER_PATH} — file may have been renamed`);
+}
+const HOOKS_SERVER_SOURCE = fs.readFileSync(HOOKS_SERVER_PATH, 'utf-8');
+
 // ---------------------------------------------------------------------------
-// Known routeGuards pattern (verified in UNIT-001 source inspection below)
+// Known routeGuards pattern (verified against HOOKS_SERVER_SOURCE in UNIT-001)
 // Pattern: /^\/(?!(?:login|auth|r|skeleton|profile\/complete)(?:\/|$)|$)/
 // Used by tests that need to verify the allow-list logic directly.
+// UNIT-001 asserts this literal is present verbatim in hooks.server.ts.
 // ---------------------------------------------------------------------------
 
 const ROUTE_GUARD_PATTERN = /^\/(?!(?:login|auth|r|skeleton|profile\/complete)(?:\/|$)|$)/;
@@ -154,12 +164,9 @@ describe('Story 2.5 — Guard Dispatcher: requireUser Coverage (R-006)', () => {
 		//       FR-094: assertOwner is called only from mutations, not from GET load functions.
 		// Strategy: Since E4 event detail routes do not exist yet, verify via source inspection.
 
-		const hooksPath = path.join(PROJECT_ROOT, 'src', 'hooks.server.ts');
-		const hooksSource = fs.readFileSync(hooksPath, 'utf-8');
-
 		// The guard lambda in routeGuards must NOT call assertOwner.
 		expect(
-			hooksSource,
+			HOOKS_SERVER_SOURCE,
 			'hooks.server.ts routeGuards guard must NOT call assertOwner — assertOwner is for mutation actions only (FR-094)'
 		).not.toMatch(/assertOwner/);
 
@@ -204,10 +211,8 @@ describe('Story 2.5 — Guard Dispatcher: requireUser Coverage (R-006)', () => {
 		).toBe(true);
 
 		// Confirm the pattern is present verbatim in hooks.server.ts:
-		const hooksPath = path.join(PROJECT_ROOT, 'src', 'hooks.server.ts');
-		const hooksSource = fs.readFileSync(hooksPath, 'utf-8');
 		expect(
-			hooksSource,
+			HOOKS_SERVER_SOURCE,
 			'hooks.server.ts must contain the routeGuards allow-list regex pattern'
 		).toMatch(/login\|auth\|r\|skeleton\|profile/);
 	});
@@ -247,40 +252,36 @@ describe('Story 2.5 — Guard Dispatcher: routeGuards Extensibility (R-006)', ()
 		//   3. At least one guard entry is registered
 		//   4. handleAuthGuard iterates routeGuards via for...of
 
-		const hooksPath = path.join(PROJECT_ROOT, 'src', 'hooks.server.ts');
-
-		expect(
-			fs.existsSync(hooksPath),
-			'src/hooks.server.ts must exist (required by AC-1, R-006)'
-		).toBe(true);
-
-		const source = fs.readFileSync(hooksPath, 'utf-8');
+		// HOOKS_SERVER_SOURCE is read once at module level with an existsSync guard.
+		// All five assertions below use the cached value — no redundant I/O.
 
 		// 1. Named export of routeGuards as a mutable const array
 		expect(
-			source,
+			HOOKS_SERVER_SOURCE,
 			'hooks.server.ts must declare "export const routeGuards" (R-006 named export required)'
 		).toMatch(/export\s+const\s+routeGuards/);
 
 		// 2. Array type annotation with { pattern: RegExp; guard: ... } shape
 		expect(
-			source,
+			HOOKS_SERVER_SOURCE,
 			'routeGuards must be typed as Array<{ pattern: RegExp; guard: ... }> (R-006 type contract)'
-		).toMatch(/Array<\{[^}]*pattern:\s*RegExp/s);
+		).toMatch(/Array<\{[^}]*pattern:\s*RegExp/);
 
 		// 3. At least one guard entry is registered
-		expect(source, 'routeGuards array must have at least one registered guard entry').toMatch(
-			/routeGuards[\s\S]*?=\s*\[[\s\S]*?\{[\s\S]*?pattern:/
-		);
+		expect(
+			HOOKS_SERVER_SOURCE,
+			'routeGuards array must have at least one registered guard entry'
+		).toMatch(/routeGuards[\s\S]*?=\s*\[[\s\S]*?\{[\s\S]*?pattern:/);
 
 		// 4. handleAuthGuard iterates routeGuards using for...of (extensible dispatcher)
-		expect(source, 'handleAuthGuard must iterate routeGuards using a for...of loop').toMatch(
-			/for\s*\(\s*const\s*\{[^}]*pattern[^}]*guard[^}]*\}\s+of\s+routeGuards/
-		);
+		expect(
+			HOOKS_SERVER_SOURCE,
+			'handleAuthGuard must iterate routeGuards using a for...of loop'
+		).toMatch(/for\s*\(\s*const\s*\{[^}]*pattern[^}]*guard[^}]*\}\s+of\s+routeGuards/);
 
 		// 5. Allow-list regex includes /r/ path exemption
 		expect(
-			source,
+			HOOKS_SERVER_SOURCE,
 			'routeGuards must include /r/ in the allow-list regex (public r/[token] exemption)'
 		).toMatch(/login\|auth\|r\|skeleton/);
 
