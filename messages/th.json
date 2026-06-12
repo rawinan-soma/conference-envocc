@@ -53,5 +53,8 @@
 	"room_error_floor_required": "Floor is required.",
 	"room_error_capacity_min": "Capacity must be at least 1.",
 	"room_not_found": "Room not found.",
-	"room_cancel_button": "Cancel"
+	"room_cancel_button": "Cancel",
+	"room_deactivate_button": "Deactivate",
+	"room_deactivated_toast": "Room deactivated.",
+	"room_deactivate_confirm": "Deactivate this room?"
 }

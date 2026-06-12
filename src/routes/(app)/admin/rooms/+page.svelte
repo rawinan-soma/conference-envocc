@@ -42,12 +42,22 @@
 							{m.room_capacity_label()}: {room.capacity}
 						</p>
 					</div>
-					<a
-						href={resolve(`/admin/rooms/${room.id}/edit` as Pathname)}
-						class="text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-					>
-						{m.room_edit_title()}
-					</a>
+					<div class="flex items-center gap-3">
+						<a
+							href={resolve(`/admin/rooms/${room.id}/edit` as Pathname)}
+							class="text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+						>
+							{m.room_edit_title()}
+						</a>
+						<form method="POST" action={`/admin/rooms/${room.id}/deactivate?/deactivate`}>
+							<button
+								type="submit"
+								class="text-sm font-medium text-destructive hover:underline focus-visible:underline focus-visible:outline-none"
+							>
+								{m.room_deactivate_button()}
+							</button>
+						</form>
+					</div>
 				</li>
 			{/each}
 		</ul>

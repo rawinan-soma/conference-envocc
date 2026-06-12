@@ -829,7 +829,7 @@ describe('Story 3.3 — Room Deactivate: Deactivated room absent from listRooms(
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.3-INT-001 — createRoom() then deactivateRoom() → room absent from listRooms()', async () => {
+	test('[P0] 3.3-INT-001 — createRoom() then deactivateRoom() → room absent from listRooms()', async () => {
 		// THIS TEST WILL FAIL — deactivateRoom() not yet exported from room-service.ts (Task 1.2).
 		// Activate after Task 1.1 (write stub) → remove test.skip → expect red.
 		// Then implement deactivateRoom (Task 1.3) → expect green (Task 1.4).
@@ -890,7 +890,7 @@ describe('Story 3.3 — Room Deactivate: Deactivated room row persists in DB wit
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.3-INT-002 — deactivateRoom() performs soft delete: DB row remains with is_active=false', async () => {
+	test('[P0] 3.3-INT-002 — deactivateRoom() performs soft delete: DB row remains with is_active=false', async () => {
 		// THIS TEST WILL FAIL — deactivateRoom() not yet exported from room-service.ts (Task 1.2).
 		// Activate alongside 3.3-INT-001 (same task group).
 		//
@@ -1026,7 +1026,7 @@ describe('Story 3.3 — Audit Log: deactivateRoom() writes audit_log row (AC-4)'
 		await truncateRoomTables();
 	});
 
-	test.skip('[P1] 3.3-INT-005 — deactivateRoom() writes audit_log row with entity=room, action=deactivate, actor_id, diff.isActive.new===false', async () => {
+	test('[P1] 3.3-INT-005 — deactivateRoom() writes audit_log row with entity=room, action=deactivate, actor_id, diff.isActive.new===false', async () => {
 		// THIS TEST WILL FAIL — deactivateRoom() not yet exported from room-service.ts (Task 1.2).
 		// Activate alongside 3.3-INT-001 and 3.3-INT-002 (same task group, Task 1).
 		//

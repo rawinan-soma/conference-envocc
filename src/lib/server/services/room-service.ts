@@ -104,6 +104,50 @@ export async function createRoom(actorId: string, input: RoomInputBroad): Promis
 }
 
 // ---------------------------------------------------------------------------
+// deactivateRoom
+// ---------------------------------------------------------------------------
+
+/**
+ * Soft-delete a room by setting is_active = false.
+ * Wraps the UPDATE in a transaction that also writes an audit_log entry.
+ * Does NOT check for future bookings — cascade behaviour is deferred to Story 7.1.
+ *
+ * @param actorId - The authenticated admin user's ID
+ * @param roomId  - The room's primary key ID
+ * @throws Error if no room row exists for the given ID
+ */
+export async function deactivateRoom(actorId: string, roomId: string): Promise<Room> {
+	const existing = await getRoomById(roomId);
+	if (!existing) {
+		throw new Error('deactivateRoom: room not found');
+	}
+
+	return db.transaction(async (tx) => {
+		const [room] = await tx
+			.update(rooms)
+			.set({
+				isActive: false,
+				updatedAt: new Date()
+			})
+			.where(eq(rooms.id, roomId))
+			.returning();
+
+		if (!room) {
+			throw new Error(`deactivateRoom: no room row matched for update (id=${roomId})`);
+		}
+
+		await writeAuditLog(tx, {
+			actorId,
+			entity: 'room',
+			action: 'deactivate',
+			diff: { isActive: { old: true, new: false } }
+		});
+
+		return room;
+	});
+}
+
+// ---------------------------------------------------------------------------
 // updateRoom
 // ---------------------------------------------------------------------------
 
