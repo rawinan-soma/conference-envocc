@@ -4,7 +4,7 @@ baseline_commit: eec167c
 
 # Story 2.7: Authorization Negative-Test Pattern & Audit on Mutations
 
-Status: review
+Status: done
 
 ## Story
 
@@ -81,6 +81,23 @@ So that the highest-risk surfaces inherit a proven pattern.
   - [x] 4.2 Run `bun run check` — zero TypeScript errors (48 pre-existing errors unchanged from baseline `eec167c`).
   - [x] 4.3 Run `bun run test` (unit + integration) — all Story 2.7 tests pass: `2.7-INT-001` and `2.7-UNIT-001` green in `idor.test.ts`; `2.7-INT-002/003/004` active in `profile.test.ts` (INT-002/003 skipped without DEV_SERVER_URL; INT-004 passes). No regressions to existing passing tests.
   - [x] 4.4 Run `bun run build` — pre-existing `DATABASE_URL` failure at build time confirmed; same as baseline commit `eec167c`.
+
+### Review Findings
+
+Code review 2026-06-12 (Blind Hunter + Edge Case Hunter + Acceptance Auditor). All patch findings applied.
+
+- [x] [Review][Patch] testOwnershipEnforcement helper body never exercised by any running test — AC1/AC7 only nominally satisfied [tests/integration/idor.test.ts] — FIXED: `2.7-INT-001`/`2.7-UNIT-001` now stub `global.fetch` and invoke the helper so its denial logic runs (403/404 resolve, 2xx/other throw).
+- [x] [Review][Patch] 2.7-UNIT-001 was vacuous (asserted only on self-authored config literals + `typeof`) [tests/integration/idor.test.ts] — FIXED: rewritten to dispatch GET/PATCH/DELETE/POST through the helper and assert on captured requests.
+- [x] [Review][Patch] 2xx success for a non-owner was not explicitly flagged as an IDOR bypass [tests/support/helpers/idor-template.ts] — FIXED: any 2xx now throws unconditionally and 2xx must never be added to the denial set (documented).
+- [x] [Review][Patch] Empty `expectedDenialStatuses` rejected every response (incl. correct 403) [tests/support/helpers/idor-template.ts] — FIXED: empty set now throws a clear misconfiguration error.
+- [x] [Review][Patch] Body silently dropped for DELETE [tests/support/helpers/idor-template.ts] — FIXED: body forwarded for all non-GET methods (DELETE-with-body, POST `_action`); only GET drops it.
+- [x] [Review][Patch] Caller `headers` could clobber the non-owner `Cookie` (case-insensitive) [tests/support/helpers/idor-template.ts] — FIXED: caller cookie variants stripped; non-owner Cookie applied last.
+- [x] [Review][Patch] `fetch` network failure surfaced as opaque error [tests/support/helpers/idor-template.ts] — FIXED: wrapped in try/catch with a descriptive harness error (`{ cause }` preserved).
+- [x] [Review][Patch] 302 auth-redirect ambiguity not documented for callers [tests/support/helpers/idor-template.ts] — FIXED: JSDoc + error message now explain the redirect-denial vs invalid-session distinction.
+- [x] [Review][Patch] Stale "Activate after Task 3" comment on active `2.7-INT-004` [tests/integration/profile.test.ts] — FIXED: removed.
+- [x] [Review][Defer] Helper asserts denial only (no positive owner-allowed control) — intentional: positive control belongs in caller tests (E3–E7 seed owner + non-owner). No change.
+- [x] [Review][Dismiss] `DEV_SERVER_URL` default `localhost:3000` inconsistency — active tests no longer rely on it (fetch is stubbed). Dismissed.
+- [x] [Review][Dismiss] AC4/AC5 green only with `DEV_SERVER_URL` set — matches spec Task 3.3 intent. Dismissed.
 
 ## Dev Notes
 

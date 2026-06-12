@@ -77,24 +77,33 @@ export interface OwnershipTestConfig {
 	nonOwnerCookie: string;
 
 	/**
-	 * Optional request body for POST / PATCH mutations.
+	 * Optional request body for mutations (POST / PATCH / DELETE).
 	 * Supply a URL-encoded form string or JSON string as appropriate for the route.
+	 * Ignored for GET (which cannot carry a body).
 	 */
 	body?: string;
 
 	/**
-	 * Optional additional request headers to include (merged with Cookie header).
+	 * Optional additional request headers to include. The non-owner `Cookie`
+	 * header is always applied last and cannot be overridden by this map (any
+	 * caller-supplied `Cookie`/`cookie` entry is dropped) so the IDOR session
+	 * stays intact.
 	 */
 	headers?: Record<string, string>;
 
 	/**
 	 * HTTP status codes that constitute a valid denial response.
-	 * Defaults to [403, 404].
+	 * Defaults to [403, 404]. Must be non-empty.
 	 *
 	 * 403 Forbidden — preferred when the server confirms the resource exists but the
 	 *   caller does not own it (assertOwner pattern).
 	 * 404 Not Found — acceptable when the server hides resource existence from
 	 *   non-owners as a security measure (information-hiding pattern).
+	 *
+	 * Do NOT add any 2xx status here: a 2xx for a non-owner is always treated as an
+	 * IDOR bypass and throws regardless of this set. A 302 auth-redirect denial may
+	 * be added explicitly, but only when the route genuinely denies via redirect
+	 * (not when the non-owner session is merely invalid/expired).
 	 */
 	expectedDenialStatuses?: number[];
 }
@@ -132,10 +141,26 @@ export async function testOwnershipEnforcement(config: OwnershipTestConfig): Pro
 		expectedDenialStatuses = [403, 404]
 	} = config;
 
-	const requestHeaders: Record<string, string> = {
-		Cookie: nonOwnerCookie,
-		...headers
-	};
+	// Guard: an empty denial set would reject every response (including a correct
+	// 403), turning the helper into an always-failing assertion. Reject the
+	// misconfiguration loudly instead of producing a confusing IDOR "failure".
+	if (expectedDenialStatuses.length === 0) {
+		throw new Error(
+			'testOwnershipEnforcement: expectedDenialStatuses must be non-empty ' +
+				'(an empty set rejects every response, including a correct 403/404).'
+		);
+	}
+
+	// Spread caller headers FIRST, then force the non-owner Cookie last so a
+	// caller-supplied `Cookie`/`cookie` header can never clobber the session the
+	// IDOR proof depends on (HTTP header names are case-insensitive, so we strip
+	// any case variant the caller passed before applying ours).
+	const requestHeaders: Record<string, string> = {};
+	for (const [key, value] of Object.entries(headers)) {
+		if (key.toLowerCase() === 'cookie') continue;
+		requestHeaders[key] = value;
+	}
+	requestHeaders['Cookie'] = nonOwnerCookie;
 
 	const fetchOptions: RequestInit = {
 		method,
@@ -143,19 +168,46 @@ export async function testOwnershipEnforcement(config: OwnershipTestConfig): Pro
 		redirect: 'manual' // Do not follow redirects — capture raw status code
 	};
 
-	if (body !== undefined && (method === 'POST' || method === 'PATCH')) {
+	// Attach the body for any method that carries one. DELETE-with-body and
+	// POST `_action` form payloads are valid mutation shapes; only GET (which
+	// cannot carry a body) is excluded.
+	if (body !== undefined && method !== 'GET') {
 		fetchOptions.body = body;
 	}
 
-	const response = await fetch(routeUrl, fetchOptions);
+	let response: Response;
+	try {
+		response = await fetch(routeUrl, fetchOptions);
+	} catch (cause) {
+		// A network-level failure (e.g. ECONNREFUSED when the dev server is not
+		// running) is a harness problem, not an IDOR result. Surface it clearly
+		// rather than letting an opaque "fetch failed" masquerade as a denial.
+		throw new Error(
+			`testOwnershipEnforcement: request to ${method} ${routeUrl} failed before ` +
+				`a response was received (is the dev server running?).`,
+			{ cause }
+		);
+	}
+
+	// A 2xx success is the unambiguous IDOR-bypass signal: the non-owner reached
+	// (and possibly mutated) the resource. Callers must NOT add 2xx codes to the
+	// denial set — doing so would mask a real bypass that ends in a redirect.
+	if (response.status >= 200 && response.status < 300) {
+		throw new Error(
+			`IDOR enforcement FAILED: ${method} ${routeUrl} returned HTTP ${response.status} ` +
+				`(success) for a non-owner session — the request was NOT denied. ` +
+				`This indicates an IDOR bypass: the assertOwner guard is missing or ineffective.`
+		);
+	}
 
 	if (!expectedDenialStatuses.includes(response.status)) {
 		throw new Error(
 			`IDOR enforcement FAILED: ${method} ${routeUrl} ` +
 				`responded with HTTP ${response.status} for non-owner session. ` +
 				`Expected one of [${expectedDenialStatuses.join(', ')}]. ` +
-				`A ${response.status} response may indicate an IDOR bypass — ` +
-				`assertOwner guard may not be applied to this route.`
+				`Note: an auth redirect (302 → /login) means the non-owner session was ` +
+				`invalid/expired — seed a valid non-owner session, or add the redirect ` +
+				`status to expectedDenialStatuses if the route denies via redirect.`
 		);
 	}
 }

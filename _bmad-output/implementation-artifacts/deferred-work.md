@@ -1,5 +1,9 @@
 # Deferred Work
 
+## Deferred from: code review of 2-7-authorization-negative-test-pattern (2026-06-12)
+
+- `testOwnershipEnforcement` asserts the denial half only (non-owner → 403/404) and does not include a positive control (owner → 200). This is intentional: the positive control belongs in the caller's test (E3–E7 seed both an owner and a non-owner, prove the owner succeeds, then call the helper for the non-owner denial). Revisit only if a combined owner+non-owner assertion helper proves desirable once the first real E4 `/bookings/[id]` IDOR proof lands — at that point consider an optional `ownerCookie` param that asserts owner success before the non-owner denial.
+
 ## Deferred from: code review of 1-4-internationalization-setup (2026-06-10)
 
 - `no-raw-svelte-text` ESLint rule does not catch hardcoded user-facing text in element attributes (e.g. `title`, `placeholder`, `aria-label`) — only inline text nodes (`SvelteText`). AC-3 scopes the guard to inline text content and TS string literals, so this is acceptable for Story 1.4. Revisit if attribute-level i18n enforcement becomes a requirement; note the high false-positive risk for non-UI attributes (class, href, data-*).

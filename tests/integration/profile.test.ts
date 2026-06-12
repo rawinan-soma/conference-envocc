@@ -960,7 +960,6 @@ describe('Story 2.7 (via 2.3) — Audit Log: Rolled-back Transaction Writes No a
 	test('[P1] 2.7-INT-004 — DB error mid-transaction → audit_log count unchanged (atomic rollback)', async () => {
 		// ACTIVE — Story 2.7 done; profile service implemented with audit.
 		// Direct service import test — no DEV_SERVER_URL needed. Runs in all CI environments.
-		// Activate after Task 3 (createProfile/updateProfile wrapped in db.transaction()).
 		//
 		// AC-8: audit_log row is written ATOMICALLY — if the profile insert fails,
 		//       no audit row is written.
