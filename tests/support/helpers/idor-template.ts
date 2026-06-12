@@ -63,10 +63,10 @@ export interface OwnershipTestConfig {
 
 	/**
 	 * HTTP method for the request attempt.
-	 * Defaults to 'GET'. For mutation proofs, use 'POST', 'PATCH', or 'DELETE'.
+	 * Defaults to 'GET'. For mutation proofs, use 'POST', 'PATCH', 'PUT', or 'DELETE'.
 	 * Per FR-094: assertOwner is called only from mutations, not from GET load functions.
 	 */
-	method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+	method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 	/**
 	 * Session cookie string for the NON-OWNER's authenticated session.
@@ -168,7 +168,7 @@ export async function testOwnershipEnforcement(config: OwnershipTestConfig): Pro
 		redirect: 'manual' // Do not follow redirects — capture raw status code
 	};
 
-	// Attach the body for any method that carries one. DELETE-with-body and
+	// Attach the body for any method that carries one. DELETE-with-body, PUT, and
 	// POST `_action` form payloads are valid mutation shapes; only GET (which
 	// cannot carry a body) is excluded.
 	if (body !== undefined && method !== 'GET') {

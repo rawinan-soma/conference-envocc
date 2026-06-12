@@ -810,7 +810,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 					organization: 'Audit Org'
 				});
 
-				await fetch(`${DEV_SERVER_URL}/profile/complete`, {
+				const createRes = await fetch(`${DEV_SERVER_URL}/profile/complete`, {
 					method: 'POST',
 					headers: {
 						Cookie: sessionCookie,
@@ -820,6 +820,13 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Create Writes audit_log Row
 					body: formData.toString(),
 					redirect: 'manual'
 				});
+				// Assert the action itself did not fail — a non-2xx/3xx here means the form
+				// submission errored (e.g. validation failure) and the audit count check below
+				// would fail with a misleading "expected N+1" message instead of the real cause.
+				expect(
+					createRes.status,
+					`POST /profile/complete must not return a 4xx/5xx error (got ${createRes.status})`
+				).toBeLessThan(400);
 
 				// Count audit_log rows after
 				const countAfter = await client.query<{ count: string }>(
@@ -906,7 +913,7 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 					organization: 'Test Org'
 				});
 
-				await fetch(`${DEV_SERVER_URL}/profile`, {
+				const updateRes = await fetch(`${DEV_SERVER_URL}/profile`, {
 					method: 'POST',
 					headers: {
 						Cookie: sessionCookie,
@@ -916,6 +923,13 @@ describe('Story 2.7 (via 2.3) — Audit Log: Profile Update Writes audit_log Row
 					body: formData.toString(),
 					redirect: 'manual'
 				});
+				// Assert the action itself did not fail — a non-2xx/3xx here means the form
+				// submission errored and the audit count check below would fail with a
+				// misleading "expected N+1" message instead of surfacing the real HTTP failure.
+				expect(
+					updateRes.status,
+					`POST /profile must not return a 4xx/5xx error (got ${updateRes.status})`
+				).toBeLessThan(400);
 
 				const countAfter = await client.query<{ count: string }>(
 					`SELECT COUNT(*) AS count FROM audit_log WHERE entity = 'user_profile' AND action = 'update'`
