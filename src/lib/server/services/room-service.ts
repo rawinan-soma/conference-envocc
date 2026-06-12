@@ -122,6 +122,13 @@ export async function deactivateRoom(actorId: string, roomId: string): Promise<R
 		throw new Error('deactivateRoom: room not found');
 	}
 
+	// Idempotent no-op: room already inactive — skip UPDATE + audit log.
+	// Avoids writing a false audit row claiming { old: true } when it was already false.
+	// Mirrors the no-op guard in updateRoom.
+	if (!existing.isActive) {
+		return existing;
+	}
+
 	return db.transaction(async (tx) => {
 		const [room] = await tx
 			.update(rooms)
