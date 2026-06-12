@@ -9,7 +9,7 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-12'
+lastSaved: '2026-06-13'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -26,7 +26,7 @@ inputDocuments:
 
 # Test Design: Epic 3 — Room Inventory
 
-**Date:** 2026-06-12
+**Date:** 2026-06-13
 **Author:** Rawinan
 **Status:** Living Document (v1)
 **Mode:** Epic-Level Test Design
@@ -43,7 +43,7 @@ Epic 3 delivers the room management foundation that every downstream epic (E4 bo
 
 Epic 3 is the first epic that creates user-visible data (rooms) that all later epics query. The room model is the fulcrum of the entire booking system — a corrupt or missing room record propagates failures through the calendar view (E4), conflict detection (E4), deactivation cascade (E7), and analytics (E7). File storage security is a new attack surface (photo serving must be access-controlled). Block slots must integrate correctly with the EXCLUDE constraint established in E1 to prevent bookings from overlapping maintenance windows. The `testOwnershipEnforcement` IDOR helper from Story 2.7 is directly reusable here.
 
-**Implementation Status (2026-06-12 — v1):** All 4 stories (3.1–3.4) are `backlog`. Epic 1 (done) and Epic 2 (done) provide the complete platform: Drizzle + PostgreSQL, audit-log write hook, test harness (Testcontainers + Vitest), CI pipeline, dev bypass seam, guard dispatcher, and IDOR template.
+**Implementation Status (2026-06-13 — v2):** Story 3.1 is `done` (PR #113 merged); Stories 3.2–3.4 remain `backlog`. Epic 1 (done) and Epic 2 (done) provide the complete platform: Drizzle + PostgreSQL, audit-log write hook, test harness (Testcontainers + Vitest), CI pipeline, dev bypass seam, guard dispatcher, and IDOR template. Epic 3 is now `in-progress`.
 
 **Foundation Available from E1/E2:**
 - `tests/support/helpers/idor-template.ts` — `testOwnershipEnforcement()` ready for admin-only admin routes
@@ -533,6 +533,7 @@ Epic 3 is the first epic that creates user-visible data (rooms) that all later e
 **Version:** 4.0 (BMad v6)
 **Epic:** 3 — Room Inventory
 **Mode:** Epic-Level
+**Revision:** v2 (2026-06-13) — Status refresh; Story 3.1 done (PR #113), epic-3 in-progress; Stories 3.2–3.4 remain backlog. No scenarios added or removed; design for 3.2–3.4 unchanged.
 **Revision:** v1 (2026-06-12) — Initial generation; all 4 stories backlog.
   5 high-priority risks identified (R-001 photo access, R-002 IDOR, R-003 block conflict, R-004 deactivation, R-005 storage).
   12 P0 + 14 P1 + 8 P2 + 3 P3 scenarios planned.
