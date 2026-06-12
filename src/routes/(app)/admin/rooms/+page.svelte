@@ -42,12 +42,20 @@
 							{m.room_capacity_label()}: {room.capacity}
 						</p>
 					</div>
-					<a
-						href={resolve(`/admin/rooms/${room.id}/edit` as Pathname)}
-						class="text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-					>
-						{m.room_edit_title()}
-					</a>
+					<div class="flex gap-3">
+						<a
+							href={resolve(`/admin/rooms/${room.id}/photo` as Pathname)}
+							class="text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+						>
+							{m.room_photo_upload_link()}
+						</a>
+						<a
+							href={resolve(`/admin/rooms/${room.id}/edit` as Pathname)}
+							class="text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+						>
+							{m.room_edit_title()}
+						</a>
+					</div>
 				</li>
 			{/each}
 		</ul>

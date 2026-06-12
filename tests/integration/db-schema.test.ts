@@ -349,7 +349,7 @@ describe('Story 3.1 — DB Schema: Partial index on rooms (is_active) WHERE is_a
 // ---------------------------------------------------------------------------
 
 describe('Story 3.2 — DB Schema: photo_path column exists on rooms table (AC-1, Task 1)', () => {
-	test.skip('[P1] 3.2-UNIT-003 — rooms table has a nullable photo_path TEXT column after migration', async () => {
+	test('[P1] 3.2-UNIT-003 — rooms table has a nullable photo_path TEXT column after migration', async () => {
 		// THIS TEST WILL FAIL — migration 0006_room_photo_path.sql not yet applied (Task 1).
 		// Activate after Task 1.2 (hand-write migration) and Task 1.3 (apply migration).
 		//

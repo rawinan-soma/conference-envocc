@@ -1,13 +1,16 @@
 /**
- * Room service — Story 3.1
+ * Room service — Story 3.1 + 3.2
  *
- * Provides createRoom, updateRoom, listRooms, and getRoomById.
+ * Provides createRoom, updateRoom, listRooms, getRoomById, and uploadRoomPhoto.
  * All mutations wrap DB operations in a transaction that also writes an audit_log entry
  * (AC-5 — audit on room mutations).
  *
  * Only active rooms are returned by listRooms (respects the is_active soft-delete flag).
  * getRoomById returns any room (including inactive) — used internally by the edit route.
  */
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
 import { asc, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
@@ -185,6 +188,123 @@ export async function updateRoom(
 			entity: 'room',
 			action: 'update',
 			diff
+		});
+
+		return room;
+	});
+}
+
+// ---------------------------------------------------------------------------
+// uploadRoomPhoto
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowed MIME types for room photo uploads.
+ * Server-side validation only — never rely on file extension alone.
+ */
+export const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/**
+ * Map from MIME type to file extension for stored filenames.
+ */
+const MIME_TO_EXT: Record<(typeof ALLOWED_PHOTO_MIME_TYPES)[number], string> = {
+	'image/jpeg': 'jpg',
+	'image/png': 'png',
+	'image/webp': 'webp'
+};
+
+/**
+ * Typed validation error for photo upload failures (MIME type or size).
+ * The HTTP layer (form action) maps this to HTTP 422.
+ */
+export class PhotoValidationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'PhotoValidationError';
+	}
+}
+
+/**
+ * Upload a room photo to the on-prem volume and record the path in the DB.
+ *
+ * Implementation notes (Story 3.2 Dev Notes):
+ * - Resolves UPLOAD_DIR from process.env (not SvelteKit $env) — service must stay portable.
+ * - Validates MIME type against ALLOWED_PHOTO_MIME_TYPES (throws PhotoValidationError if rejected).
+ * - Validates size ≤ PHOTO_MAX_BYTES (default 10MB; env-configurable).
+ * - Filename: `{uuidv7()}-{roomId}.{ext}` — time-ordered, unique, non-enumerable.
+ * - File written BEFORE the DB transaction: if the DB tx fails, the orphan file is harmless
+ *   (overwritten on retry). If the file write fails, no DB change occurs (safe ordering).
+ * - DB UPDATE + writeAuditLog wrapped in db.transaction() for atomicity (AC-1).
+ *
+ * @param actorId - The authenticated admin user's ID
+ * @param roomId  - The room's primary key ID
+ * @param file    - File data, MIME type, and size (from FormData File)
+ * @throws PhotoValidationError if MIME type or size is invalid
+ * @throws Error if UPLOAD_DIR is not set at runtime
+ */
+export async function uploadRoomPhoto(
+	actorId: string,
+	roomId: string,
+	file: { data: Buffer; mimeType: string; size: number }
+): Promise<Room> {
+	// Resolve UPLOAD_DIR from process.env — throws clearly if not set
+	const uploadDir = process.env['UPLOAD_DIR'];
+	if (!uploadDir) {
+		throw new Error(
+			'uploadRoomPhoto: UPLOAD_DIR environment variable is not set. ' +
+				'Configure UPLOAD_DIR to point to the on-prem volume mount path.'
+		);
+	}
+
+	// Validate MIME type against allowed list
+	const allowedMimes: readonly string[] = ALLOWED_PHOTO_MIME_TYPES;
+	if (!allowedMimes.includes(file.mimeType)) {
+		throw new PhotoValidationError(
+			`Unsupported file type: ${file.mimeType}. ` +
+				`Allowed types: ${ALLOWED_PHOTO_MIME_TYPES.join(', ')}.`
+		);
+	}
+
+	// Validate file size
+	const maxBytes = Number(process.env['PHOTO_MAX_BYTES'] ?? String(10 * 1024 * 1024));
+	if (file.size > maxBytes) {
+		throw new PhotoValidationError(
+			`File size ${file.size} bytes exceeds the maximum allowed size of ${maxBytes} bytes.`
+		);
+	}
+
+	// Generate unique filename: {uuidv7()}-{roomId}.{ext}
+	const mimeType = file.mimeType as (typeof ALLOWED_PHOTO_MIME_TYPES)[number];
+	const ext = MIME_TO_EXT[mimeType];
+	const filename = `${uuidv7()}-${roomId}.${ext}`;
+
+	// Ensure the upload directory exists
+	await fs.mkdir(uploadDir, { recursive: true });
+
+	// Write the file BEFORE the DB transaction (safe ordering: orphan file on DB failure is harmless)
+	const filePath = path.join(uploadDir, filename);
+	await fs.writeFile(filePath, file.data);
+
+	// Wrap DB update + audit log in a transaction (atomicity — AC-1)
+	return db.transaction(async (tx) => {
+		const [room] = await tx
+			.update(rooms)
+			.set({
+				photoPath: filename,
+				updatedAt: new Date()
+			})
+			.where(eq(rooms.id, roomId))
+			.returning();
+
+		if (!room) {
+			throw new Error(`uploadRoomPhoto: no room row matched for update (id=${roomId})`);
+		}
+
+		await writeAuditLog(tx, {
+			actorId,
+			entity: 'room',
+			action: 'upload_photo',
+			diff: { photoPath: filename }
 		});
 
 		return room;

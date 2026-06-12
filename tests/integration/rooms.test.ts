@@ -968,7 +968,7 @@ describe('Story 3.2 — Photo Upload: Admin uploads a photo → file on volume, 
 		await truncateRoomTables();
 	});
 
-	test.skip('[P0] 3.2-INT-001 — uploadRoomPhoto() writes file to UPLOAD_DIR, saves photo_path on room row, and writes audit_log in same transaction', async () => {
+	test('[P0] 3.2-INT-001 — uploadRoomPhoto() writes file to UPLOAD_DIR, saves photo_path on room row, and writes audit_log in same transaction', async () => {
 		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
 		// Activate after Task 3.2 (uploadRoomPhoto() implemented in room-service.ts).
 		//
@@ -1093,7 +1093,7 @@ describe('Story 3.2 — Photo Upload Validation: Non-image MIME type rejected by
 		await truncateRoomTables();
 	});
 
-	test.skip('[P1] 3.2-INT-002 — uploadRoomPhoto() with non-image MIME type throws typed validation error and writes no file', async () => {
+	test('[P1] 3.2-INT-002 — uploadRoomPhoto() with non-image MIME type throws typed validation error and writes no file', async () => {
 		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
 		// Activate after Task 3.2 (MIME validation implemented in uploadRoomPhoto()).
 		//
@@ -1456,7 +1456,7 @@ describe('Story 3.2 — Photo Access Control: Authenticated organizer GET /rooms
 // ---------------------------------------------------------------------------
 
 describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR resolved from env var, not hardcoded (AC-6, R-005)', () => {
-	test.skip('[P1] 3.2-UNIT-001 — room-service.ts resolves UPLOAD_DIR from process.env, never from a hardcoded path', async () => {
+	test('[P1] 3.2-UNIT-001 — room-service.ts resolves UPLOAD_DIR from process.env, never from a hardcoded path', async () => {
 		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
 		// Activate after Task 3.2 (uploadRoomPhoto() using process.env['UPLOAD_DIR']).
 		//
@@ -1521,7 +1521,7 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 		await truncateRoomTables();
 	});
 
-	test.skip('[P2] 3.2-INT-006 — uploadRoomPhoto() → file content at UPLOAD_DIR/<photoPath> matches uploaded data', async () => {
+	test('[P2] 3.2-INT-006 — uploadRoomPhoto() → file content at UPLOAD_DIR/<photoPath> matches uploaded data', async () => {
 		// THIS TEST WILL FAIL — uploadRoomPhoto() not yet implemented (Task 3).
 		// Activate after Task 3.2 (uploadRoomPhoto() writes file to UPLOAD_DIR).
 		//
@@ -1645,7 +1645,7 @@ describe('Story 3.2 — Photo Volume Persistence: Uploaded photo retrievable fro
 // ---------------------------------------------------------------------------
 
 describe('Story 3.2 — Static Source Assertion: UPLOAD_DIR env var matches volume mount in compose.yaml (AC-6, R-005)', () => {
-	test.skip('[P2] 3.2-UNIT-002 — compose.yaml declares UPLOAD_DIR env var and a named uploads volume mounted at that path', async () => {
+	test('[P2] 3.2-UNIT-002 — compose.yaml declares UPLOAD_DIR env var and a named uploads volume mounted at that path', async () => {
 		// THIS TEST WILL FAIL — compose.yaml not yet updated with UPLOAD_DIR + volume (Task 2).
 		// Activate after Task 2.3 (UPLOAD_DIR env var + uploads volume declared in compose.yaml).
 		//
