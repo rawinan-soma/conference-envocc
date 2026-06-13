@@ -1,15 +1,25 @@
 /**
- * Integration Tests — Story 3.1: Create and Edit Rooms
- *                   — Story 3.3: Deactivate a Room
+ * ATDD Red-Phase Scaffolds — Story 3.1: Create and Edit Rooms
+ * Integration Tests: Room CRUD, validation, authorization, audit log
  *
- * Room CRUD, validation, authorization, audit log, and soft-delete.
+ * TDD RED PHASE: All tests are marked test.skip() (or test.skipIf()) and will remain
+ * skipped until the developer activates them task-by-task during implementation.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
  * starts Testcontainers when DATABASE_URL is not set, or uses the CI Postgres
  * service when DATABASE_URL is already provided.
  *
- * Story 3.1 AC Coverage:
+ * Activation guide:
+ *   1. Remove `test.skip(` → `test(` (or `test.skipIf(` → `test.skipIf(`) for the
+ *      current task's test(s).
+ *   2. Ensure Postgres is running (via Testcontainers or CI service).
+ *   3. Run: `bun run test:integration` — verify it FAILS first (red).
+ *   4. Implement the feature (per task in story 3.1).
+ *   5. Run again — verify it PASSES (green).
+ *   6. Commit passing tests.
+ *
+ * AC Coverage:
  *   - AC-1: Admin creates a room → saved to DB + appears in room list with correct fields
  *   - AC-2: Edit-room form with changed values → room row updated + new values in list
  *   - AC-3: Empty name → HTTP 422, field-level error, no room row inserted
@@ -17,7 +27,7 @@
  *   - AC-5: Create/edit that commits → audit_log row (entity='room', action, actor_id, diff)
  *   - AC-6: routeGuards registry has requireAdmin guard for /admin/rooms/** pattern
  *
- * Story 3.1 Scenario IDs (from test-design-epic-3.md):
+ * Scenario IDs (from test-design-epic-3.md):
  *   P0:
  *   - 3.1-INT-001: Admin creates room → appears in list [P0]
  *   - 3.1-INT-002: Empty name rejected → 422, no row inserted [P0]
@@ -31,31 +41,16 @@
  *   - 3.1-UNIT-001: requireAdmin guard registered for /admin/rooms/** in routeGuards [P1]
  *   (3.1-UNIT-002 is in db-schema.test.ts — partial index assertion)
  *
- * Story 3.3 AC Coverage:
- *   - AC-1: Deactivated room absent from listRooms(); row persists in DB with is_active=false
- *   - AC-2: Same listRooms() query used by admin list and Epic 4 booking selector
- *   - AC-3: Non-admin POST /admin/rooms/[id]/deactivate → 403
- *   - AC-4: deactivateRoom() writes audit_log row (entity='room', action='deactivate', diff)
- *
- * Story 3.3 Scenario IDs (from test-design-epic-3.md):
- *   P0:
- *   - 3.3-INT-001: Deactivated room absent from listRooms() (AC-1, AC-2) [P0]
- *   - 3.3-INT-002: Deactivated room row persists in DB with is_active=false (AC-1) [P0]
- *   P1:
- *   - 3.3-INT-003: Non-admin POST /admin/rooms/[id]/deactivate → 403 (AC-3) [P1]
- *   - 3.3-INT-005: deactivateRoom() writes audit_log row (AC-4) [P1]
- *   (3.3-INT-004 is E4-bounded — booking selector does not exist yet; covered via INT-001/002)
- *
  * Prerequisites:
  *   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
- *   - Stories 3.1 and 3.3 implemented: rooms table, room-service.ts, admin routes, requireAdmin guard
+ *   - Story 3.1 implemented: rooms table, room-service.ts, admin routes, requireAdmin guard
  *   - drizzle-kit migrate applied (includes rooms table + partial index)
  *   - DEV_SERVER_URL env var for HTTP-level tests (default: http://localhost:3000)
  *   - AUTH_DEV_BYPASS=true for dev server HTTP tests
  *
  * Architecture requirements (from story dev notes):
  *   - Route handlers call room-service.ts — never call Drizzle directly
- *   - Every create/update/deactivate mutation writes audit_log in the same transaction
+ *   - Every create/update mutation writes audit_log in the same transaction
  *   - Admin routes protected by requireAdmin pushed to routeGuards (not per-route inline)
  *   - Dev bypass user has is_admin=false — NOT usable for admin success tests
  *   - HTTP-level admin tests use service-level calls (no auth needed) for success paths
@@ -119,7 +114,15 @@ afterAll(async () => {
 async function truncateRoomTables(): Promise<void> {
 	const client = await pool.connect();
 	try {
-		for (const table of ['rooms', 'audit_log', 'user_profiles', 'sessions', 'accounts', 'users']) {
+		for (const table of [
+			'bookings',
+			'rooms',
+			'audit_log',
+			'user_profiles',
+			'sessions',
+			'accounts',
+			'users'
+		]) {
 			const result = await client.query<{ exists: boolean }>(
 				`SELECT EXISTS (
           SELECT 1 FROM information_schema.tables
@@ -802,7 +805,6 @@ describe('Story 3.1 — Authorization: Non-admin PATCH room edit → 403 (AC-4, 
 	);
 });
 
-// ---------------------------------------------------------------------------
 // Story 3.3 — Deactivate a Room (GREEN)
 // ---------------------------------------------------------------------------
 //
@@ -1087,6 +1089,501 @@ describe('Story 3.3 — Audit Log: deactivateRoom() writes audit_log row (AC-4)'
 			'diff.isActive.old must be true (room was active before deactivation)'
 		).toBe(true);
 		expect(diff['isActive']?.new, 'diff.isActive.new must be false (room deactivated)').toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-001 — createBlockSlot() inserts block; listBlockSlotsForRoom() returns it [P0]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Block Create: createBlockSlot() inserts a block and listBlockSlotsForRoom() returns it (AC-1)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P0] 3.4-INT-001 — createBlockSlot() inserts a room_blocks row; listBlockSlotsForRoom() returns it with correct fields', async () => {
+		// THIS TEST WILL FAIL — block-slot-service.ts and room_blocks table not yet created (Tasks 1–3).
+		// Activate after Task 1 (schema + migration), Task 2 (BlockSlotSchema), Task 3 (service).
+		//
+		// AC-1: Given a room, When I create a block for a time range, Then that range shows as
+		//       blocked, the block is persisted in room_blocks, and the block is returned in the
+		//       room's block list.
+		//
+		// Strategy: service-level — createRoom → createBlockSlot → listBlockSlotsForRoom.
+
+		const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+		const { createBlockSlot, listBlockSlotsForRoom } =
+			await import('../../src/lib/server/services/block-slot-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const room = await createRoom(actorId, {
+			name: 'Block Test Room',
+			floor: '1',
+			capacity: 10,
+			features: [] as const
+		});
+
+		const startAt = '2026-07-01T09:00:00.000Z';
+		const endAt = '2026-07-01T10:00:00.000Z';
+
+		const created = await createBlockSlot(actorId, room.id, {
+			startAt,
+			endAt,
+			reason: 'Maintenance'
+		});
+
+		expect(created.id, 'createBlockSlot must return a block with a non-empty id').toBeTruthy();
+		expect(created.roomId, 'Block roomId must match the room').toBe(room.id);
+		expect(created.reason, 'Block reason must match input').toBe('Maintenance');
+
+		const blocks = await listBlockSlotsForRoom(room.id);
+		expect(blocks.length, 'listBlockSlotsForRoom must return exactly one block').toBe(1);
+		expect(blocks[0]?.id, 'Listed block id must match created block').toBe(created.id);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-002 — Block overlapping existing booking → 422 conflict (app-level) [P0]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Block Conflict: Block over an existing booking → 422 conflict, app-level check (AC-3)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P0] 3.4-INT-002 — createBlockSlot() over an existing booking rejects with 422 conflict (application-level pre-check)', async () => {
+		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
+		// Activate after Task 3 (service with app-level booking overlap pre-check).
+		//
+		// AC-3: Given a room with an existing booking, When I attempt to create a block that
+		//       overlaps that booking's time range, Then the attempt is rejected with HTTP 422
+		//       (not 500) and a structured conflict message.
+		//
+		// Strategy: service-level — createRoom, seed a booking row directly in DB, then attempt
+		// createBlockSlot for the same time range; assert conflict error is thrown (not 500).
+		//
+		// The application-level pre-check queries:
+		//   SELECT 1 FROM bookings WHERE room_id = $1 AND during && $2 AND status <> 'cancelled'
+		// before the INSERT into room_blocks.
+
+		const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+		const { createBlockSlot } = await import('../../src/lib/server/services/block-slot-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const room = await createRoom(actorId, {
+			name: 'Conflict Test Room',
+			floor: '2',
+			capacity: 8,
+			features: [] as const
+		});
+
+		// Seed a booking directly in the DB so we have a conflict to detect.
+		// booking covers 10:00–11:00; the block will try to cover 10:30–11:30 (overlapping).
+		const bookingClient = await pool.connect();
+		try {
+			await bookingClient.query(
+				`INSERT INTO bookings (room_id, during, status)
+         VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				[room.id, '2026-07-02T10:00:00.000Z', '2026-07-02T11:00:00.000Z']
+			);
+		} finally {
+			bookingClient.release();
+		}
+
+		// Attempt to create a block that overlaps the booking — must throw a conflict error.
+		let conflictThrown = false;
+		let errorCode: string | undefined;
+
+		try {
+			await createBlockSlot(actorId, room.id, {
+				startAt: '2026-07-02T10:30:00.000Z',
+				endAt: '2026-07-02T11:30:00.000Z'
+			});
+		} catch (err: unknown) {
+			conflictThrown = true;
+			// The service must throw a structured conflict error (HTTP 422 surface),
+			// NOT a raw Postgres error (23P01) — this is the application-level pre-check.
+			const e = err as { statusCode?: number; message?: string; name?: string };
+			errorCode = e.statusCode?.toString() ?? e.name;
+		}
+
+		expect(
+			conflictThrown,
+			'createBlockSlot over an existing booking must throw a conflict error'
+		).toBe(true);
+		expect(
+			errorCode,
+			'Conflict error must carry a 422-indicative code (statusCode=422 or ConflictError name)'
+		).toBe('422');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-003 — Block-vs-block EXCLUDE constraint → 23P01 → 422 [P0]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Block EXCLUDE Constraint: Two overlapping blocks for same room → DB 23P01 → 422 (AC-4)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P0] 3.4-INT-003 — createBlockSlot() with an overlapping existing block raises DB 23P01 (EXCLUDE violation) mapped to 422', async () => {
+		// THIS TEST WILL FAIL — room_blocks EXCLUDE constraint and service not yet created (Tasks 1, 3).
+		// Activate after Task 1 (migration with EXCLUDE USING gist) and Task 3 (service catches 23P01).
+		//
+		// AC-4: Two blocks for the same time range on the same room must be rejected by the
+		//       room_blocks EXCLUDE constraint with HTTP 422.
+		//
+		// Strategy: service-level — createRoom → createBlockSlot (first block, succeeds) →
+		// createBlockSlot (second overlapping block, must trigger 23P01 → catch → throw 422 conflict).
+		//
+		// The EXCLUDE constraint:
+		//   EXCLUDE USING gist (room_id WITH =, during WITH &&)
+		// raises Postgres error code 23P01 (exclusion_violation) when two rows conflict.
+
+		const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+		const { createBlockSlot } = await import('../../src/lib/server/services/block-slot-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const room = await createRoom(actorId, {
+			name: 'EXCLUDE Test Room',
+			floor: '3',
+			capacity: 5,
+			features: [] as const
+		});
+
+		// First block: 14:00–15:00 — must succeed.
+		await createBlockSlot(actorId, room.id, {
+			startAt: '2026-07-03T14:00:00.000Z',
+			endAt: '2026-07-03T15:00:00.000Z',
+			reason: 'First block'
+		});
+
+		// Second block: same time range — must trigger EXCLUDE (23P01) → 422 conflict.
+		let conflictThrown = false;
+		let errorCode: string | undefined;
+
+		try {
+			await createBlockSlot(actorId, room.id, {
+				startAt: '2026-07-03T14:00:00.000Z',
+				endAt: '2026-07-03T15:00:00.000Z',
+				reason: 'Conflicting block'
+			});
+		} catch (err: unknown) {
+			conflictThrown = true;
+			const e = err as { statusCode?: number; name?: string };
+			errorCode = e.statusCode?.toString() ?? e.name;
+		}
+
+		expect(
+			conflictThrown,
+			'Second overlapping block must throw a conflict error (EXCLUDE constraint 23P01)'
+		).toBe(true);
+		expect(
+			errorCode,
+			'Conflict error must carry a 422-indicative code (statusCode=422 or ConflictError name)'
+		).toBe('422');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-004 — Non-admin POST /admin/rooms/[id]/blocks → 403 [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Authorization: Non-admin POST block slot → 403 (AC-5, R-002)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test.skipIf(!process.env['DEV_SERVER_URL'])(
+		'[P1] 3.4-INT-004 — Non-admin (organizer) POST /admin/rooms/[id]/blocks → 403 (IDOR proof)',
+		{ timeout: 15000 },
+		async () => {
+			// THIS TEST WILL FAIL — /admin/rooms/[id]/blocks route not yet created (Task 5).
+			// Activate after Task 4 (requireAdmin guard via routeGuards) and Task 5 (routes).
+			//
+			// AC-5: Given a non-admin authenticated user (organizer), When they attempt to
+			//       POST to the block-slots route (/admin/rooms/[id]/blocks), Then the server
+			//       returns 403.
+			//
+			// Risk R-002: IDOR on admin room routes — organizer bypasses requireAdmin.
+			//
+			// Strategy: Seed a room (service-level) + non-admin session, POST the block-create
+			// action, assert 403 via testOwnershipEnforcement().
+
+			const { testOwnershipEnforcement } = await import('../support/helpers/idor-template.js');
+			const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+
+			const client = await pool.connect();
+			let actorId: string;
+			let organizerCookie: string;
+			try {
+				const admin = await seedAdminUser(client);
+				actorId = admin.userId;
+
+				const organizer = await seedOrganizerUserWithSession(client);
+				organizerCookie = organizer.sessionCookie;
+			} finally {
+				client.release();
+			}
+
+			const room = await createRoom(actorId, {
+				name: 'IDOR Block Room',
+				floor: '1',
+				capacity: 6,
+				features: [] as const
+			});
+
+			const body = new URLSearchParams({
+				startAt: '2026-07-04T09:00',
+				endAt: '2026-07-04T10:00'
+			}).toString();
+
+			await testOwnershipEnforcement({
+				routeUrl: `${DEV_SERVER_URL}/admin/rooms/${room.id}/blocks?/create`,
+				method: 'POST',
+				nonOwnerCookie: organizerCookie,
+				body,
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Accept: 'text/html'
+				},
+				expectedDenialStatuses: [403]
+			});
+			// testOwnershipEnforcement throws on failure; reaching here means the 403 was enforced.
+			expect(true).toBe(true);
+		}
+	);
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-005 — deleteBlockSlot() removes block; time range bookable again [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Block Delete: deleteBlockSlot() removes the block (AC-2)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P1] 3.4-INT-005 — deleteBlockSlot() removes the room_blocks row; listBlockSlotsForRoom() returns empty list', async () => {
+		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
+		// Activate after Task 3 (deleteBlockSlot implemented).
+		//
+		// AC-2: Given a persisted block, When I delete it, Then the block is removed and
+		//       the time range becomes bookable again.
+		//
+		// Strategy: service-level — createRoom → createBlockSlot → deleteBlockSlot →
+		// listBlockSlotsForRoom returns empty; direct DB query confirms row deleted.
+
+		const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+		const { createBlockSlot, deleteBlockSlot, listBlockSlotsForRoom } =
+			await import('../../src/lib/server/services/block-slot-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const room = await createRoom(actorId, {
+			name: 'Delete Block Room',
+			floor: '1',
+			capacity: 8,
+			features: [] as const
+		});
+
+		const block = await createBlockSlot(actorId, room.id, {
+			startAt: '2026-07-05T08:00:00.000Z',
+			endAt: '2026-07-05T09:00:00.000Z',
+			reason: 'To be deleted'
+		});
+
+		expect(block.id, 'Block must be created before deletion').toBeTruthy();
+
+		await deleteBlockSlot(actorId, block.id, room.id);
+
+		const blocks = await listBlockSlotsForRoom(room.id);
+		expect(blocks.length, 'listBlockSlotsForRoom must return empty after deletion').toBe(0);
+
+		// Verify directly in DB
+		const dbResult = await pool.query<{ count: string }>(
+			`SELECT COUNT(*)::text AS count FROM room_blocks WHERE id = $1`,
+			[block.id]
+		);
+		const count = parseInt(dbResult.rows[0]?.count ?? '0', 10);
+		expect(count, 'DB room_blocks row must be deleted').toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-006 — createBlockSlot() writes audit_log row [P2]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Audit Log: createBlockSlot() writes audit_log row (AC-6)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P2] 3.4-INT-006 — createBlockSlot() writes audit_log row with entity=room_block, action=create, actor_id, non-null diff', async () => {
+		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
+		// Activate after Task 3 (createBlockSlot writes writeAuditLog in transaction).
+		//
+		// AC-6: Given a successful block creation, When the transaction completes, Then an
+		//       audit_log row is written with entity='room_block', action='create', actor_id,
+		//       and a non-null diff containing the roomId and time range string.
+
+		const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+		const { createBlockSlot } = await import('../../src/lib/server/services/block-slot-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const room = await createRoom(actorId, {
+			name: 'Audit Block Room',
+			floor: '2',
+			capacity: 4,
+			features: [] as const
+		});
+
+		const startAt = '2026-07-06T13:00:00.000Z';
+		const endAt = '2026-07-06T14:00:00.000Z';
+
+		await createBlockSlot(actorId, room.id, {
+			startAt,
+			endAt,
+			reason: 'Audit test block'
+		});
+
+		const auditResult = await pool.query<{
+			entity: string;
+			action: string;
+			actor_id: string;
+			diff: unknown;
+		}>(
+			`SELECT entity, action, actor_id, diff
+       FROM audit_log
+       WHERE entity = 'room_block'
+         AND action = 'create'
+         AND actor_id = $1
+       ORDER BY id DESC
+       LIMIT 1`,
+			[actorId]
+		);
+
+		expect(
+			auditResult.rows.length,
+			"audit_log must contain a 'create' row for entity='room_block' after createBlockSlot()"
+		).toBe(1);
+
+		const auditRow = auditResult.rows[0];
+		expect(auditRow?.entity, "audit_log entity must be 'room_block'").toBe('room_block');
+		expect(auditRow?.action, "audit_log action must be 'create'").toBe('create');
+		expect(auditRow?.actor_id, 'audit_log actor_id must match the admin userId').toBe(actorId);
+		expect(auditRow?.diff, 'audit_log diff must be non-null').not.toBeNull();
+
+		// Verify diff contains the expected fields
+		const diff = auditRow?.diff as Record<string, unknown>;
+		expect(diff, 'diff must contain roomId').toHaveProperty('roomId', room.id);
+		expect(diff, 'diff must contain a during/time range field').toHaveProperty('during');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.4-INT-007 — Two non-overlapping blocks for same room both succeed [P2]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.4 — Non-Overlapping Blocks: Two non-overlapping blocks for same room succeed (AC-4)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P2] 3.4-INT-007 — Two non-overlapping blocks for the same room can both be created without error', async () => {
+		// THIS TEST WILL FAIL — block-slot-service.ts not yet created (Task 3).
+		// Activate after Task 3 (createBlockSlot + room_blocks EXCLUDE constraint in place).
+		//
+		// AC-4 (partial): Given a room with two blocks at non-overlapping time ranges,
+		//       When both are created, Then both succeed without error.
+		//
+		// Strategy: service-level — createRoom → createBlockSlot (09:00–10:00) →
+		// createBlockSlot (11:00–12:00, non-overlapping) → both succeed → listBlockSlotsForRoom
+		// returns 2 blocks.
+		//
+		// This verifies the EXCLUDE constraint correctly allows non-overlapping ranges and
+		// is the positive counterpart to 3.4-INT-003 (same-range EXCLUDE violation).
+
+		const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+		const { createBlockSlot, listBlockSlotsForRoom } =
+			await import('../../src/lib/server/services/block-slot-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const room = await createRoom(actorId, {
+			name: 'Non-Overlap Block Room',
+			floor: '4',
+			capacity: 12,
+			features: [] as const
+		});
+
+		// First block: 09:00–10:00 (half-open [))
+		const block1 = await createBlockSlot(actorId, room.id, {
+			startAt: '2026-07-07T09:00:00.000Z',
+			endAt: '2026-07-07T10:00:00.000Z',
+			reason: 'Morning maintenance'
+		});
+
+		// Second block: 11:00–12:00 — non-overlapping with first (gap 10:00–11:00)
+		const block2 = await createBlockSlot(actorId, room.id, {
+			startAt: '2026-07-07T11:00:00.000Z',
+			endAt: '2026-07-07T12:00:00.000Z',
+			reason: 'Afternoon maintenance'
+		});
+
+		expect(block1.id, 'First block must be created').toBeTruthy();
+		expect(block2.id, 'Second non-overlapping block must also be created').toBeTruthy();
+		expect(block1.id, 'Block IDs must be distinct').not.toBe(block2.id);
+
+		const blocks = await listBlockSlotsForRoom(room.id);
+		expect(blocks.length, 'listBlockSlotsForRoom must return 2 non-overlapping blocks').toBe(2);
 	});
 });
 

@@ -67,5 +67,21 @@
 	"room_photo_error_no_file": "No file provided.",
 	"room_photo_error_invalid_type": "Invalid file type. Please upload a JPEG, PNG, or WebP image.",
 	"room_photo_error_too_large": "File is too large. Maximum size is 10 MB.",
-	"room_photo_upload_link": "Upload photo"
+	"room_photo_upload_link": "Upload photo",
+
+	"room_block_list_title": "Block Time Slots",
+	"room_block_list_empty": "No blocks for this room.",
+	"room_block_create_title": "Block a Time Range",
+	"room_block_start_label": "Start",
+	"room_block_end_label": "End",
+	"room_block_reason_label": "Reason (optional)",
+	"room_block_create_button": "Block time",
+	"room_block_created_toast": "Time blocked.",
+	"room_block_deleted_toast": "Block removed.",
+	"room_block_delete_button": "Remove",
+	"room_block_conflict_error": "This time range conflicts with an existing block.",
+	"room_block_conflict_booking": "This time range conflicts with an existing booking.",
+	"room_block_validation_start_invalid": "Start must be a valid date and time.",
+	"room_block_validation_end_invalid": "End must be a valid date and time.",
+	"room_block_validation_end_after_start": "End time must be after start time."
 }
