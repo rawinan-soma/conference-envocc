@@ -345,3 +345,4 @@ The `enable_seqscan = off` probe confirmed an Index Scan path was available. Mig
 ## Change Log
 
 - 2026-06-13: Implementation complete — created `src/lib/server/db/queries/bookings.ts` with `getWeekCalendar()`, activated `4.2-INT-001` and `4.2-INT-002`. All ACs satisfied. No migration needed (composite GiST index sufficient). Status → review.
+- 2026-06-14: Code review (Step 5) complete — adversarial review (Blind Hunter / Edge Case Hunter / Acceptance Auditor) over the 4.2 diff (`dd156bc..HEAD`). 3 findings, all dismissed (intentional inactive-room filtering per Dev Notes; Drizzle `sql` template parameterizes interpolated values — no injection; timezone conversion deferred to caller by design). No code changes required. AC coverage confirmed via active (non-skipped) tests: AC-1 → 4.2-INT-001, AC-2 → 4.2-INT-002, AC-3 → 4.2-UNIT-001 — all passing. Gates green: prettier (no changes), lint, check (0 errors/0 warnings). Clean review.
