@@ -76,7 +76,7 @@ development_status:
 
   # ── Epic 4: Room Booking & Organizer Workspace ──
   epic-4: in-progress
-  4-1-conflict-translation-exclude-predicate: atdd-done
+  4-1-conflict-translation-exclude-predicate: done
   4-2-room-calendar-read-model: backlog
   4-3-room-calendar-view: backlog
   4-4-create-a-booking-conflict-free: backlog
