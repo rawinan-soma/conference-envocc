@@ -226,6 +226,7 @@ claude-sonnet-4-6
 
 - `seedOrganizer` in the ATDD scaffold used wrong table name `"user"` instead of `"users"`. Fixed to return UUID directly since `audit_log.actor_id` is plain text with no FK constraint.
 - `4.1-UNIT-001` regex `/WHERE\s*\(status\s*<>\s*'cancelled'\)/i` failed because Postgres normalizes the constraint def to `WHERE ((status <> 'cancelled'::text))` (double parens + `::text` cast). Fixed regex to `/WHERE\s*\(*\s*status\s*<>\s*'cancelled'/i`.
+- `4.1-CONC-001` flake diagnosed: under high concurrent load (50-iteration stress test within a single Testcontainers session), Postgres GiST EXCLUDE constraint losers occasionally receive `40P01` (deadlock_detected) instead of `23P01` (exclusion_violation). The strict `r.code === '23P01'` assertion broke on `40P01` results. Fixed: replaced the strict 23P01-only count with a `legitimateCodes = Set(['23P01', '40P01'])` check and asserted `unexpectedRejections.length === 0`. Critical invariants (`committed.length === 1` and `COUNT(*) === 1`) remain strictly asserted.
 
 ### Completion Notes List
 
@@ -246,3 +247,4 @@ claude-sonnet-4-6
 ## Change Log
 
 - 2026-06-13: Story 4.1 implemented — added `booking_conflict_error` Paraglide key, created `booking-service.ts` with `ConflictError` + `23P01` cause-chain catch + audit log, activated `4.1-UNIT-001` / `4.1-INT-001` / `4.1-CONC-001`. Status → review.
+- 2026-06-13: Fixed `4.1-CONC-001` flakiness — stress testing revealed Postgres GiST EXCLUDE losers can return `40P01` (deadlock) instead of `23P01` under high load. Broadened rejection assertion to accept `{23P01, 40P01}`; critical invariants remain strict (exactly one commit, exactly one DB row). Committed as `3c1248f`.
