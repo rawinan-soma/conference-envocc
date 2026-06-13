@@ -117,10 +117,8 @@ async function seedRoom(client: pg.PoolClient, prefix = 'test-booking'): Promise
 /**
  * Returns a deterministic actor ID for audit log entries.
  * audit_log.actor_id is plain text (no FK) — no DB insert required.
- * The client parameter is kept for API compatibility with callers.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function seedOrganizer(_client: pg.PoolClient): Promise<string> {
+function seedOrganizer(): string {
 	return randomUUID();
 }
 
@@ -179,15 +177,36 @@ describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () 
 			})
 		);
 
-		const settled = results.map((r) => (r.status === 'fulfilled' ? r.value : { committed: false }));
+		// Map allSettled results to a uniform shape. A rejected promise means pool.connect() itself
+		// threw (e.g. pool exhausted) — propagate the rejection reason's code so infrastructure
+		// errors are not silently collapsed into "losers without a code" and produce a misleading
+		// assertion failure message.
+		const settled = results.map((r) =>
+			r.status === 'fulfilled'
+				? r.value
+				: {
+						committed: false,
+						code: (r.reason as { code?: string } | undefined)?.code ?? 'POOL_ERROR'
+					}
+		);
 
+		// Assert no unexpected error codes before checking invariants. Any code other than 23P01
+		// or 40P01 (or the synthetic POOL_ERROR sentinel) indicates an infrastructure problem
+		// that would make the subsequent invariant assertions meaningless.
+		const legitimateCodes = new Set(['23P01', '40P01']);
 		const committed = settled.filter((r) => r.committed);
 		const notCommitted = settled.filter((r) => !r.committed);
 		// Under concurrent GiST EXCLUDE, losers raise 23P01 (exclusion_violation).
 		// Under high concurrency, Postgres may also raise 40P01 (deadlock_detected) for some
 		// losers — a deadlock victim IS rolled back, which satisfies AR-11's "or are rolled back"
 		// clause. Both codes are legitimate; any other code signals an unexpected failure.
-		const legitimateCodes = new Set(['23P01', '40P01']);
+		const unexpectedRejections = notCommitted.filter(
+			(r) => 'code' in r && !legitimateCodes.has(r.code as string)
+		);
+		expect(
+			unexpectedRejections.length,
+			`Expected all losers to raise 23P01/40P01 but found unexpected codes: [${unexpectedRejections.map((r) => ('code' in r ? r.code : 'no-code')).join(', ')}] — possible pool exhaustion or infrastructure error`
+		).toBe(0);
 		const legitimateRejections = notCommitted.filter(
 			(r) => 'code' in r && legitimateCodes.has(r.code as string)
 		);
@@ -238,7 +257,7 @@ describe('Story 4.1 — Sequential Conflict → ConflictError (AC-3)', () => {
 		let actorId: string;
 		try {
 			roomId = await seedRoom(client, 'test-int-001');
-			actorId = await seedOrganizer(client);
+			actorId = seedOrganizer();
 		} finally {
 			client.release();
 		}
@@ -292,7 +311,7 @@ describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
 		let actorId: string;
 		try {
 			roomId = await seedRoom(client, 'test-int-002');
-			actorId = await seedOrganizer(client);
+			actorId = seedOrganizer();
 		} finally {
 			client.release();
 		}
@@ -363,7 +382,7 @@ describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () =>
 		let actorId: string;
 		try {
 			roomId = await seedRoom(client, 'test-int-003');
-			actorId = await seedOrganizer(client);
+			actorId = seedOrganizer();
 		} finally {
 			client.release();
 		}
@@ -437,7 +456,7 @@ describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1,
 		let actorId: string;
 		try {
 			roomId = await seedRoom(client, 'test-int-004');
-			actorId = await seedOrganizer(client);
+			actorId = seedOrganizer();
 		} finally {
 			client.release();
 		}
@@ -495,7 +514,7 @@ describe('Story 4.1 — ConflictError carries Paraglide key, not raw 23P01 (P1, 
 		let actorId: string;
 		try {
 			roomId = await seedRoom(client, 'test-int-005');
-			actorId = await seedOrganizer(client);
+			actorId = seedOrganizer();
 		} finally {
 			client.release();
 		}
@@ -555,7 +574,7 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 		let actorId: string;
 		try {
 			roomId = await seedRoom(client, 'test-int-006');
-			actorId = await seedOrganizer(client);
+			actorId = seedOrganizer();
 		} finally {
 			client.release();
 		}
