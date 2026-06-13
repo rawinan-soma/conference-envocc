@@ -510,3 +510,39 @@ describe("Story 4.1 — DB Schema: bookings_no_overlap EXCLUDE predicate contain
 		).toMatch(/WHERE\s*\(*\s*status\s*<>\s*'cancelled'/i);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// 4.2-UNIT-001 — GiST index on bookings(during) exists [P0]
+// ACTIVE — passes immediately; the EXCLUDE constraint from Story 1.3 creates
+// an implicit GiST index on (room_id, during). This test asserts it survives
+// in the migrated schema and guards against accidental constraint removal.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.2 — DB Schema: GiST index on bookings(during) exists (AC-3, R-007)', () => {
+	test('[P0] 4.2-UNIT-001 — a GiST index covering bookings.during exists in migrated schema', async () => {
+		// The bookings_no_overlap EXCLUDE USING gist constraint creates an implicit GiST index
+		// on (room_id, during). This test asserts that index exists and is of type GiST.
+		// R-007 mitigation: confirms range-overlap queries are index-backed.
+		//
+		// Strategy: join pg_constraint → pg_class (index) → pg_am (access method)
+		// to confirm the access method is 'gist'.
+		const result = await pool.query<{ amname: string }>(`
+      SELECT am.amname
+      FROM pg_constraint c
+      JOIN pg_class idx ON idx.oid = c.conindid
+      JOIN pg_am am ON am.oid = idx.relam
+      WHERE c.conname = 'bookings_no_overlap'
+        AND c.conrelid = 'bookings'::regclass
+    `);
+
+		expect(
+			result.rows.length,
+			'bookings_no_overlap constraint not found — migration 0000_init.sql must have run'
+		).toBe(1);
+
+		expect(
+			result.rows[0]?.amname,
+			"bookings_no_overlap constraint index must be a GiST index (amname = 'gist')"
+		).toBe('gist');
+	});
+});
