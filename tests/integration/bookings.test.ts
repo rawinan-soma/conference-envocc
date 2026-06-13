@@ -765,6 +765,9 @@ describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () =
 				'GiST index must be usable for during && range query (enable_seqscan=off, planner must pick Index Scan)'
 			).toMatch(/Index Scan|Bitmap.*Index/i);
 		} finally {
+			// Reset the session-level GUC before returning the connection to the pool
+			// so subsequent tests that reuse this connection are not affected.
+			await client.query('RESET enable_seqscan');
 			client.release();
 		}
 	});

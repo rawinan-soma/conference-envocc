@@ -10,7 +10,7 @@
  *   AC-1: returns per-room bookings for the week; deactivated rooms absent
  *   AC-2: GiST index on bookings(during) is usable for range-overlap query (R-007)
  */
-import { eq, sql } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 
 import { db } from '../index.js';
 import { bookings } from '../schema/bookings.js';
@@ -33,11 +33,15 @@ export type WeekCalendarRow = {
  * @param weekStart - Monday midnight UTC (caller is responsible for timezone conversion)
  */
 export async function getWeekCalendar(weekStart: Date): Promise<WeekCalendarRow[]> {
-	const weekEnd = new Date(weekStart);
-	weekEnd.setDate(weekEnd.getDate() + 7);
+	// Compute weekEnd as exactly 7 × 24 h in UTC to avoid local-time DST drift.
+	const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-	// Fetch all active rooms
-	const allRooms = await db.select().from(rooms).where(eq(rooms.isActive, true));
+	// Fetch all active rooms in stable display order (floor asc, name asc) — matches listRooms().
+	const allRooms = await db
+		.select()
+		.from(rooms)
+		.where(eq(rooms.isActive, true))
+		.orderBy(asc(rooms.floor), asc(rooms.name));
 
 	if (allRooms.length === 0) return [];
 
