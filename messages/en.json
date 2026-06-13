@@ -54,6 +54,9 @@
 	"room_error_capacity_min": "Capacity must be at least 1.",
 	"room_not_found": "Room not found.",
 	"room_cancel_button": "Cancel",
+	"room_deactivate_button": "Deactivate",
+	"room_deactivated_toast": "Room deactivated.",
+	"room_deactivate_confirm": "Deactivate this room?",
 
 	"room_photo_upload_title": "Room photo",
 	"room_photo_upload_label": "Upload photo",

@@ -1,25 +1,15 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 3.1: Create and Edit Rooms
- * Integration Tests: Room CRUD, validation, authorization, audit log
+ * Integration Tests — Story 3.1: Create and Edit Rooms
+ *                   — Story 3.3: Deactivate a Room
  *
- * TDD RED PHASE: All tests are marked test.skip() (or test.skipIf()) and will remain
- * skipped until the developer activates them task-by-task during implementation.
+ * Room CRUD, validation, authorization, audit log, and soft-delete.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
  * starts Testcontainers when DATABASE_URL is not set, or uses the CI Postgres
  * service when DATABASE_URL is already provided.
  *
- * Activation guide:
- *   1. Remove `test.skip(` → `test(` (or `test.skipIf(` → `test.skipIf(`) for the
- *      current task's test(s).
- *   2. Ensure Postgres is running (via Testcontainers or CI service).
- *   3. Run: `bun run test:integration` — verify it FAILS first (red).
- *   4. Implement the feature (per task in story 3.1).
- *   5. Run again — verify it PASSES (green).
- *   6. Commit passing tests.
- *
- * AC Coverage:
+ * Story 3.1 AC Coverage:
  *   - AC-1: Admin creates a room → saved to DB + appears in room list with correct fields
  *   - AC-2: Edit-room form with changed values → room row updated + new values in list
  *   - AC-3: Empty name → HTTP 422, field-level error, no room row inserted
@@ -27,7 +17,7 @@
  *   - AC-5: Create/edit that commits → audit_log row (entity='room', action, actor_id, diff)
  *   - AC-6: routeGuards registry has requireAdmin guard for /admin/rooms/** pattern
  *
- * Scenario IDs (from test-design-epic-3.md):
+ * Story 3.1 Scenario IDs (from test-design-epic-3.md):
  *   P0:
  *   - 3.1-INT-001: Admin creates room → appears in list [P0]
  *   - 3.1-INT-002: Empty name rejected → 422, no row inserted [P0]
@@ -41,16 +31,31 @@
  *   - 3.1-UNIT-001: requireAdmin guard registered for /admin/rooms/** in routeGuards [P1]
  *   (3.1-UNIT-002 is in db-schema.test.ts — partial index assertion)
  *
+ * Story 3.3 AC Coverage:
+ *   - AC-1: Deactivated room absent from listRooms(); row persists in DB with is_active=false
+ *   - AC-2: Same listRooms() query used by admin list and Epic 4 booking selector
+ *   - AC-3: Non-admin POST /admin/rooms/[id]/deactivate → 403
+ *   - AC-4: deactivateRoom() writes audit_log row (entity='room', action='deactivate', diff)
+ *
+ * Story 3.3 Scenario IDs (from test-design-epic-3.md):
+ *   P0:
+ *   - 3.3-INT-001: Deactivated room absent from listRooms() (AC-1, AC-2) [P0]
+ *   - 3.3-INT-002: Deactivated room row persists in DB with is_active=false (AC-1) [P0]
+ *   P1:
+ *   - 3.3-INT-003: Non-admin POST /admin/rooms/[id]/deactivate → 403 (AC-3) [P1]
+ *   - 3.3-INT-005: deactivateRoom() writes audit_log row (AC-4) [P1]
+ *   (3.3-INT-004 is E4-bounded — booking selector does not exist yet; covered via INT-001/002)
+ *
  * Prerequisites:
  *   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
- *   - Story 3.1 implemented: rooms table, room-service.ts, admin routes, requireAdmin guard
+ *   - Stories 3.1 and 3.3 implemented: rooms table, room-service.ts, admin routes, requireAdmin guard
  *   - drizzle-kit migrate applied (includes rooms table + partial index)
  *   - DEV_SERVER_URL env var for HTTP-level tests (default: http://localhost:3000)
  *   - AUTH_DEV_BYPASS=true for dev server HTTP tests
  *
  * Architecture requirements (from story dev notes):
  *   - Route handlers call room-service.ts — never call Drizzle directly
- *   - Every create/update mutation writes audit_log in the same transaction
+ *   - Every create/update/deactivate mutation writes audit_log in the same transaction
  *   - Admin routes protected by requireAdmin pushed to routeGuards (not per-route inline)
  *   - Dev bypass user has is_admin=false — NOT usable for admin success tests
  *   - HTTP-level admin tests use service-level calls (no auth needed) for success paths
@@ -795,6 +800,294 @@ describe('Story 3.1 — Authorization: Non-admin PATCH room edit → 403 (AC-4, 
 			expect(true).toBe(true);
 		}
 	);
+});
+
+// ---------------------------------------------------------------------------
+// Story 3.3 — Deactivate a Room (GREEN)
+// ---------------------------------------------------------------------------
+//
+// All tests below are active (no test.skip). deactivateRoom() is implemented
+// and all service-level tests pass. 3.3-INT-003 uses test.skipIf(!DEV_SERVER_URL)
+// for HTTP-level IDOR verification — it correctly skips without a running dev server.
+//
+// AC Coverage:
+//   - AC-1, AC-2: 3.3-INT-001 (deactivated room absent from listRooms())
+//   - AC-1:       3.3-INT-002 (deactivated room row still in DB with is_active=false)
+//   - AC-3:       3.3-INT-003 (non-admin POST /admin/rooms/[id]/deactivate → 403)
+//   - AC-4:       3.3-INT-005 (deactivateRoom() writes audit_log row)
+//
+// Note: 3.3-INT-004 (deactivated room cannot be selected in booking form) is bounded by
+// Epic 4 (booking selector does not exist yet). Coverage is provided via listRooms()
+// exclusion in INT-001/INT-002. INT-004 will be implemented alongside the booking selector.
+
+// ---------------------------------------------------------------------------
+// 3.3-INT-001 — Deactivated room absent from active room list [P0]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.3 — Room Deactivate: Deactivated room absent from listRooms() (AC-1, AC-2)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P0] 3.3-INT-001 — createRoom() then deactivateRoom() → room absent from listRooms()', async () => {
+		// AC-1: Given a room with no future bookings, When I deactivate it,
+		//       Then it disappears from the bookable room list (listRooms() returns only active rooms).
+		// AC-2: Given a deactivated room, When the room-list query runs,
+		//       Then the deactivated room is absent from the result.
+		//
+		// Strategy: service-level — createRoom, then deactivateRoom, then assert listRooms()
+		//           does not include the deactivated room.
+
+		const { createRoom, listRooms, deactivateRoom } =
+			await import('../../src/lib/server/services/room-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const input = {
+			name: 'Room To Deactivate 001',
+			floor: '3',
+			capacity: 15,
+			features: ['projector'] as const
+		};
+
+		const created = await createRoom(actorId, input);
+
+		// Verify the room is in the list before deactivation
+		const beforeRooms = await listRooms();
+		const beforeFound = beforeRooms.find((r) => r.id === created.id);
+		expect(beforeFound, 'Room must appear in listRooms() before deactivation').toBeDefined();
+
+		// Deactivate the room
+		await deactivateRoom(actorId, created.id);
+
+		// After deactivation, the room must not appear in listRooms()
+		const afterRooms = await listRooms();
+		const afterFound = afterRooms.find((r) => r.id === created.id);
+		expect(
+			afterFound,
+			'Deactivated room must NOT appear in listRooms() after deactivation'
+		).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.3-INT-002 — Deactivated room row still in DB with is_active=false [P0]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.3 — Room Deactivate: Deactivated room row persists in DB with is_active=false (AC-1)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P0] 3.3-INT-002 — deactivateRoom() performs soft delete: DB row remains with is_active=false', async () => {
+		// AC-1: Deactivation is a soft delete — the room row remains in the database
+		//       with is_active=false (not hard deleted).
+		//
+		// Strategy: service-level — createRoom, deactivateRoom, direct pool query to assert
+		//           the row still exists and is_active = false.
+
+		const { createRoom, deactivateRoom } =
+			await import('../../src/lib/server/services/room-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const input = {
+			name: 'Room To Deactivate 002',
+			floor: '1',
+			capacity: 8,
+			features: [] as const
+		};
+
+		const created = await createRoom(actorId, input);
+
+		// Verify is_active=true before deactivation
+		const beforeResult = await pool.query<{ is_active: boolean }>(
+			`SELECT is_active FROM rooms WHERE id = $1`,
+			[created.id]
+		);
+		expect(
+			beforeResult.rows[0]?.is_active,
+			'Room must have is_active=true before deactivation'
+		).toBe(true);
+
+		// Deactivate the room
+		await deactivateRoom(actorId, created.id);
+
+		// Row must still exist in DB with is_active=false (soft delete, not hard delete)
+		const afterResult = await pool.query<{ is_active: boolean; id: string }>(
+			`SELECT id, is_active FROM rooms WHERE id = $1`,
+			[created.id]
+		);
+
+		expect(
+			afterResult.rows.length,
+			'Room row must still exist in the DB after deactivation (soft delete)'
+		).toBe(1);
+		expect(afterResult.rows[0]?.is_active, 'is_active must be false after deactivateRoom()').toBe(
+			false
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 3.3-INT-003 — Non-admin POST /admin/rooms/[id]/deactivate → 403 [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.3 — Authorization: Non-admin POST room deactivate → 403 (AC-3, R-002)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test.skipIf(!process.env['DEV_SERVER_URL'])(
+		'[P1] 3.3-INT-003 — Non-admin (organizer) POST /admin/rooms/[id]/deactivate → 403 (IDOR proof)',
+		{ timeout: 15000 },
+		async () => {
+			// AC-3: Given an authenticated non-admin user (organizer),
+			//       When they attempt POST to /admin/rooms/[id]/deactivate,
+			//       Then the server returns 403.
+			//
+			// Risk R-002: IDOR on admin room deactivate route — organizer bypasses requireAdmin.
+			//
+			// Strategy: Seed a room (service-level), seed a non-admin session, POST to deactivate
+			//           endpoint, assert 403 via testOwnershipEnforcement().
+			// Note: requireAdmin guard covers /^\/admin(?:\/|$)/ — the new deactivate route is
+			//       automatically protected without additional hooks changes (story dev notes).
+
+			const { testOwnershipEnforcement } = await import('../support/helpers/idor-template.js');
+			const { createRoom } = await import('../../src/lib/server/services/room-service.js');
+
+			const client = await pool.connect();
+			let actorId: string;
+			let organizerCookie: string;
+			try {
+				const admin = await seedAdminUser(client);
+				actorId = admin.userId;
+
+				const organizer = await seedOrganizerUserWithSession(client);
+				organizerCookie = organizer.sessionCookie;
+			} finally {
+				client.release();
+			}
+
+			// Create a room with admin (service-level, no auth needed)
+			const room = await createRoom(actorId, {
+				name: 'Room to Deactivate IDOR',
+				floor: '2',
+				capacity: 10,
+				features: [] as const
+			});
+
+			await testOwnershipEnforcement({
+				routeUrl: `${DEV_SERVER_URL}/admin/rooms/${room.id}/deactivate`,
+				method: 'POST',
+				nonOwnerCookie: organizerCookie,
+				body: new URLSearchParams().toString(),
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				expectedDenialStatuses: [403]
+			});
+			// testOwnershipEnforcement throws on failure; reaching here means the 403 was enforced.
+			// expect.assertions is required by vitest requireAssertions: true global config.
+			expect(true).toBe(true);
+		}
+	);
+});
+
+// ---------------------------------------------------------------------------
+// 3.3-INT-005 — deactivateRoom() writes audit_log row [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.3 — Audit Log: deactivateRoom() writes audit_log row (AC-4)', () => {
+	beforeEach(async () => {
+		await truncateRoomTables();
+	});
+
+	test('[P1] 3.3-INT-005 — deactivateRoom() writes audit_log row with entity=room, action=deactivate, actor_id, diff.isActive.new===false', async () => {
+		// AC-4: Given a successful deactivation, When the transaction commits,
+		//       Then an audit_log row is written with entity='room', action='deactivate',
+		//       actor_id, and diff = { isActive: { old: true, new: false } }.
+		//
+		// Strategy: service-level — createRoom, deactivateRoom, query audit_log,
+		//           assert entity, action, actor_id, and diff.isActive.new === false.
+		// Note: diff key is camelCase 'isActive' (Drizzle column name convention), matching
+		//       the writeAuditLog call: { isActive: { old: true, new: false } }.
+
+		const { createRoom, deactivateRoom } =
+			await import('../../src/lib/server/services/room-service.js');
+
+		const client = await pool.connect();
+		let actorId: string;
+		try {
+			const admin = await seedAdminUser(client);
+			actorId = admin.userId;
+		} finally {
+			client.release();
+		}
+
+		const input = {
+			name: 'Room To Deactivate 005',
+			floor: '4',
+			capacity: 12,
+			features: ['whiteboard'] as const
+		};
+
+		const created = await createRoom(actorId, input);
+
+		// Deactivate the room
+		await deactivateRoom(actorId, created.id);
+
+		// Query audit_log for the deactivate row written during deactivateRoom()
+		const auditResult = await pool.query<{
+			entity: string;
+			action: string;
+			actor_id: string;
+			diff: unknown;
+		}>(
+			`SELECT entity, action, actor_id, diff
+         FROM audit_log
+         WHERE entity = 'room'
+           AND action = 'deactivate'
+           AND actor_id = $1
+         ORDER BY id DESC
+         LIMIT 1`,
+			[actorId]
+		);
+
+		expect(
+			auditResult.rows.length,
+			'audit_log must contain exactly one deactivate row after deactivateRoom()'
+		).toBe(1);
+
+		const auditRow = auditResult.rows[0];
+		expect(auditRow?.entity, "audit_log entity must be 'room'").toBe('room');
+		expect(auditRow?.action, "audit_log action must be 'deactivate'").toBe('deactivate');
+		expect(auditRow?.actor_id, 'audit_log actor_id must match the admin userId').toBe(actorId);
+		expect(auditRow?.diff, 'audit_log diff must be non-null').not.toBeNull();
+
+		// Verify the diff contains isActive: { old: true, new: false }
+		const diff = auditRow?.diff as Record<string, { old: unknown; new: unknown }>;
+		expect(diff, 'diff must contain isActive key (camelCase Drizzle column)').toHaveProperty(
+			'isActive'
+		);
+		expect(
+			diff['isActive']?.old,
+			'diff.isActive.old must be true (room was active before deactivation)'
+		).toBe(true);
+		expect(diff['isActive']?.new, 'diff.isActive.new must be false (room deactivated)').toBe(false);
+	});
 });
 
 // ---------------------------------------------------------------------------
