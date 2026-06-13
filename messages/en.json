@@ -53,5 +53,16 @@
 	"room_error_floor_required": "Floor is required.",
 	"room_error_capacity_min": "Capacity must be at least 1.",
 	"room_not_found": "Room not found.",
-	"room_cancel_button": "Cancel"
+	"room_cancel_button": "Cancel",
+
+	"room_photo_upload_title": "Room photo",
+	"room_photo_upload_label": "Upload photo",
+	"room_photo_upload_hint": "JPEG, PNG, or WebP. Maximum 10 MB.",
+	"room_photo_upload_button": "Upload photo",
+	"room_photo_current_label": "Current photo",
+	"room_photo_no_photo": "No photo uploaded yet.",
+	"room_photo_error_no_file": "No file provided.",
+	"room_photo_error_invalid_type": "Invalid file type. Please upload a JPEG, PNG, or WebP image.",
+	"room_photo_error_too_large": "File is too large. Maximum size is 10 MB.",
+	"room_photo_upload_link": "Upload photo"
 }

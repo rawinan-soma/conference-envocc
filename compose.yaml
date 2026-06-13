@@ -20,3 +20,7 @@ services:
 
 volumes:
   pgdata:
+  # Named volume for room photo uploads — persists across container restarts (R-005).
+  # In production (docker-compose.prod.yml), the web service mounts this volume at
+  # UPLOAD_DIR: /app/uploads
+  uploads:

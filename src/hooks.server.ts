@@ -9,7 +9,7 @@ import { env } from '$env/dynamic/private';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { auth, eventStorage } from '$lib/server/auth';
-import { requireAdmin } from '$lib/server/auth/guards';
+import { requireAdmin, requireUser } from '$lib/server/auth/guards';
 import { getProfileByUserId } from '$lib/server/services/profile-service';
 import { validateEnv } from '$lib/server/env';
 
@@ -73,6 +73,19 @@ export const routeGuards: Array<{
 		pattern: /^\/admin(?:\/|$)/,
 		guard: (event) => {
 			requireAdmin(event);
+		}
+	},
+	{
+		// Photo serving route requires authentication (any internal user — organizers need
+		// to see room photos when browsing the calendar). Upload is admin-only (enforced
+		// per-route in the admin route handler). See Story 3.2 AC-3 / AC-4.
+		//
+		// Pattern matches /rooms/[id]/photo and /rooms/[id]/photo/ but NOT /rooms or /rooms/[id].
+		// Uses requireUser (NOT requireAdmin) — organizers must be able to view room photos
+		// per the story purpose: "so that organizers can recognize the space" (FR-061).
+		pattern: /^\/rooms\/[^/]+\/photo(?:\/|$)/,
+		guard: (event) => {
+			requireUser(event);
 		}
 	}
 ];

@@ -127,4 +127,14 @@
 			</Button>
 		</div>
 	</form>
+
+	<!-- Photo upload link -->
+	<div class="mt-6 border-t border-border pt-6">
+		<a
+			href={resolve(`/admin/rooms/${data.room.id}/photo` as Pathname)}
+			class="text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+		>
+			{m.room_photo_upload_link()}
+		</a>
+	</div>
 </main>
