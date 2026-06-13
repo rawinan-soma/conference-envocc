@@ -458,9 +458,8 @@ describe('Story 3.2 — DB Schema: photo_path column exists on rooms table (AC-1
 
 describe("Story 4.1 — DB Schema: bookings_no_overlap EXCLUDE predicate contains WHERE (status != 'cancelled') (AC-1)", () => {
 	test("[P1] 4.1-UNIT-001 — pg_get_constraintdef() for bookings_no_overlap contains WHERE (status <> 'cancelled') predicate", async () => {
-		// THIS TEST WILL REMAIN SKIPPED in the ATDD red phase.
-		// Activate at Task 3 (story 4.1 Task 3.1) — the constraint already exists from Story 1.3
-		// so this test passes immediately once activated (no new migration needed).
+		// ACTIVE — the constraint already exists from Story 1.3, so this test passes
+		// immediately (no new migration needed); it guards the predicate against regression.
 		//
 		// AC-1: The EXCLUDE constraint predicate WHERE (status != 'cancelled') must be present
 		//       in the migrated schema. This is a static live-DB assertion using pg_get_constraintdef().

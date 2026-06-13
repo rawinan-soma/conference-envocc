@@ -2,8 +2,9 @@
  * ATDD Red-Phase Scaffolds — Story 4.1: Conflict Translation & EXCLUDE Predicate
  * Integration Tests: booking-service.ts createBooking, ConflictError, 23P01 mapping
  *
- * TDD RED PHASE: All tests are marked test.skip() and will remain skipped
- * until the developer activates them task-by-task during implementation.
+ * STATUS: All Story 4.1 scenarios are ACTIVE. They were scaffolded as test.skip()
+ * during the ATDD red phase, then activated task-by-task as booking-service.ts was
+ * implemented and verified green.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
@@ -39,7 +40,10 @@
  * Activation order (story 4.1 tasks):
  *   Task 2.3: activate 4.1-INT-001 only → run → expect FAIL → implement booking-service.ts → PASS
  *   Task 2.6: activate 4.1-CONC-001 → run → must PASS (concurrent constraint enforcement)
- *   Remaining tests (4.1-INT-002..006) stay test.skip() until dev activates them post-implementation.
+ *   Code review: activated 4.1-INT-002..006 — all cover in-scope Story 4.1 ACs at the
+ *     service layer (INT-002→AC-1 cancelled-exclusion, INT-003/005→AC-3/AC-4 typed conflict
+ *     error, INT-004/006→half-open [) range semantics). The HTTP-422 form-action variants of
+ *     R-006 are owned by 4.4-INT-002 in the future booking-route story (Story 4.4).
  *
  * Prerequisites:
  *   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
@@ -269,9 +273,8 @@ describe('Story 4.1 — Sequential Conflict → ConflictError (AC-3)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
-	test.skip('[P0] 4.1-INT-002 — cancelled booking does not block new booking for same room+slot (predicate WHERE status<>cancelled verified)', async () => {
-		// THIS TEST WILL FAIL until booking-service.ts createBooking is implemented.
-		// Activate after 4.1-INT-001 passes (green).
+	test('[P0] 4.1-INT-002 — cancelled booking does not block new booking for same room+slot (predicate WHERE status<>cancelled verified)', async () => {
+		// ACTIVE — verifies booking-service.ts createBooking against a live constraint.
 		//
 		// AC-1: EXCLUDE constraint predicate WHERE (status != 'cancelled') verified behaviorally.
 		// A cancelled booking must NOT prevent a new active booking in the same slot.
@@ -339,9 +342,8 @@ describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () => {
-	test.skip('[P0] 4.1-INT-003 — booking-service.ts throws ConflictError (not raw Postgres error) when 23P01 fires', async () => {
-		// THIS TEST WILL FAIL until booking-service.ts catches and remaps 23P01.
-		// Activate alongside or after 4.1-INT-001.
+	test('[P0] 4.1-INT-003 — booking-service.ts throws ConflictError (not raw Postgres error) when 23P01 fires', async () => {
+		// ACTIVE — verifies booking-service.ts catches and remaps 23P01 to a typed error.
 		//
 		// AC-3: Postgres error 23P01 must be caught and rethrown as ConflictError.
 		//       No raw 23P01 DatabaseError or DrizzleQueryError should escape the service.
@@ -418,9 +420,8 @@ describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () =>
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1, R-008)', () => {
-	test.skip('[P1] 4.1-INT-004 — back-to-back bookings for same room on adjacent slots both succeed (tstzrange [) half-open)', async () => {
-		// THIS TEST WILL FAIL until booking-service.ts is implemented.
-		// Activate after 4.1-INT-001 passes (green). Part of P1 activation.
+	test('[P1] 4.1-INT-004 — back-to-back bookings for same room on adjacent slots both succeed (tstzrange [) half-open)', async () => {
+		// ACTIVE — confirms half-open [) range allows adjacent bookings.
 		//
 		// R-008: Back-to-back bookings must NOT be flagged as conflicts.
 		// tstzrange [) (half-open) means [10:00, 11:00) and [11:00, 12:00) do not overlap.
@@ -473,9 +474,8 @@ describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1,
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — ConflictError carries Paraglide key, not raw 23P01 (P1, AC-4)', () => {
-	test.skip('[P1] 4.1-INT-005 — ConflictError.key equals booking_conflict_error and message contains no raw 23P01 string', async () => {
-		// THIS TEST WILL FAIL until booking-service.ts is implemented.
-		// Activate alongside 4.1-INT-003 or after it passes.
+	test('[P1] 4.1-INT-005 — ConflictError.key equals booking_conflict_error and message contains no raw 23P01 string', async () => {
+		// ACTIVE — confirms the conflict surfaces as a Paraglide key, not a raw SQLSTATE.
 		//
 		// AC-4: The conflict error must surface as the Paraglide key 'booking_conflict_error'
 		//       — never as the raw PostgreSQL SQLSTATE '23P01'.
@@ -542,9 +542,8 @@ describe('Story 4.1 — ConflictError carries Paraglide key, not raw 23P01 (P1, 
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
-	test.skip('[P2] 4.1-INT-006 — bookings for the same room at the same time on different days do not conflict', async () => {
-		// THIS TEST WILL FAIL until booking-service.ts is implemented.
-		// Activate as part of P2 verification after all P0/P1 tests pass.
+	test('[P2] 4.1-INT-006 — bookings for the same room at the same time on different days do not conflict', async () => {
+		// ACTIVE — confirms range isolation across different days.
 		//
 		// Scenario: same room, 10:00–11:00 on day 1 and 10:00–11:00 on day 2 — both must succeed.
 		// tstzrange ranges on different dates do not overlap (correct range isolation).

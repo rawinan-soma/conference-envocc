@@ -4,7 +4,7 @@ baseline_commit: 8525c4b19209fcc8824ffe5c05055387a2b34f73
 
 # Story 4.1: Conflict Translation & EXCLUDE Predicate
 
-Status: review
+Status: done
 
 ## Story
 
@@ -216,6 +216,21 @@ Source: `src/lib/server/services/audit.ts` — `writeAuditLog(tx: DrizzleTransac
 - Story ACs: `_bmad-output/planning-artifacts/epics.md` Epic 4, Story 4.1 (GH Issue #21)
 - Test scenarios: `_bmad-output/test-artifacts/test-design/test-design-epic-4.md` (P0: `4.1-CONC-001`, `4.1-INT-001–003`; P1: `4.1-INT-004–005`, `4.1-UNIT-001`; P2: `4.1-INT-006`)
 
+### Review Findings
+
+Code review (2026-06-13) — adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor). Service implementation is clean and matches the `block-slot-service.ts` pattern; no code-correctness defects found. The material finding was AC coverage by active tests.
+
+- [x] [Review][Patch] Activate 4.1-INT-002 (cancelled-booking exclusion — story namesake) — covers AC-1 behaviorally; was test.skip() [tests/integration/bookings.test.ts] — ACTIVATED, green
+- [x] [Review][Patch] Activate 4.1-INT-003 (23P01 → typed ConflictError, statusCode=422) — covers AC-3; service-layer scope, not the HTTP-422 form variant (that is 4.4-INT-002) [tests/integration/bookings.test.ts] — ACTIVATED, green
+- [x] [Review][Patch] Activate 4.1-INT-004 (back-to-back half-open `[)` both succeed) — covers the range semantics the EXCLUDE relies on (R-008) [tests/integration/bookings.test.ts] — ACTIVATED, green
+- [x] [Review][Patch] Activate 4.1-INT-005 (ConflictError.key = booking_conflict_error, no raw 23P01; en.json key exists) — covers AC-3/AC-4 [tests/integration/bookings.test.ts] — ACTIVATED, green
+- [x] [Review][Patch] Activate 4.1-INT-006 (same room different days → no conflict) — covers range isolation [tests/integration/bookings.test.ts] — ACTIVATED, green
+- [x] [Review][Patch] Correct stale "test.skip / WILL FAIL / WILL REMAIN SKIPPED" header and per-test comments in bookings.test.ts and db-schema.test.ts now that all Story 4.1 scenarios are active [tests/integration/bookings.test.ts, tests/integration/db-schema.test.ts] — FIXED
+
+Note: Dev Notes line 196 ("remaining 4.1 scenarios stay test.skip() for later stories to activate") was incorrect. Per Task 2.2 and test-design-epic-4.md, INT-002..006 are all Story 4.1 scenarios. The test-design's "POST via action → HTTP 422" framing for INT-003/005 is realized at the HTTP layer by 4.4-INT-002 in the future booking-route story; the dev's scaffold correctly re-scoped the 4.1 versions to the service layer (createBooking), which is exactly where AC-3 and AC-4 live. No scenario was genuinely out of scope, so none was left skipped.
+
+Verification: `tests/integration/bookings.test.ts` (7 tests) + `4.1-UNIT-001` in `db-schema.test.ts` all pass under Testcontainers Postgres locally. The pre-existing 15 env-dependent failures (Epic 1/2 auth/profile/session/audit tests requiring a running HTTP server / SESSION_SECRET) exist on the clean baseline too and are unrelated to Story 4.1.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -241,10 +256,11 @@ claude-sonnet-4-6
 - `messages/en.json` (added `booking_conflict_error` key)
 - `messages/th.json` (added `booking_conflict_error` placeholder)
 - `src/lib/server/services/booking-service.ts` (new — booking service with ConflictError)
-- `tests/integration/bookings.test.ts` (activated `4.1-INT-001`, `4.1-CONC-001`; fixed `seedOrganizer`)
+- `tests/integration/bookings.test.ts` (activated `4.1-INT-001`, `4.1-CONC-001`; fixed `seedOrganizer`; code review activated `4.1-INT-002..006` + refreshed stale comments)
 - `tests/integration/db-schema.test.ts` (activated `4.1-UNIT-001`; fixed regex for Postgres normalization)
 
 ## Change Log
 
 - 2026-06-13: Story 4.1 implemented — added `booking_conflict_error` Paraglide key, created `booking-service.ts` with `ConflictError` + `23P01` cause-chain catch + audit log, activated `4.1-UNIT-001` / `4.1-INT-001` / `4.1-CONC-001`. Status → review.
 - 2026-06-13: Fixed `4.1-CONC-001` flakiness — stress testing revealed Postgres GiST EXCLUDE losers can return `40P01` (deadlock) instead of `23P01` under high load. Broadened rejection assertion to accept `{23P01, 40P01}`; critical invariants remain strict (exactly one commit, exactly one DB row). Committed as `3c1248f`.
+- 2026-06-13: Code review (Step 5) — activated `4.1-INT-002` through `4.1-INT-006`; all five cover in-scope Story 4.1 ACs at the service layer (INT-002→AC-1, INT-003/005→AC-3/AC-4, INT-004/006→half-open range semantics). Refreshed stale test-header comments. All 7 `bookings.test.ts` tests + `4.1-UNIT-001` pass under Testcontainers locally; gates green (prettier/lint/check). Status → done.
