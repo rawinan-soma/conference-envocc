@@ -613,7 +613,7 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.2 — Week Calendar Read-Model: Correct Data (P1)', () => {
-	test.skip('[P1] 4.2-INT-001 — getWeekCalendar returns per-room bookings; deactivated rooms absent', async () => {
+	test('[P1] 4.2-INT-001 — getWeekCalendar returns per-room bookings; deactivated rooms absent', async () => {
 		// Activate at Task 2.3 after getWeekCalendar() is implemented.
 		//
 		// Strategy:
@@ -729,7 +729,7 @@ describe('Story 4.2 — Week Calendar Read-Model: Correct Data (P1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () => {
-	test.skip('[P1] 4.2-INT-002 — EXPLAIN ANALYZE confirms GiST index is usable for range-overlap query (R-007)', async () => {
+	test('[P1] 4.2-INT-002 — EXPLAIN ANALYZE confirms GiST index is usable for range-overlap query (R-007)', async () => {
 		// Activate at Task 2.4 after 4.2-INT-001 passes.
 		//
 		// Strategy: SET enable_seqscan = off forces the planner to use an index if any
