@@ -111,18 +111,13 @@ async function seedRoom(client: pg.PoolClient, prefix = 'test-booking'): Promise
 }
 
 /**
- * Inserts an organizer user row and returns the user_id.
- * Used as actorId for booking-service.ts createBooking calls.
+ * Returns a deterministic actor ID for audit log entries.
+ * audit_log.actor_id is plain text (no FK) — no DB insert required.
+ * The client parameter is kept for API compatibility with callers.
  */
-async function seedOrganizer(client: pg.PoolClient): Promise<string> {
-	const userId = randomUUID();
-	await client.query(
-		`INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at, is_admin)
-     VALUES ($1, $2, $3, true, now(), now(), false)
-     ON CONFLICT (id) DO NOTHING`,
-		[userId, 'Test Organizer', `organizer-${userId}@test.example`]
-	);
-	return userId;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function seedOrganizer(_client: pg.PoolClient): Promise<string> {
+	return randomUUID();
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +126,7 @@ async function seedOrganizer(client: pg.PoolClient): Promise<string> {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () => {
-	test.skip('[P0] 4.1-CONC-001 — N=5 concurrent inserts on same room+slot → exactly one commits, rest raise 23P01', async () => {
+	test('[P0] 4.1-CONC-001 — N=5 concurrent inserts on same room+slot → exactly one commits, rest raise 23P01', async () => {
 		// THIS TEST WILL FAIL until bookings table EXCLUDE constraint is exercised.
 		// Activate after Task 2.1–2.2 scaffold; then run to confirm constraint fires.
 		// The EXCLUDE constraint (bookings_no_overlap) in 0000_init.sql is the guard.
@@ -209,7 +204,7 @@ describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () 
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — Sequential Conflict → ConflictError (AC-3)', () => {
-	test.skip('[P0] 4.1-INT-001 — sequential conflict for same room+slot raises ConflictError from booking-service.ts', async () => {
+	test('[P0] 4.1-INT-001 — sequential conflict for same room+slot raises ConflictError from booking-service.ts', async () => {
 		// THIS TEST WILL FAIL until src/lib/server/services/booking-service.ts is created.
 		// Activate at Task 2.3 (first activation) → run → expect FAIL → implement service → PASS.
 		//
