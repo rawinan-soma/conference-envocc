@@ -23,7 +23,7 @@
  *   - AC-1: EXCLUDE constraint predicate WHERE (status != 'cancelled') present — 4.1-UNIT-001 (db-schema.test.ts)
  *   - AC-2: N=5 concurrent inserts → exactly one succeeds, rest raise 23P01 — 4.1-CONC-001
  *   - AC-3: booking-service.ts catches 23P01, walks cause chain, throws ConflictError('booking_conflict_error')
- *   - AC-4: Paraglide key booking_conflict_error exists (asserted in 4.1-INT-003 message key check)
+ *   - AC-4: Paraglide key booking_conflict_error exists (asserted in 4.1-INT-005 en.json key check)
  *
  * Scenario IDs (from test-design-epic-4.md + story 4.1 Task 2.2):
  *   P0 (critical — activate in order during implementation):
