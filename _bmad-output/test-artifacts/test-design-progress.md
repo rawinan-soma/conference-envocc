@@ -9,9 +9,10 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-12'
+lastSaved: '2026-06-13'
 epicTwoRevision: v3
 epicThreeRevision: v1
+epicFourRevision: v1
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -231,3 +232,45 @@ Revision: v1 (2026-06-12) — initial generation; all 4 stories backlog.
 12 P0 + 14 P1 + 8 P2 + 3 P3 scenarios planned.
 Reuses `idor-template.ts` (Story 2.7) and E1 Testcontainers fixture without modification.
 Planned test files: `rooms.test.ts` (new), `rooms.spec.ts` (new), `db-schema.test.ts` (append).
+
+---
+
+# Epic 4 Test Design Run — 2026-06-13
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "Epic 4 — Room Booking & Organizer Workspace" + sprint-status.yaml present)
+- **Epic**: Epic 4 — Room Booking & Organizer Workspace (8 stories; 4.1–4.8 all backlog; epic-4 in-progress)
+- **Prerequisites confirmed**: Epic + stories with acceptance criteria available; architecture.md available; Epics 1, 2, 3 all done
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Drizzle + PostgreSQL + pg-boss + nodemailer + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **Pact.js utils**: disabled (tea_use_pactjs_utils: false)
+- **Existing test infrastructure confirmed**: Testcontainers Postgres tier active; pg-boss + Mailpit platform wired (E1); audit.ts helper available; CI pipeline live; `idor-template.ts` available (Story 2.7 done); rooms table + room_blocks table (E3 done)
+- **FRs in scope**: FR-001–004(behavior), FR-010–015, FR-020, FR-023, FR-030, FR-031, FR-034, FR-034b, FR-038, FR-050, FR-051, FR-052, FR-080, FR-082, FR-083
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+Key risks identified: concurrent double-booking not prevented at DB level (DATA, P×I=9 — AR-11 mandate), EXCLUDE predicate not refined with cancelled predicate (DATA, 6), IDOR on booking mutations (SEC, 6), booking confirmation email sent synchronously (BUS, 6), registration token predictable or unhashed (SEC, 6), `23P01` error not caught and mapped to field error (BUS, 6), room calendar query unindexed (PERF, 6).
+Medium: back-to-back tstzrange conflict (BUS, 4), QR code links wrong URL (BUS, 4), duplicate booking incomplete pre-fill (BUS, 4), audit log missing on mutations (BUS, 4), email idempotency key collision (TECH, 3), dashboard shows other organizers' bookings (OPS, 4).
+Total: 13 risks (7 high ≥6 including one score=9, 6 medium/low).
+
+## Step 4: Coverage Plan
+
+Coverage matrix: 16 P0 (~32–48h), 16 P1 (~18–28h), 9 P2 (~6–10h), 4 P3 (~2–4h). Total 45 scenarios (~58–90h ~8–11 days).
+Execution: PR gate (P0+P1 Vitest+Playwright < 15 min via Testcontainers Postgres; `4.1-CONC-001` concurrent test mandatory in PR gate); nightly (P2 + Docker compose smoke); on-demand (P3 incl. k6 load).
+Key reuse: `testOwnershipEnforcement()` from `idor-template.ts` for Stories 4.4 and 4.7 IDOR proofs.
+New file: `tests/integration/bookings.test.ts`; new file: `tests/e2e/bookings.spec.ts`; append to `tests/integration/db-schema.test.ts`; new file: `k6/calendar-load.js` (on-demand).
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-4.md`
+Revision: v1 (2026-06-13) — initial generation; all 8 stories backlog.
+7 high-priority risks (R-002 score=9 concurrent double-booking; R-001/003/004/005/006/007 score=6) identified with mitigation plans.
+16 P0 + 16 P1 + 9 P2 + 4 P3 scenarios planned.
+Non-negotiable: `4.1-CONC-001` concurrent double-booking test (AR-11 mandate) in PR gate.
+Reuses `idor-template.ts` (Story 2.7), `db-schema.test.ts` (E1/E3), Testcontainers fixture without modification.
+Planned test files: `bookings.test.ts` (new), `bookings.spec.ts` (new), `db-schema.test.ts` (append 2 tests), `k6/calendar-load.js` (new, on-demand).
