@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-09 22:01:41 +0700
-last_updated: 2026-06-13  # stories 2.2 → done (PR #107 merged); 2.4 → done (PR #108 merged); 2.3 → done (PR #109 merged); 2.6 → done (PR #110 merged); 2.5 → done (PR #111 merged); 2.7 → done (PR #112 merged); epic-2 → done (all stories merged); epic-3 → in-progress; 3.1 → done (PR #113 merged); 3.3 → ready-for-dev (story file created); 3.2 → ready-for-dev (story file created); 3.4 → ready-for-dev (story file created); 3.3 → atdd-done (ATDD red-phase scaffolds committed); 3.4 → atdd-done (ATDD red-phase scaffolds committed); 3.2 → atdd-done (ATDD red-phase scaffolds committed); 3.4 → review (implementation complete); 3.3 → review (implementation complete); 3.2 → review (implementation complete); CORRECTION (phase-0 reconcile 2026-06-13): PRs #114 (#3.2), #115 (#3.4), #116 (#3.3) are OPEN not merged — reverted 3.2/3.3/3.4 from done → review
+last_updated: 2026-06-13  # stories 2.2 → done (PR #107 merged); 2.4 → done (PR #108 merged); 2.3 → done (PR #109 merged); 2.6 → done (PR #110 merged); 2.5 → done (PR #111 merged); 2.7 → done (PR #112 merged); epic-2 → done (all stories merged); epic-3 → in-progress; 3.1 → done (PR #113 merged); 3.3 → ready-for-dev (story file created); 3.2 → ready-for-dev (story file created); 3.4 → ready-for-dev (story file created); 3.3 → atdd-done (ATDD red-phase scaffolds committed); 3.4 → atdd-done (ATDD red-phase scaffolds committed); 3.2 → atdd-done (ATDD red-phase scaffolds committed); 3.4 → review (implementation complete); 3.3 → review (implementation complete); 3.2 → review (implementation complete); CORRECTION (phase-0 reconcile 2026-06-13): PRs #114 (#3.2), #115 (#3.4), #116 (#3.3) are OPEN not merged — reverted 3.2/3.3/3.4 from done → review; phase-0 reconcile 2026-06-13: PRs #114 (#3.2), #116 (#3.3), #115 (#3.4) all MERGED — 3.2/3.3/3.4 → done; epic-3 → done; epic-4 → in-progress
 project: conference-envocc
 project_key: NOKEY
 tracking_system: file-system
@@ -67,15 +67,15 @@ development_status:
   epic-2-retrospective: optional
 
   # ── Epic 3: Room Inventory ──
-  epic-3: in-progress
+  epic-3: done
   3-1-create-and-edit-rooms: done
-  3-2-room-photo-upload: review
-  3-3-deactivate-a-room: review
-  3-4-block-time-slots: review
+  3-2-room-photo-upload: done
+  3-3-deactivate-a-room: done
+  3-4-block-time-slots: done
   epic-3-retrospective: optional
 
   # ── Epic 4: Room Booking & Organizer Workspace ──
-  epic-4: backlog
+  epic-4: in-progress
   4-1-conflict-translation-exclude-predicate: backlog
   4-2-room-calendar-read-model: backlog
   4-3-room-calendar-view: backlog

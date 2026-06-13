@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PRs #114/115/116 for stories 3.2/3.3/3.4 are OPEN — corrected sprint-status from done→review; stories 3.2/3.3/3.4 are in review, not yet merged)_
+_Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PRs #114/115/116 for stories 3.2/3.3/3.4 all MERGED — epic 3 complete; epic 4 now in-progress and ready to work)_
 
 ## Stories
 
@@ -22,17 +22,17 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PRs #114/115/116 for s
 | 2.6 | 2 | Fixed session timeout | done | #15 | #110 | merged | 2.1 | ✅ Yes (done) |
 | 2.7 | 2 | Authorization negative-test pattern & audit on mutations | done | #16 | #112 | merged | 2.5 | ✅ Yes (done) |
 | 3.1 | 3 | Create and edit rooms | done | #17 | #113 | merged | epic 2 complete | ✅ Yes (done) |
-| 3.2 | 3 | Room photo upload | review | #18 | #114 | open | 3.1 | ❌ No (PR open, not yet merged) |
-| 3.3 | 3 | Deactivate a room | review | #19 | #116 | open | 3.1 | ❌ No (PR open, not yet merged) |
-| 3.4 | 3 | Block time slots | review | #20 | #115 | open | 3.1 | ❌ No (PR open, not yet merged) |
-| 4.1 | 4 | Conflict translation & EXCLUDE predicate | backlog | #21 | — | — | epic 3 complete | ❌ No (epic 3 not complete) |
-| 4.2 | 4 | Room calendar read-model | backlog | #22 | — | — | 4.1 | ❌ No (epic 3 not complete) |
-| 4.3 | 4 | Room Calendar view | backlog | #23 | — | — | 4.2 | ❌ No (epic 3 not complete) |
-| 4.4 | 4 | Create a booking (conflict-free) | backlog | #24 | — | — | 4.1, 4.3 | ❌ No (epic 3 not complete) |
-| 4.5 | 4 | Booking confirmation, link, token & QR | backlog | #25 | — | — | 4.4 | ❌ No (epic 3 not complete) |
-| 4.6 | 4 | Booking confirmation email | backlog | #26 | — | — | 4.4 | ❌ No (epic 3 not complete) |
-| 4.7 | 4 | Edit, cancel, and duplicate a booking | backlog | #27 | — | — | 4.4 | ❌ No (epic 3 not complete) |
-| 4.8 | 4 | Organizer dashboard | backlog | #28 | — | — | 4.4, 4.5 | ❌ No (epic 3 not complete) |
+| 3.2 | 3 | Room photo upload | done | #18 | #114 | merged | 3.1 | ✅ Yes (done) |
+| 3.3 | 3 | Deactivate a room | done | #19 | #116 | merged | 3.1 | ✅ Yes (done) |
+| 3.4 | 3 | Block time slots | done | #20 | #115 | merged | 3.1 | ✅ Yes (done) |
+| 4.1 | 4 | Conflict translation & EXCLUDE predicate | backlog | #21 | — | — | epic 3 complete | ✅ Yes (epic 3 complete — all PRs merged) |
+| 4.2 | 4 | Room calendar read-model | backlog | #22 | — | — | 4.1 | ❌ No (4.1 not yet started) |
+| 4.3 | 4 | Room Calendar view | backlog | #23 | — | — | 4.2 | ❌ No (4.2 not yet started) |
+| 4.4 | 4 | Create a booking (conflict-free) | backlog | #24 | — | — | 4.1, 4.3 | ❌ No (4.1, 4.3 not yet started) |
+| 4.5 | 4 | Booking confirmation, link, token & QR | backlog | #25 | — | — | 4.4 | ❌ No (4.4 not yet started) |
+| 4.6 | 4 | Booking confirmation email | backlog | #26 | — | — | 4.4 | ❌ No (4.4 not yet started) |
+| 4.7 | 4 | Edit, cancel, and duplicate a booking | backlog | #27 | — | — | 4.4 | ❌ No (4.4 not yet started) |
+| 4.8 | 4 | Organizer dashboard | backlog | #28 | — | — | 4.4, 4.5 | ❌ No (4.4, 4.5 not yet started) |
 | 5.1 | 5 | Branded public registration page | backlog | #29 | — | — | epic 4 complete | ❌ No (epic 4 not complete) |
 | 5.2 | 5 | Submit a registration | backlog | #30 | — | — | 5.1 | ❌ No (epic 4 not complete) |
 | 5.3 | 5 | Confirmation email with self-cancel link | backlog | #31 | — | — | 5.2 | ❌ No (epic 4 not complete) |
@@ -75,14 +75,14 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PRs #114/115/116 for s
 - **2.6** depends on: 2.1 ✅ **DONE (PR #110 merged)**
 - **2.7** depends on: 2.5 ✅ **DONE (PR #112 merged)**
 
-### Epic 3 (in-progress — 3.1 merged; 3.2/3.3/3.4 in review with open PRs)
+### Epic 3 (COMPLETE — all PRs merged)
 - **3.1** depends on: epic 2 complete ✅ **DONE (PR #113 merged)**
-- **3.2** depends on: 3.1 🔄 **IN REVIEW (PR #114 open)**
-- **3.3** depends on: 3.1 🔄 **IN REVIEW (PR #116 open)**
-- **3.4** depends on: 3.1 🔄 **IN REVIEW (PR #115 open)**
+- **3.2** depends on: 3.1 ✅ **DONE (PR #114 merged)**
+- **3.3** depends on: 3.1 ✅ **DONE (PR #116 merged)**
+- **3.4** depends on: 3.1 ✅ **DONE (PR #115 merged)**
 
-### Epic 4 (requires epic 3 complete)
-- **4.1** depends on: epic 3 complete
+### Epic 4 (READY — epic 3 complete; work in progress)
+- **4.1** depends on: epic 3 complete ✅ **READY TO WORK**
 - **4.2** depends on: 4.1
 - **4.3** depends on: 4.2
 - **4.4** depends on: 4.1, 4.3
@@ -125,18 +125,18 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PRs #114/115/116 for s
 
 - **Epic 2:** COMPLETE. All 7 stories merged to main (including 2.7 PR #112).
 
-- **Epic 3:** Story 3.1 is DONE (PR #113 merged). Stories 3.2 (PR #114), 3.3 (PR #116), and 3.4 (PR #115) have open PRs in review. They cannot be started (PRs already submitted). Epic 3 will be complete once these PRs are merged.
+- **Epic 3:** COMPLETE. All 4 stories merged to main (3.1 PR #113, 3.2 PR #114, 3.3 PR #116, 3.4 PR #115).
 
-- **Epic 4:** Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last.
+- **Epic 4:** Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last. Story 4.1 is the only entry point and is **Ready to Work** now.
 
 - **Epic 5:** After 5.1 merges, story 5.2 unblocks 5.3/5.6/5.7/5.8 in parallel. Stories 5.4 and 5.5 require 5.3.
 
 - **Epic 6:** Stories 6.1, 6.2, 6.3, 6.4 can all start in parallel once epic 5 is complete. Stories 6.5 and 6.6 require 6.4.
 
-- **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 to also be merged (which it will be by this point). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
+- **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 (done PR #116). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1 and 2 are fully complete (all PRs merged). Story 3.1 merged (PR #113). Stories 3.2 (PR #114), 3.3 (PR #116), and 3.4 (PR #115) have open PRs awaiting merge.
+**Current state:** Epics 1, 2, and 3 are fully complete (all PRs merged). Epic 4 is now the active epic.
 
-**Current bottleneck:** Epic 3 requires all of 3.2, 3.3, and 3.4 PRs to be merged before epic 4 can begin. All three PRs are open and pending merge.
+**Current bottleneck:** Story 4.1 is the Epic 4 entry point. The chain 4.1 → 4.2 → 4.3 → 4.4 must be completed before 4.5/4.6/4.7 can start.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
