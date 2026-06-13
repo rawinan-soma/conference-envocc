@@ -52,7 +52,13 @@ export default defineConfig({
 					include: ['src/**/*.integration.test.ts', 'tests/integration/**/*.{test,spec}.{js,ts}'],
 					globalSetup: './tests/support/integration-setup.ts',
 					testTimeout: 30_000,
-					hookTimeout: 60_000
+					hookTimeout: 60_000,
+					// Serialize integration test files so per-describe TRUNCATE calls in rooms.test.ts
+					// do not race with data seeded by bookings.test.ts (and db-schema.test.ts).
+					// Without this, a parallel worker running rooms.test.ts can TRUNCATE the rooms
+					// table while another worker is mid-test in bookings.test.ts (4.2-INT-001),
+					// causing getWeekCalendar() to return an empty or stale result set.
+					fileParallelism: false
 				}
 			}
 		]
