@@ -451,3 +451,60 @@ describe('Story 3.2 — DB Schema: photo_path column exists on rooms table (AC-1
 		expect(col?.is_nullable, 'photo_path must be nullable (photo is optional)').toBe('YES');
 	});
 });
+
+// ---------------------------------------------------------------------------
+// 4.1-UNIT-001 — EXCLUDE constraint predicate WHERE (status != 'cancelled') confirmed [P1]
+// ---------------------------------------------------------------------------
+
+describe("Story 4.1 — DB Schema: bookings_no_overlap EXCLUDE predicate contains WHERE (status != 'cancelled') (AC-1)", () => {
+	test.skip("[P1] 4.1-UNIT-001 — pg_get_constraintdef() for bookings_no_overlap contains WHERE (status <> 'cancelled') predicate", async () => {
+		// THIS TEST WILL REMAIN SKIPPED in the ATDD red phase.
+		// Activate at Task 3 (story 4.1 Task 3.1) — the constraint already exists from Story 1.3
+		// so this test passes immediately once activated (no new migration needed).
+		//
+		// AC-1: The EXCLUDE constraint predicate WHERE (status != 'cancelled') must be present
+		//       in the migrated schema. This is a static live-DB assertion using pg_get_constraintdef().
+		//
+		// Background:
+		//   Story 1.3 shipped the bookings_no_overlap EXCLUDE constraint with predicate
+		//   WHERE (status != 'cancelled') in drizzle/0000_init.sql (lines 24–29).
+		//   Story 4.1 adds this test to confirm the predicate survives in the migrated schema.
+		//   No new migration is needed — this test only asserts the existing constraint.
+		//
+		// NOTE on Postgres normalization:
+		//   PostgreSQL stores != as <> in pg_get_constraintdef() output.
+		//   Assert for <> (not !=) to match the actual catalog representation.
+		//
+		// Strategy: query pg_get_constraintdef(oid) for the constraint named 'bookings_no_overlap'.
+		// Assert the returned string includes:
+		//   1. The constraint name / EXCLUDE USING gist clause.
+		//   2. The predicate WHERE (status <> 'cancelled').
+
+		const result = await pool.query<{ constraintdef: string }>(
+			`SELECT pg_get_constraintdef(oid) AS constraintdef
+         FROM pg_constraint
+         WHERE conname = 'bookings_no_overlap'
+           AND conrelid = 'bookings'::regclass`
+		);
+
+		expect(
+			result.rows.length,
+			"No constraint named 'bookings_no_overlap' found on the bookings table — " +
+				'drizzle/0000_init.sql must have been applied (migration 0000_init.sql, Story 1.3)'
+		).toBe(1);
+
+		const def = result.rows[0]?.constraintdef ?? '';
+
+		expect(
+			def,
+			'bookings_no_overlap constraint definition must contain EXCLUDE USING gist clause'
+		).toContain('EXCLUDE USING gist');
+
+		// Postgres normalizes != → <> in pg_get_constraintdef output
+		expect(
+			def,
+			"bookings_no_overlap constraint must have predicate WHERE (status <> 'cancelled') — " +
+				'note: Postgres normalizes != to <> in pg_get_constraintdef output'
+		).toMatch(/WHERE\s*\(status\s*<>\s*'cancelled'\)/i);
+	});
+});
