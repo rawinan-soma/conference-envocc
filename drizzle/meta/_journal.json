@@ -47,8 +47,15 @@
     {
       "idx": 6,
       "version": "7",
+      "when": 1781339559384,
+      "tag": "0006_room_photo_path",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
       "when": 1781287178897,
-      "tag": "0006_room_blocks",
+      "tag": "0007_room_blocks",
       "breakpoints": true
     }
   ]

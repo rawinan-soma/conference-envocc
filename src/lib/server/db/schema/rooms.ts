@@ -32,6 +32,9 @@ export const rooms = pgTable('rooms', {
 	features: text('features').array().notNull().default([]),
 	// Soft-delete flag — false hides the room from the bookable calendar (Story 3.3)
 	isActive: boolean('is_active').notNull().default(true),
+	// Optional photo path — relative filename stored under UPLOAD_DIR on the on-prem volume.
+	// Null means no photo has been uploaded yet (Story 3.2 AC-1, AC-5).
+	photoPath: text('photo_path'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });

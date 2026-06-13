@@ -409,3 +409,45 @@ describe('Story 3.1 — DB Schema: Partial index on rooms (is_active) WHERE is_a
 		);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// 3.2-UNIT-003 — photo_path column exists on rooms table [P1]
+// ---------------------------------------------------------------------------
+
+describe('Story 3.2 — DB Schema: photo_path column exists on rooms table (AC-1, Task 1)', () => {
+	test('[P1] 3.2-UNIT-003 — rooms table has a nullable photo_path TEXT column after migration', async () => {
+		// ACTIVATED — migration applied. Story 3.2 complete (feat: commit 88e89ff).
+		//
+		// AC-1: Given an existing room and I am an admin, When I upload an image file,
+		//       Then the path is saved in the `photo_path` column of the rooms row.
+		//
+		// Strategy: Query information_schema.columns for the photo_path column on the rooms
+		// table. Assert it exists, is nullable (photo is optional per story), and is type TEXT.
+		// Pattern: same pool-based assertion as the partial index test above.
+
+		const result = await pool.query<{
+			column_name: string;
+			data_type: string;
+			is_nullable: string;
+		}>(
+			`SELECT column_name, data_type, is_nullable
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'rooms'
+         AND column_name = 'photo_path'`
+		);
+
+		expect(
+			result.rows.length,
+			'No photo_path column found on rooms table — ' +
+				'Task 1.2 requires hand-writing drizzle/0006_room_photo_path.sql: ' +
+				'ALTER TABLE rooms ADD COLUMN photo_path TEXT; ' +
+				'Apply via bun run db:migrate.'
+		).toBe(1);
+
+		const col = result.rows[0];
+		expect(col?.column_name, "Column name must be 'photo_path'").toBe('photo_path');
+		expect(col?.data_type, 'photo_path must be stored as TEXT').toBe('text');
+		expect(col?.is_nullable, 'photo_path must be nullable (photo is optional)').toBe('YES');
+	});
+});

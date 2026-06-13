@@ -36,7 +36,24 @@ const EnvSchema = v.object({
 	SMTP_PASS: v.optional(v.string()),
 	SMTP_SECURE: v.optional(v.string(), 'false'),
 	HOST: v.optional(v.string(), '0.0.0.0'),
-	PORT: v.optional(v.string(), '3000')
+	PORT: v.optional(v.string(), '3000'),
+
+	// Room photo upload (Story 3.2)
+	// UPLOAD_DIR: path to the on-prem volume mount. Required at runtime; optional at build.
+	// If absent at runtime, uploadRoomPhoto() will throw a clear error before any FS operation.
+	UPLOAD_DIR: v.optional(v.pipe(v.string(), v.minLength(1))),
+	// PHOTO_MAX_BYTES: max upload size in bytes. Defaults to 10 485 760 (10MB).
+	// Override via env var to allow testing with smaller limits.
+	PHOTO_MAX_BYTES: v.optional(
+		v.pipe(
+			v.string(),
+			v.regex(/^\d+$/, 'PHOTO_MAX_BYTES must be a positive integer'),
+			v.transform(Number),
+			v.integer(),
+			v.minValue(1)
+		),
+		String(10 * 1024 * 1024)
+	)
 });
 
 // GitHub Actions sets unresolved secrets/vars to empty string "".

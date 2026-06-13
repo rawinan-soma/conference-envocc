@@ -13,7 +13,7 @@
  * in 0000_init.sql). Postgres error code 23P01 (exclusion_violation) is caught in the
  * service layer and surfaced as HTTP 422.
  *
- * See also: drizzle/0006_room_blocks.sql (hand-written — drizzle-kit generate fails for uuidv7)
+ * See also: drizzle/0007_room_blocks.sql (hand-written — drizzle-kit generate fails for uuidv7)
  */
 import { customType, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';

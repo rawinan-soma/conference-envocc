@@ -1,4 +1,4 @@
--- Migration: 0006_room_blocks
+-- Migration: 0007_room_blocks
 -- Story 3.4: Block time slots
 -- Requires btree_gist (already enabled in 0000_init.sql)
 --

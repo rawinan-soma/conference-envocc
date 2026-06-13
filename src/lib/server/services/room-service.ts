@@ -1,13 +1,16 @@
 /**
- * Room service — Story 3.1
+ * Room service — Story 3.1 + 3.2
  *
- * Provides createRoom, updateRoom, listRooms, and getRoomById.
+ * Provides createRoom, updateRoom, listRooms, getRoomById, and uploadRoomPhoto.
  * All mutations wrap DB operations in a transaction that also writes an audit_log entry
  * (AC-5 — audit on room mutations).
  *
  * Only active rooms are returned by listRooms (respects the is_active soft-delete flag).
  * getRoomById returns any room (including inactive) — used internally by the edit route.
  */
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
 import { asc, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
@@ -189,4 +192,149 @@ export async function updateRoom(
 
 		return room;
 	});
+}
+
+// ---------------------------------------------------------------------------
+// uploadRoomPhoto
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowed MIME types for room photo uploads.
+ * Server-side validation only — never rely on file extension alone.
+ */
+export const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/**
+ * Map from MIME type to file extension for stored filenames.
+ * Exported so the serve route can derive its Content-Type map from the same source.
+ */
+export const MIME_TO_EXT: Record<(typeof ALLOWED_PHOTO_MIME_TYPES)[number], string> = {
+	'image/jpeg': 'jpg',
+	'image/png': 'png',
+	'image/webp': 'webp'
+};
+
+/**
+ * Stable, locale-independent codes for photo validation failures.
+ * The HTTP layer maps each code to a localized Paraglide message (never raw English).
+ */
+export type PhotoValidationCode = 'invalid_type' | 'too_large';
+
+/**
+ * Typed validation error for photo upload failures (MIME type or size).
+ * The HTTP layer (form action) maps this to HTTP 422 and the `code` to a localized message.
+ */
+export class PhotoValidationError extends Error {
+	readonly code: PhotoValidationCode;
+
+	constructor(code: PhotoValidationCode, message: string) {
+		super(message);
+		this.name = 'PhotoValidationError';
+		this.code = code;
+	}
+}
+
+/**
+ * Upload a room photo to the on-prem volume and record the path in the DB.
+ *
+ * Implementation notes (Story 3.2 Dev Notes):
+ * - Resolves UPLOAD_DIR from process.env (not SvelteKit $env) — service must stay portable.
+ * - Validates MIME type against ALLOWED_PHOTO_MIME_TYPES (throws PhotoValidationError if rejected).
+ * - Validates size ≤ PHOTO_MAX_BYTES (default 10MB; env-configurable).
+ * - Filename: `{uuidv7()}-{roomId}.{ext}` — time-ordered, unique, non-enumerable. The
+ *   filename is reduced to its basename so an attacker-influenced roomId (no UUID route
+ *   matcher exists) can never inject path separators into the stored path.
+ * - File written BEFORE the DB transaction (safe ordering: if the file write fails, no DB
+ *   change occurs). If the transaction fails, the just-written file is unlinked so it does
+ *   not orphan on the volume. NOTE: uuid-prefixed names never collide, so a failed upload
+ *   is NOT "overwritten on retry" — explicit cleanup is required.
+ * - DB UPDATE + writeAuditLog wrapped in db.transaction() for atomicity (AC-1).
+ *
+ * @param actorId - The authenticated admin user's ID
+ * @param roomId  - The room's primary key ID
+ * @param file    - File data, MIME type, and size (from FormData File)
+ * @throws PhotoValidationError if MIME type or size is invalid
+ * @throws Error if UPLOAD_DIR is not set at runtime
+ */
+export async function uploadRoomPhoto(
+	actorId: string,
+	roomId: string,
+	file: { data: Buffer; mimeType: string; size: number }
+): Promise<Room> {
+	// Resolve UPLOAD_DIR from process.env — throws clearly if not set
+	const uploadDir = process.env['UPLOAD_DIR'];
+	if (!uploadDir) {
+		throw new Error(
+			'uploadRoomPhoto: UPLOAD_DIR environment variable is not set. ' +
+				'Configure UPLOAD_DIR to point to the on-prem volume mount path.'
+		);
+	}
+
+	// Validate MIME type against allowed list
+	const allowedMimes: readonly string[] = ALLOWED_PHOTO_MIME_TYPES;
+	if (!allowedMimes.includes(file.mimeType)) {
+		throw new PhotoValidationError(
+			'invalid_type',
+			`Unsupported file type: ${file.mimeType}. ` +
+				`Allowed types: ${ALLOWED_PHOTO_MIME_TYPES.join(', ')}.`
+		);
+	}
+
+	// Validate file size — guard against NaN from a non-numeric env override
+	const rawMaxBytes = process.env['PHOTO_MAX_BYTES'];
+	const maxBytes =
+		rawMaxBytes && /^\d+$/.test(rawMaxBytes) ? Number(rawMaxBytes) : 10 * 1024 * 1024;
+	if (file.size > maxBytes) {
+		throw new PhotoValidationError(
+			'too_large',
+			`File size ${file.size} bytes exceeds the maximum allowed size of ${maxBytes} bytes.`
+		);
+	}
+
+	// Generate unique filename: {uuidv7()}-{roomId}.{ext}
+	// basename() strips any path separators a malicious roomId could introduce (defense in
+	// depth — there is no UUID route matcher, so roomId is not guaranteed to be a bare UUID).
+	const mimeType = file.mimeType as (typeof ALLOWED_PHOTO_MIME_TYPES)[number];
+	const ext = MIME_TO_EXT[mimeType];
+	const filename = path.basename(`${uuidv7()}-${roomId}.${ext}`);
+
+	// Ensure the upload directory exists
+	await fs.mkdir(uploadDir, { recursive: true });
+
+	// Write the file BEFORE the DB transaction (safe ordering: a write failure means no DB change)
+	const filePath = path.join(uploadDir, filename);
+	await fs.writeFile(filePath, file.data);
+
+	// Wrap DB update + audit log in a transaction (atomicity — AC-1).
+	// If the transaction fails, unlink the just-written file so it does not orphan the volume.
+	try {
+		return await db.transaction(async (tx) => {
+			const [room] = await tx
+				.update(rooms)
+				.set({
+					photoPath: filename,
+					updatedAt: new Date()
+				})
+				.where(eq(rooms.id, roomId))
+				.returning();
+
+			if (!room) {
+				throw new Error(`uploadRoomPhoto: no room row matched for update (id=${roomId})`);
+			}
+
+			await writeAuditLog(tx, {
+				actorId,
+				entity: 'room',
+				action: 'upload_photo',
+				diff: { photoPath: filename }
+			});
+
+			return room;
+		});
+	} catch (err) {
+		// Best-effort cleanup of the orphaned file; swallow unlink errors so the original
+		// transaction error is what propagates to the caller.
+		await fs.unlink(filePath).catch(() => {});
+		throw err;
+	}
 }

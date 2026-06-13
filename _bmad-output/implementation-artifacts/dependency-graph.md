@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PR #113 merged — story 3.1 done; stories 3.2/3.3/3.4 now Ready to Work; no open PRs)_
+_Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PRs #114/115/116 for stories 3.2/3.3/3.4 are OPEN — corrected sprint-status from done→review; stories 3.2/3.3/3.4 are in review, not yet merged)_
 
 ## Stories
 
@@ -22,9 +22,9 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PR #113 merged — sto
 | 2.6 | 2 | Fixed session timeout | done | #15 | #110 | merged | 2.1 | ✅ Yes (done) |
 | 2.7 | 2 | Authorization negative-test pattern & audit on mutations | done | #16 | #112 | merged | 2.5 | ✅ Yes (done) |
 | 3.1 | 3 | Create and edit rooms | done | #17 | #113 | merged | epic 2 complete | ✅ Yes (done) |
-| 3.2 | 3 | Room photo upload | backlog | #18 | — | — | 3.1 | ✅ Yes |
-| 3.3 | 3 | Deactivate a room | backlog | #19 | — | — | 3.1 | ✅ Yes |
-| 3.4 | 3 | Block time slots | backlog | #20 | — | — | 3.1 | ✅ Yes |
+| 3.2 | 3 | Room photo upload | review | #18 | #114 | open | 3.1 | ❌ No (PR open, not yet merged) |
+| 3.3 | 3 | Deactivate a room | review | #19 | #116 | open | 3.1 | ❌ No (PR open, not yet merged) |
+| 3.4 | 3 | Block time slots | review | #20 | #115 | open | 3.1 | ❌ No (PR open, not yet merged) |
 | 4.1 | 4 | Conflict translation & EXCLUDE predicate | backlog | #21 | — | — | epic 3 complete | ❌ No (epic 3 not complete) |
 | 4.2 | 4 | Room calendar read-model | backlog | #22 | — | — | 4.1 | ❌ No (epic 3 not complete) |
 | 4.3 | 4 | Room Calendar view | backlog | #23 | — | — | 4.2 | ❌ No (epic 3 not complete) |
@@ -75,11 +75,11 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PR #113 merged — sto
 - **2.6** depends on: 2.1 ✅ **DONE (PR #110 merged)**
 - **2.7** depends on: 2.5 ✅ **DONE (PR #112 merged)**
 
-### Epic 3 (in-progress — 3.1 merged; 3.2/3.3/3.4 unblocked)
+### Epic 3 (in-progress — 3.1 merged; 3.2/3.3/3.4 in review with open PRs)
 - **3.1** depends on: epic 2 complete ✅ **DONE (PR #113 merged)**
-- **3.2** depends on: 3.1 ✅ **READY**
-- **3.3** depends on: 3.1 ✅ **READY**
-- **3.4** depends on: 3.1 ✅ **READY**
+- **3.2** depends on: 3.1 🔄 **IN REVIEW (PR #114 open)**
+- **3.3** depends on: 3.1 🔄 **IN REVIEW (PR #116 open)**
+- **3.4** depends on: 3.1 🔄 **IN REVIEW (PR #115 open)**
 
 ### Epic 4 (requires epic 3 complete)
 - **4.1** depends on: epic 3 complete
@@ -125,7 +125,7 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PR #113 merged — sto
 
 - **Epic 2:** COMPLETE. All 7 stories merged to main (including 2.7 PR #112).
 
-- **Epic 3:** Story 3.1 is DONE (PR #113 merged). Stories 3.2, 3.3, and 3.4 are all now Ready to Work and can proceed in parallel.
+- **Epic 3:** Story 3.1 is DONE (PR #113 merged). Stories 3.2 (PR #114), 3.3 (PR #116), and 3.4 (PR #115) have open PRs in review. They cannot be started (PRs already submitted). Epic 3 will be complete once these PRs are merged.
 
 - **Epic 4:** Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last.
 
@@ -135,8 +135,8 @@ _Last updated: 2026-06-13T00:00:00+07:00 (phase 0 re-run: PR #113 merged — sto
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 to also be merged (which it will be by this point). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1 and 2 are fully complete (all PRs merged). Story 3.1 merged (PR #113). Stories 3.2, 3.3, and 3.4 are all now unblocked and Ready to Work.
+**Current state:** Epics 1 and 2 are fully complete (all PRs merged). Story 3.1 merged (PR #113). Stories 3.2 (PR #114), 3.3 (PR #116), and 3.4 (PR #115) have open PRs awaiting merge.
 
-**Current bottleneck:** Epic 3 requires 3.2, 3.3, and 3.4 to complete before epic 4 can begin. Stories 3.2/3.3/3.4 can proceed in parallel.
+**Current bottleneck:** Epic 3 requires all of 3.2, 3.3, and 3.4 PRs to be merged before epic 4 can begin. All three PRs are open and pending merge.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
