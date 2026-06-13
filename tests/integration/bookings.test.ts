@@ -126,14 +126,16 @@ async function seedOrganizer(_client: pg.PoolClient): Promise<string> {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () => {
-	test('[P0] 4.1-CONC-001 — N=5 concurrent inserts on same room+slot → exactly one commits, rest raise 23P01', async () => {
+	test('[P0] 4.1-CONC-001 — N=5 concurrent inserts on same room+slot → exactly one commits, rest rejected with 23P01 or 40P01', async () => {
 		// THIS TEST WILL FAIL until bookings table EXCLUDE constraint is exercised.
 		// Activate after Task 2.1–2.2 scaffold; then run to confirm constraint fires.
 		// The EXCLUDE constraint (bookings_no_overlap) in 0000_init.sql is the guard.
 		//
 		// Strategy: N=5 direct pg pool transactions each attempting to INSERT a booking
 		// for the same roomId + during range. Assert exactly one INSERT commits.
-		// Assert the rest raise an error with code === '23P01' (exclusion_violation).
+		// Assert the rest raise a Postgres error (23P01 exclusion_violation OR 40P01 deadlock).
+		// AR-11 (architecture): "Assert the rest raise 23P01 (or are rolled back)" — a deadlock
+		// victim IS rolled back, so 40P01 satisfies the AR-11 mandate.
 		// Uses direct pool.connect() calls — not the service layer — to test the DB constraint
 		// in isolation from application code.
 		//
@@ -179,11 +181,11 @@ describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () 
 		const notCommitted = settled.filter((r) => !r.committed);
 		// Under concurrent GiST EXCLUDE, losers raise 23P01 (exclusion_violation).
 		// Under high concurrency, Postgres may also raise 40P01 (deadlock_detected) for some
-		// losers instead — both are legitimate rejection reasons that prove only one row committed.
-		// The critical invariants are: exactly one INSERT commits and exactly one row exists in DB.
+		// losers — a deadlock victim IS rolled back, which satisfies AR-11's "or are rolled back"
+		// clause. Both codes are legitimate; any other code signals an unexpected failure.
 		const legitimateCodes = new Set(['23P01', '40P01']);
-		const unexpectedRejections = notCommitted.filter(
-			(r) => 'code' in r && !legitimateCodes.has(r.code as string)
+		const legitimateRejections = notCommitted.filter(
+			(r) => 'code' in r && legitimateCodes.has(r.code as string)
 		);
 
 		expect(
@@ -192,9 +194,9 @@ describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () 
 		).toBe(1);
 
 		expect(
-			unexpectedRejections.length,
-			`All ${N - 1} losers must be rejected with 23P01 or 40P01, but got unexpected codes: [${unexpectedRejections.map((r) => ('code' in r ? r.code : 'unknown')).join(', ')}]`
-		).toBe(0);
+			legitimateRejections.length,
+			`Expected ${N - 1} losers rejected with 23P01/40P01 but got ${legitimateRejections.length}. All codes: [${notCommitted.map((r) => ('code' in r ? r.code : 'no-code')).join(', ')}]`
+		).toBe(N - 1);
 
 		// Verify exactly one booking row exists in DB
 		const countResult = await pool.query<{ count: string }>(
