@@ -33,9 +33,15 @@ export const BookingSchema = v.pipe(
 		)
 	}),
 	v.check((d) => d.endAt > d.startAt, 'End time must be after start time.'),
-	v.check(
-		(d) => !d.registrationEnabled || !!d.registrationClosesAt,
-		'Registration closing date is required when registration is enabled.'
+	// Forward to the registrationClosesAt field so the dedicated field-level error renders
+	// (booking_registration_closes_required) instead of leaking into the path-less _errors
+	// loop, which would otherwise show the end-after-start message. (Story 4.4 code review)
+	v.forward(
+		v.check(
+			(d) => !d.registrationEnabled || !!d.registrationClosesAt,
+			'Registration closing date is required when registration is enabled.'
+		),
+		['registrationClosesAt']
 	)
 );
 

@@ -955,3 +955,21 @@ Story 4.4 implemented as a schema-first pivot. All 13 tasks completed.
 |------|--------|
 | 2026-06-15 | Story created (Story 4.4: Create a Booking Conflict-Free) |
 | 2026-06-15 | Implementation complete — UUID v7 PK migration, /bookings/new route, BookingForm component, 25 Paraglide keys, full test suite updated; quality gates passed |
+| 2026-06-15 | Step 5 code review — 2 patches applied (registration error forwarding + closes-at write path/guard), 1 decision documented, 1 deferred, 3 dismissed |
+
+---
+
+### Review Findings
+
+Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of `3ab7a05..HEAD` against this spec. Triage outcome below.
+
+- [ ] [Review][Decision] Room field not read-only when `?room=` present — AC-1 says "read-only if room param present" but `BookingForm.svelte` always renders an editable `<select>`. AC-1 and Task 9b (which describes pre-select-only) contradict each other in this spec. Code follows Task 9b. Left as-is by reviewer judgement: a `disabled` `<select>` does not POST its value (would break `roomId` submission) and `readonly` is invalid on `<select>`; honoring AC-1 cleanly requires net-new UI (display text + hidden input) on the most ambiguous finding in the run. Impact is fully bounded — the create action re-validates the room via `getRoomById` + `isActive` (returns 404 on a stale/tampered room). Recommend the maintainer confirm intended UX in a follow-up if read-only lock is required.
+
+- [x] [Review][Patch] Wrong error message for "registration closing date required" [src/lib/schemas/booking.ts:36] — the cross-field check was path-less, so its failure landed in `$errors._errors`, where `BookingForm` rendered the end-after-start message instead, and the dedicated `booking_registration_closes_required` field block was dead. Fixed by wrapping the check in `v.forward(..., ['registrationClosesAt'])` so the error attaches to the field. Triple-confirmed (blind+edge+auditor).
+- [x] [Review][Patch] `registration_closes_at` write path [src/lib/server/services/booking-service.ts:99] — value was written unconditionally (persisted even when `registrationEnabled` is false) and parsed via JS `new Date()` (Node-process timezone), inconsistent with the `::timestamptz` (session-timezone) cast used for `during`. Fixed: now only written when `registrationEnabled` is true, and parsed via the same `::timestamptz` cast for one consistent datetime path. INT-002 stays green (its `...Z` string resolves identically).
+
+- [x] [Review][Defer] Naive `datetime-local` values cast `::timestamptz` without an explicit session timezone [src/lib/server/services/booking-service.ts:95] — deferred, pre-existing. The booking service reuses the exact `${input.startAt}::timestamptz` pattern of the already-merged `block-slot-service.ts` (Story 3.4), and this spec designates block-slot as "the working reference" and states no manual TZ conversion is needed. The DB pool (`src/lib/server/db/index.ts`) sets no session timezone, so the resolved instant depends on the server/session TZ. This is a real codebase-wide concern but not introduced by Story 4.4; patching booking alone would diverge it from the convention. Should be resolved project-wide (set session TZ on the pool or use offset-bearing inputs).
+
+**Dismissed (3):** `m.booking_conflict_error()` key already exists (`messages/en.json:82`, not re-added by this story); `BookingChip` `/bookings/{id}` href 404s until Story 4.6 (documented intentional); the `$message`-based conflict block in `BookingForm.svelte` is unreachable but harmless (conflict renders via the `_errors` branch) — left untouched to avoid scope creep.
+
+**Verified during review:** `bun run check` 0 errors, `bun run lint` clean, `bun run test:integration` shows no new failures vs clean HEAD (the 18 failures are pre-existing/environmental — they require a dev server on :3000 — and are identical with and without these patches). By inspection (no test exercises the form path — E2E stubs are skipped): `v.boolean()` checkbox fields should submit correctly because `bind:checked` keeps the store value boolean and superforms' `use:enhance` posts the form store rather than raw DOM FormData.

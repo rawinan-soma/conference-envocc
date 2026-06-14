@@ -96,9 +96,14 @@ export async function createBooking(
 					status: 'active',
 					cateringEnabled: input.cateringEnabled,
 					registrationEnabled: input.registrationEnabled,
-					registrationClosesAt: input.registrationClosesAt
-						? new Date(input.registrationClosesAt)
-						: null
+					// Only persist a closing date when registration is enabled, and parse it via the
+					// same ::timestamptz cast as `during` (session-timezone aware) rather than JS
+					// `new Date()` (Node-process-timezone), so all datetime columns use one consistent
+					// parse path. (Story 4.4 code review)
+					registrationClosesAt:
+						input.registrationEnabled && input.registrationClosesAt
+							? sql`${input.registrationClosesAt}::timestamptz`
+							: null
 				})
 				.returning();
 
