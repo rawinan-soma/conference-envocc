@@ -55,7 +55,7 @@ import AxeBuilder from '@axe-core/playwright';
 // ---------------------------------------------------------------------------
 
 async function loginViaDevBypass(page: Page): Promise<void> {
-	await page.goto('/r/dev-bypass?profileComplete=true', { waitUntil: 'networkidle' });
+	await page.request.post('/auth/dev-bypass');
 }
 
 // ---------------------------------------------------------------------------
