@@ -805,7 +805,7 @@ describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () =
 
 // ===========================================================================
 // STORY 4.4 — Create a Booking (Conflict-Free)
-// RED PHASE: All tests are test.skip() — activate task-by-task during Tasks 5 & 12b.
+// GREEN PHASE: All tests are active (test()) — activated during feat(4.4) implementation.
 // ---------------------------------------------------------------------------
 // AC-2: createBooking with full expanded input persists all columns
 // AC-4: registration_enabled + registration_closes_at columns written correctly
@@ -819,8 +819,8 @@ describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () =
 
 describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-2, AC-4, AC-6)', () => {
 	test('[P0] 4.4-INT-001 — createBooking with full expanded input persists eventName, agenda, cateringEnabled, registrationEnabled, and id is a UUID v7 string', async () => {
-		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
-		// Activate at Task 5 after CreateBookingInput is updated in booking-service.ts.
+		// ACTIVE — createBooking accepts full expanded input (eventName, agenda, cateringEnabled,
+		// registrationEnabled, registrationClosesAt). Activated at Task 5; passing per feat(4.4).
 		//
 		// AC-1: expanded form fields (eventName, agenda, catering, registration) are written to DB.
 		// AC-6: bookings.id is now a UUID v7 text string, not an integer serial.
@@ -897,8 +897,8 @@ describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-
 
 describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 	test('[P0] 4.4-INT-002 — createBooking with registrationEnabled=true and registrationClosesAt persists correctly', async () => {
-		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
-		// Activate at Task 5 after CreateBookingInput is updated in booking-service.ts.
+		// ACTIVE — createBooking accepts full expanded input (registrationEnabled, registrationClosesAt).
+		// Activated at Task 5; passing per feat(4.4).
 		//
 		// AC-4: registration_enabled and registration_closes_at columns are written.
 		// Out-of-scope for 4.4: token/link generation (belongs to Story 4.5).
@@ -966,8 +966,8 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 
 describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boundary)', () => {
 	test('[P1] 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt succeeds at service level (validation is route-layer responsibility)', async () => {
-		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
-		// Activate at Task 5.
+		// ACTIVE — createBooking accepts registrationEnabled=true without registrationClosesAt.
+		// Activated at Task 5; passing per feat(4.4).
 		//
 		// Scope boundary: the registrationClosesAt-required-when-enabled rule is enforced
 		// at the route layer via BookingSchema (Valibot cross-field check in Task 4).
