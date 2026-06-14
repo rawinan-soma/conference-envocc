@@ -84,5 +84,17 @@
 	"room_block_conflict_booking": "This time range conflicts with an existing booking.",
 	"room_block_validation_start_invalid": "Start must be a valid date and time.",
 	"room_block_validation_end_invalid": "End must be a valid date and time.",
-	"room_block_validation_end_after_start": "End time must be after start time."
+	"room_block_validation_end_after_start": "End time must be after start time.",
+
+	"calendar_title": "Room Calendar",
+	"calendar_week_heading": "Week of {start} – {end}",
+	"calendar_prev_week": "Previous week",
+	"calendar_next_week": "Next week",
+	"calendar_available_label": "Available",
+	"calendar_booked_label": "Booked",
+	"calendar_blocked_label": "Blocked",
+	"calendar_empty_state": "No rooms are available. Contact an administrator to add rooms.",
+	"calendar_time_range": "{start}–{end}",
+	"calendar_rooms_column_header": "Rooms",
+	"calendar_room_floor_prefix": "Floor {floor}"
 }

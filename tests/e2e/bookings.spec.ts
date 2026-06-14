@@ -72,12 +72,12 @@ test.describe('Story 4.3 — Room Calendar: Grid Rendering (AC-1)', () => {
 
 		// At least one booking chip (data-booking-id attribute)
 		// Requires a seeded booking in the current week
-		const chip = page.locator('[data-booking-id]').first();
+		// const chip = page.locator('[data-booking-id]').first();
 		// test.soft: comment out if no seed data available in CI
 		// await expect(chip).toBeVisible();
 
 		// Empty cell link points to /bookings/new with room and date params
-		const availableLink = page.locator('a[href^="/bookings/new?room="]').first();
+		// const availableLink = page.locator('a[href^="/bookings/new?room="]').first();
 		// await expect(availableLink).toBeVisible();
 		// await expect(availableLink).toHaveAttribute('href', /room=.+&date=\d{4}-\d{2}-\d{2}/);
 
@@ -108,9 +108,9 @@ test.describe('Story 4.3 — Room Calendar: Accessibility (AC-2, NFR-007)', () =
 		expect(results.violations).toEqual([]);
 
 		// Slot states: verify aria-label includes state text (not color alone)
-		const availableCell = page.locator('[role="gridcell"][aria-label*="available"]').first();
-		const blockedCell = page.locator('[role="gridcell"][aria-label*="blocked"]').first();
-		const bookedCell = page.locator('[role="gridcell"][aria-label*="booked"]').first();
+		// const availableCell = page.locator('[role="gridcell"][aria-label*="available"]').first();
+		// const blockedCell = page.locator('[role="gridcell"][aria-label*="blocked"]').first();
+		// const bookedCell = page.locator('[role="gridcell"][aria-label*="booked"]').first();
 
 		// At least one available cell has a text label (not just color)
 		// await expect(availableCell).toBeVisible();
