@@ -86,6 +86,7 @@
 									bookingId={booking.id}
 									timeRange={booking.timeRange}
 									eventName={booking.eventName}
+									isContinuation={booking.isContinuation}
 								/>
 							{/each}
 						</div>

@@ -96,5 +96,6 @@
 	"calendar_empty_state": "No rooms are available. Contact an administrator to add rooms.",
 	"calendar_time_range": "{start}–{end}",
 	"calendar_rooms_column_header": "Rooms",
-	"calendar_room_floor_prefix": "Floor {floor}"
+	"calendar_room_floor_prefix": "Floor {floor}",
+	"calendar_booking_continuation_label": "→ (cont.)"
 }

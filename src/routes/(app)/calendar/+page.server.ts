@@ -96,7 +96,12 @@ export async function load({ url }) {
 					const timeRange = parsed
 						? `${formatDateBangkok(parsed.lower, 'time')}–${formatDateBangkok(parsed.upper, 'time')}`
 						: '';
-					return { id: b.id, timeRange, eventName: null }; // eventName: Story 4.4
+					// Continuation: this cell is not the booking's start day.
+					// Also true when a multi-day booking started before the visible week.
+					const isContinuation = parsed
+						? formatDateBangkok(parsed.lower, 'date') !== dayDateStr
+						: false;
+					return { id: b.id, timeRange, eventName: null, isContinuation }; // eventName: Story 4.4
 				}),
 				blocks: dayBlocks.map((bl) => ({ id: bl.id, reason: bl.reason })),
 				href: `/bookings/new?room=${row.room.id}&date=${dayDateStr}`,

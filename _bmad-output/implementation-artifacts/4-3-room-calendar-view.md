@@ -797,6 +797,7 @@ Story 4.3 implemented as a UI-only story. No new DB migrations, no new booking m
 | 2026-06-14 | Story created (Story 4.3: Room Calendar View) |
 | 2026-06-14 | Implementation complete — date utils, Paraglide keys, calendar components, route, quality gates passed |
 | 2026-06-14 | Step 5 code review — 3 patches applied & committed (83ebd51); 2 decision-needed surfaced; 1 deferred; 4 dismissed |
+| 2026-06-14 | Product decisions resolved — block takes visual priority over BookingChip (blocked-wins); partial continuation indicator for multi-day bookings on non-start days |
 
 ### Review Findings (Step 5 — 2026-06-14)
 
@@ -804,8 +805,8 @@ Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Patch
 
 **Decision-needed (spec is silent — needs a product call; NOT auto-fixed):**
 
-- [ ] [Review][Decision] Block on a day that also has a booking hides the BookingChip entirely — State precedence is `blocked > booked > available` and chips only render in the `booked` branch (`src/routes/(app)/calendar/+page.server.ts` state logic + `RoomCalendar.svelte` cell rendering). If a room is blocked on a day that already holds a non-cancelled booking, the organizer sees only "Blocked" and the underlying booking becomes invisible. Spec does not define this collision. Options: (a) keep blocked-wins (current); (b) show both block label + chips; (c) badge the cell as "blocked (has booking)".
-- [ ] [Review][Decision] Multi-day booking shows the full time range on every overlapped day — `timeRange` is built from the booking's absolute lower/upper (`+page.server.ts` booking mapping), so a Mon 14:00 → Tue 16:00 booking renders "14:00–16:00" on both Mon and Tue. Misleading for every day except the first. Spec assumes single-day bookings; multi-day display is unspecified. Options: clip the range to each day, or show a continuation indicator.
+- [x] [Review][Decision] Block on a day that also has a booking hides the BookingChip entirely — **Resolved: option (a) blocked-wins.** When a cell is blocked, `cell.state === 'blocked'` and `RoomCalendar.svelte` renders only the hatched block view; the `BookingChip` is not shown. Underlying booking data remains in `cell.bookings` for future use but is not rendered. This keeps the UI unambiguous: admins must unblock before the room can be used.
+- [x] [Review][Decision] Multi-day booking shows the full time range on every overlapped day — **Resolved: partial/continuation indicator.** Added `isContinuation: boolean` to `CalendarCell.bookings` items (computed in `+page.server.ts`: true when the booking's start date ≠ the cell's date). `BookingChip` now renders the full time range only on the start day; continuation days show a shortened `→ (cont.)` indicator with reduced opacity. ARIA label on continuation cells omits the time range to avoid confusing screen readers. Message key `calendar_booking_continuation_label` added to both `en.json` and `th.json`.
 
 **Patches (applied & committed in 83ebd51):**
 
