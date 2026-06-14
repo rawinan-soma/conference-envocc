@@ -772,3 +772,242 @@ describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () =
 		}
 	});
 });
+
+// ===========================================================================
+// STORY 4.4 — Create a Booking (Conflict-Free)
+// RED PHASE: All tests are test.skip() — activate task-by-task during Tasks 5 & 12b.
+// ---------------------------------------------------------------------------
+// AC-2: createBooking with full expanded input persists all columns
+// AC-4: registration_enabled + registration_closes_at columns written correctly
+// AC-6: bookings.id is UUID v7 (text string, not integer)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 4.4-INT-001 — createBooking with full expanded input persists all columns [P0]
+// Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-2, AC-4, AC-6)', () => {
+	test.skip('[P0] 4.4-INT-001 — createBooking with full expanded input persists eventName, agenda, cateringEnabled, registrationEnabled, and id is a UUID v7 string', async () => {
+		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
+		// Activate at Task 5 after CreateBookingInput is updated in booking-service.ts.
+		//
+		// AC-1: expanded form fields (eventName, agenda, catering, registration) are written to DB.
+		// AC-6: bookings.id is now a UUID v7 text string, not an integer serial.
+		//
+		// Strategy:
+		//   1. Seed a room and organizer.
+		//   2. Call createBooking() with full expanded input including eventName, agenda,
+		//      cateringEnabled=true, registrationEnabled=false.
+		//   3. Assert the returned booking has id as a non-empty string (UUID v7).
+		//   4. Assert eventName, agenda, cateringEnabled are persisted (read back from DB).
+		//
+		// Dynamic import is required because the expanded service module does not exist yet.
+		// Using cast to unknown to avoid compile-time type errors in red phase (module
+		// signature will change in Task 5 — this cast is intentional for red-phase scaffold).
+
+		// Dynamic import — module shape does not match current signature until Task 5
+		const { createBooking } =
+			(await import('../../src/lib/server/services/booking-service.js')) as {
+				createBooking: (...args: unknown[]) => Promise<Record<string, unknown>>;
+			};
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.4-int-001');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		// Full expanded input — matches Task 5 CreateBookingInput shape
+		const input = {
+			startAt: '2026-08-01T09:00:00.000Z',
+			endAt: '2026-08-01T10:00:00.000Z',
+			eventName: 'Annual Conference 4.4-INT-001',
+			agenda: 'Morning session agenda',
+			cateringEnabled: true,
+			registrationEnabled: false
+		};
+
+		const booking = await createBooking(actorId, roomId, input);
+
+		// AC-6: id must be a UUID v7 string (not a number)
+		expect(typeof booking['id'], 'booking.id must be a string (UUID v7)').toBe('string');
+		expect(booking['id'], 'booking.id must be non-empty').toBeTruthy();
+		// UUID v7 format: starts with a time component; 36 chars total for standard UUID format.
+		// The uuidv7() package produces standard 8-4-4-4-12 hyphenated UUID.
+		expect((booking['id'] as string).length, 'UUID v7 id must be 36 characters').toBe(36);
+
+		// Assert persisted columns (read back from DB to confirm insert succeeded)
+		const result = await pool.query<{
+			id: string;
+			event_name: string;
+			agenda: string | null;
+			catering_enabled: boolean;
+			registration_enabled: boolean;
+			organizer_id: string;
+		}>(
+			'SELECT id, event_name, agenda, catering_enabled, registration_enabled, organizer_id FROM bookings WHERE id = $1',
+			[booking['id']]
+		);
+
+		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
+		const row = result.rows[0]!;
+		expect(row.event_name, 'event_name must be persisted').toBe(input.eventName);
+		expect(row.agenda, 'agenda must be persisted').toBe(input.agenda);
+		expect(row.catering_enabled, 'catering_enabled must be persisted as true').toBe(true);
+		expect(row.registration_enabled, 'registration_enabled must be false').toBe(false);
+		expect(row.organizer_id, 'organizer_id must be the actorId').toBe(actorId);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.4-INT-002 — createBooking with registrationEnabled=true persists registrationClosesAt [P0]
+// Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
+	test.skip('[P0] 4.4-INT-002 — createBooking with registrationEnabled=true and registrationClosesAt persists correctly', async () => {
+		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
+		// Activate at Task 5 after CreateBookingInput is updated in booking-service.ts.
+		//
+		// AC-4: registration_enabled and registration_closes_at columns are written.
+		// Out-of-scope for 4.4: token/link generation (belongs to Story 4.5).
+		//
+		// Strategy:
+		//   1. Seed a room and organizer.
+		//   2. Call createBooking() with registrationEnabled=true and registrationClosesAt set.
+		//   3. Read back from DB and assert both columns are persisted.
+		//   4. Assert registrationClosesAt is stored as a valid timestamptz (not null).
+
+		const { createBooking } =
+			(await import('../../src/lib/server/services/booking-service.js')) as {
+				createBooking: (...args: unknown[]) => Promise<Record<string, unknown>>;
+			};
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.4-int-002');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		const registrationClosesAt = '2026-07-28T17:00:00.000Z';
+
+		const input = {
+			startAt: '2026-08-02T09:00:00.000Z',
+			endAt: '2026-08-02T10:00:00.000Z',
+			eventName: 'Registration Test Event 4.4-INT-002',
+			cateringEnabled: false,
+			registrationEnabled: true,
+			registrationClosesAt
+		};
+
+		const booking = await createBooking(actorId, roomId, input);
+
+		expect(booking['id'], 'booking must be created').toBeTruthy();
+
+		// Read back registration columns from DB
+		const result = await pool.query<{
+			registration_enabled: boolean;
+			registration_closes_at: Date | null;
+		}>('SELECT registration_enabled, registration_closes_at FROM bookings WHERE id = $1', [
+			booking['id']
+		]);
+
+		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
+		const row = result.rows[0]!;
+		expect(row.registration_enabled, 'registration_enabled must be true').toBe(true);
+		expect(row.registration_closes_at, 'registration_closes_at must not be null').not.toBeNull();
+
+		// Verify it stores the correct timestamp (within 1 second tolerance for timezone conversion)
+		const storedTime = new Date(row.registration_closes_at!).getTime();
+		const expectedTime = new Date(registrationClosesAt).getTime();
+		expect(
+			Math.abs(storedTime - expectedTime),
+			'registration_closes_at must match the provided ISO datetime (within 1s)'
+		).toBeLessThan(1000);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt [P1]
+// Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boundary)', () => {
+	test.skip('[P1] 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt succeeds at service level (validation is route-layer responsibility)', async () => {
+		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
+		// Activate at Task 5.
+		//
+		// Scope boundary: the registrationClosesAt-required-when-enabled rule is enforced
+		// at the route layer via BookingSchema (Valibot cross-field check in Task 4).
+		// The service itself does NOT re-validate this constraint — it accepts the input as-is.
+		// This test documents and verifies that boundary: the service succeeds even when
+		// registrationClosesAt is absent with registrationEnabled=true.
+		//
+		// This is intentional — the service trusts the route has already validated.
+		// Tests for the Valibot schema cross-field check belong in unit tests for booking.ts schema.
+		//
+		// Strategy:
+		//   1. Call createBooking() with registrationEnabled=true and no registrationClosesAt.
+		//   2. Assert it does NOT throw (service-layer passes; validation is route's job).
+		//   3. Assert registration_closes_at is null in the DB.
+
+		const { createBooking } =
+			(await import('../../src/lib/server/services/booking-service.js')) as {
+				createBooking: (...args: unknown[]) => Promise<Record<string, unknown>>;
+			};
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.4-int-003');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		const input = {
+			startAt: '2026-08-03T09:00:00.000Z',
+			endAt: '2026-08-03T10:00:00.000Z',
+			eventName: 'No ClosesAt Test 4.4-INT-003',
+			cateringEnabled: false,
+			registrationEnabled: true
+			// registrationClosesAt intentionally omitted
+		};
+
+		let thrown: unknown = null;
+		let booking: Record<string, unknown> | null = null;
+		try {
+			booking = await createBooking(actorId, roomId, input);
+		} catch (err: unknown) {
+			thrown = err;
+		}
+
+		// Service must NOT throw (validation is the route's responsibility, not the service's)
+		expect(
+			thrown,
+			'createBooking must not throw when registrationClosesAt is absent — service trusts route validation'
+		).toBeNull();
+		expect(booking, 'booking must be returned').not.toBeNull();
+
+		// registration_closes_at must be null (nothing was provided)
+		const result = await pool.query<{
+			registration_closes_at: Date | null;
+		}>('SELECT registration_closes_at FROM bookings WHERE id = $1', [booking!['id']]);
+
+		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
+		expect(
+			result.rows[0]!.registration_closes_at,
+			'registration_closes_at must be null when not provided'
+		).toBeNull();
+	});
+});
