@@ -13,6 +13,9 @@
 
 	let { grid, weekDates }: Props = $props();
 
+	/** CSS grid template shared by header row and every room row. */
+	const GRID_COLS = 'grid-template-columns: 12rem repeat(7, 1fr);';
+
 	/** Resolve a pre-computed href that may include query params. */
 	function resolveHref(href: string): ResolvedPathname {
 		const qIdx = href.indexOf('?');
@@ -23,7 +26,7 @@
 
 <div class="overflow-x-auto" role="grid" aria-label={m.calendar_title()}>
 	<!-- Column headers: day names -->
-	<div class="grid" role="row" style="grid-template-columns: 12rem repeat(7, 1fr);">
+	<div class="grid" role="row" style={GRID_COLS}>
 		<div class="p-2 text-sm font-semibold text-gray-500" role="columnheader">
 			{m.calendar_rooms_column_header()}
 		</div>
@@ -39,7 +42,7 @@
 
 	<!-- Room rows -->
 	{#each grid as row (row.room.id)}
-		<div class="grid border-t" role="row" style="grid-template-columns: 12rem repeat(7, 1fr);">
+		<div class="grid border-t" role="row" style={GRID_COLS}>
 			<!-- Room name column -->
 			<div class="p-2 text-sm font-medium border-r" role="rowheader">
 				<span>{row.room.name}</span>
@@ -61,7 +64,6 @@
 						<a
 							href={resolveHref(cell.href)}
 							class="absolute inset-0 flex items-center justify-center text-xs text-green-700 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
-							aria-label={cell.ariaLabel}
 						>
 							<span class="sr-only">{m.calendar_available_label()}</span>
 						</a>

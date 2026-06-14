@@ -27,8 +27,14 @@ function normalizeTstzBound(raw: string): string {
 function parseTstzrange(range: string): { lower: Date; upper: Date } | null {
 	const match = range.match(/[[(]"?([^",]+)"?,\s*"?([^")\]]+)"?[\])]/);
 	if (!match || !match[1] || !match[2]) return null;
-	const lower = new Date(normalizeTstzBound(match[1]));
-	const upper = new Date(normalizeTstzBound(match[2]));
+	const rawLower = match[1].trim();
+	const rawUpper = match[2].trim();
+	// Postgres can emit `infinity` / `-infinity` for open-ended ranges.
+	// Treat them as ±MAX so an open-ended block correctly overlaps every day.
+	const lower =
+		rawLower === '-infinity' ? new Date(-8640000000000000) : new Date(normalizeTstzBound(rawLower));
+	const upper =
+		rawUpper === 'infinity' ? new Date(8640000000000000) : new Date(normalizeTstzBound(rawUpper));
 	if (Number.isNaN(lower.getTime()) || Number.isNaN(upper.getTime())) return null;
 	return { lower, upper };
 }
@@ -68,47 +74,58 @@ export async function load({ url }) {
 	const weekDates = weekDateObjects.map((d) => d.toISOString());
 
 	// Pre-compute the CalendarGrid
-	const grid: CalendarGrid = rows.map((row) => ({
-		room: row.room,
-		cells: weekDateObjects.map((dayStart) => {
-			const dayDateStr = formatDateBangkok(dayStart, 'date');
-			const dayName = formatDateBangkok(dayStart, 'dayName');
+	const grid: CalendarGrid = rows.map((row) => {
+		// Pre-parse each booking's `during` range once per room row to avoid
+		// running the regex twice per booking (once in the day-filter, once in the map).
+		const parsedBookings = row.bookings.map((b) => ({
+			booking: b,
+			parsed: parseTstzrange(b.during)
+		}));
 
-			const dayBookings = row.bookings.filter((b) => rangeOverlapsDay(b.during, dayStart));
-			const dayBlocks = (blocksByRoom.get(row.room.id) ?? []).filter((bl) =>
-				rangeOverlapsDay(bl.during, dayStart)
-			);
+		return {
+			room: row.room,
+			cells: weekDateObjects.map((dayStart) => {
+				const dayDateStr = formatDateBangkok(dayStart, 'date');
+				const dayName = formatDateBangkok(dayStart, 'dayName');
+				const dayEnd = addDays(dayStart, 1);
 
-			const state: CellState =
-				dayBlocks.length > 0 ? 'blocked' : dayBookings.length > 0 ? 'booked' : 'available';
+				const dayBookings = parsedBookings.filter(
+					({ parsed }) => parsed !== null && parsed.lower < dayEnd && parsed.upper > dayStart
+				);
+				const dayBlocks = (blocksByRoom.get(row.room.id) ?? []).filter((bl) =>
+					rangeOverlapsDay(bl.during, dayStart)
+				);
 
-			const ariaLabel =
-				state === 'available'
-					? `${row.room.name} ${dayName} ${m.calendar_available_label()}`
-					: state === 'blocked'
-						? `${row.room.name} ${dayName} ${m.calendar_blocked_label()}`
-						: `${row.room.name} ${dayName} ${m.calendar_booked_label()}`;
+				const state: CellState =
+					dayBlocks.length > 0 ? 'blocked' : dayBookings.length > 0 ? 'booked' : 'available';
 
-			return {
-				state,
-				bookings: dayBookings.map((b) => {
-					const parsed = parseTstzrange(b.during);
-					const timeRange = parsed
-						? `${formatDateBangkok(parsed.lower, 'time')}–${formatDateBangkok(parsed.upper, 'time')}`
-						: '';
-					// Continuation: this cell is not the booking's start day.
-					// Also true when a multi-day booking started before the visible week.
-					const isContinuation = parsed
-						? formatDateBangkok(parsed.lower, 'date') !== dayDateStr
-						: false;
-					return { id: b.id, timeRange, eventName: null, isContinuation }; // eventName: Story 4.4
-				}),
-				blocks: dayBlocks.map((bl) => ({ id: bl.id, reason: bl.reason })),
-				href: `/bookings/new?room=${row.room.id}&date=${dayDateStr}`,
-				ariaLabel
-			};
-		})
-	}));
+				const ariaLabel =
+					state === 'available'
+						? `${row.room.name} ${dayName} ${m.calendar_available_label()}`
+						: state === 'blocked'
+							? `${row.room.name} ${dayName} ${m.calendar_blocked_label()}`
+							: `${row.room.name} ${dayName} ${m.calendar_booked_label()}`;
+
+				return {
+					state,
+					bookings: dayBookings.map(({ booking: b, parsed }) => {
+						const timeRange = parsed
+							? `${formatDateBangkok(parsed.lower, 'time')}–${formatDateBangkok(parsed.upper, 'time')}`
+							: '';
+						// Continuation: this cell is not the booking's start day.
+						// Also true when a multi-day booking started before the visible week.
+						const isContinuation = parsed
+							? formatDateBangkok(parsed.lower, 'date') !== dayDateStr
+							: false;
+						return { id: b.id, timeRange, eventName: null, isContinuation }; // eventName: Story 4.4
+					}),
+					blocks: dayBlocks.map((bl) => ({ id: bl.id, reason: bl.reason })),
+					href: `/bookings/new?room=${row.room.id}&date=${dayDateStr}`,
+					ariaLabel
+				};
+			})
+		};
+	});
 
 	const prevWeek = formatDateBangkok(addDays(weekStart, -7), 'date');
 	const nextWeek = formatDateBangkok(addDays(weekStart, 7), 'date');
