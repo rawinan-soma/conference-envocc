@@ -6,45 +6,9 @@ import { roomBlocks } from '$lib/server/db/schema/room-blocks.js';
 import type { RoomBlock } from '$lib/server/db/schema/room-blocks.js';
 import { getWeekCalendar } from '$lib/server/db/queries/bookings.js';
 import { parseWeekParam, addDays, formatDateBangkok } from '$lib/utils/date.js';
+import { parseTstzrange, overlapsDay } from '$lib/utils/tstzrange.js';
 import type { CalendarGrid, CellState } from '$lib/types/calendar.js';
 import * as m from '$lib/paraglide/messages.js';
-
-// Parse lower and upper bounds from tstzrange string
-// (format: ["2026-06-15 09:00:00+07","..."))
-//
-// Postgres emits range bounds in the session timezone, so the offset suffix
-// varies (`+07`, `+00`, `Z`, …) depending on the DB session `TimeZone` setting
-// (e.g. UTC in CI / stock images). V8's Date parser rejects a bare ±HH offset
-// such as `+00`, so normalize any bare two-digit offset to `±HH:00`. Values
-// already in `±HH:MM` form or ending in `Z` are left untouched.
-function normalizeTstzBound(raw: string): string {
-	return raw
-		.trim()
-		.replace(' ', 'T')
-		.replace(/([+-]\d{2})$/, '$1:00');
-}
-
-function parseTstzrange(range: string): { lower: Date; upper: Date } | null {
-	const match = range.match(/[[(]"?([^",]+)"?,\s*"?([^")\]]+)"?[\])]/);
-	if (!match || !match[1] || !match[2]) return null;
-	const rawLower = match[1].trim();
-	const rawUpper = match[2].trim();
-	// Postgres can emit `infinity` / `-infinity` for open-ended ranges.
-	// Treat them as ±MAX so an open-ended block correctly overlaps every day.
-	const lower =
-		rawLower === '-infinity' ? new Date(-8640000000000000) : new Date(normalizeTstzBound(rawLower));
-	const upper =
-		rawUpper === 'infinity' ? new Date(8640000000000000) : new Date(normalizeTstzBound(rawUpper));
-	if (Number.isNaN(lower.getTime()) || Number.isNaN(upper.getTime())) return null;
-	return { lower, upper };
-}
-
-function rangeOverlapsDay(range: string, dayStart: Date): boolean {
-	const parsed = parseTstzrange(range);
-	if (!parsed) return false;
-	const dayEnd = addDays(dayStart, 1);
-	return parsed.lower < dayEnd && parsed.upper > dayStart;
-}
 
 export async function load({ url }) {
 	const weekStart = parseWeekParam(url.searchParams.get('week'));
@@ -75,11 +39,15 @@ export async function load({ url }) {
 
 	// Pre-compute the CalendarGrid
 	const grid: CalendarGrid = rows.map((row) => {
-		// Pre-parse each booking's `during` range once per room row to avoid
-		// running the regex twice per booking (once in the day-filter, once in the map).
+		// Pre-parse each booking's and block's `during` range once per room row so
+		// the regex runs once per range instead of once per range per day (up to 7×).
 		const parsedBookings = row.bookings.map((b) => ({
 			booking: b,
 			parsed: parseTstzrange(b.during)
+		}));
+		const parsedBlocks = (blocksByRoom.get(row.room.id) ?? []).map((bl) => ({
+			block: bl,
+			parsed: parseTstzrange(bl.during)
 		}));
 
 		return {
@@ -89,11 +57,13 @@ export async function load({ url }) {
 				const dayName = formatDateBangkok(dayStart, 'dayName');
 				const dayEnd = addDays(dayStart, 1);
 
-				const dayBookings = parsedBookings.filter(
-					({ parsed }) => parsed !== null && parsed.lower < dayEnd && parsed.upper > dayStart
+				// Both bookings and blocks use the same overlapsDay() helper so that any
+				// future change to the comparison semantics only needs to be made once.
+				const dayBookings = parsedBookings.filter(({ parsed }) =>
+					overlapsDay(parsed, dayStart, dayEnd)
 				);
-				const dayBlocks = (blocksByRoom.get(row.room.id) ?? []).filter((bl) =>
-					rangeOverlapsDay(bl.during, dayStart)
+				const dayBlocks = parsedBlocks.filter(({ parsed }) =>
+					overlapsDay(parsed, dayStart, dayEnd)
 				);
 
 				const state: CellState =
@@ -119,7 +89,7 @@ export async function load({ url }) {
 							: false;
 						return { id: b.id, timeRange, eventName: null, isContinuation }; // eventName: Story 4.4
 					}),
-					blocks: dayBlocks.map((bl) => ({ id: bl.id, reason: bl.reason })),
+					blocks: dayBlocks.map(({ block: bl }) => ({ id: bl.id, reason: bl.reason })),
 					href: `/bookings/new?room=${row.room.id}&date=${dayDateStr}`,
 					ariaLabel
 				};
