@@ -27,6 +27,11 @@
 
 - Route-guard regex in `src/hooks.server.ts` (`/^\/(?!(?:login|auth\/|r\/|$))/`) is not boundary-anchored: hypothetical paths like `/loginabc` or `/authxyz` would slip the negative lookahead and skip the auth guard. No such routes exist today, so this is cosmetic robustness only. Tighten the lookahead (e.g. `(?:login|auth|r)(?:\/|$)`) when the route table grows or when Story 2.5 reworks the guard dispatcher.
 
+## Deferred from: code review of 4-3-room-calendar-view (2026-06-15)
+
+- `customType<{data:string}>` for `tstzrange` in `bookings.ts` and `room-blocks.ts` has no `fromDriver()` hook — every query site must call `parseTstzrange()` manually or silently receive a raw string. Adding `fromDriver: (val) => parseTstzrange(val)` would make deserialization automatic, but it cascades into all services and the admin blocks page. Revisit as a cross-cutting refactor in Story 4.4 or a dedicated story.
+- `formatRange()` in `src/routes/(app)/admin/rooms/[id]/blocks/+page.svelte` re-implements tstzrange string parsing independently from `$lib/utils/tstzrange.ts`. Bugs fixed in `parseTstzrange` (e.g. normalizeTstzBound for bare `+HH` offsets) do not apply to `formatRange`. Refactor `formatRange` to call `parseTstzrange` from the shared util in a follow-up story touching the admin blocks page.
+
 ## Deferred from: code review of 2-5-authorization-guard-dispatcher (2026-06-12)
 
 - `requireUser` in `src/lib/server/auth/guards.ts` has a defensive expired-session branch (`session.expiresAt < new Date()` → redirect 302) that has no direct test coverage. Pre-existing guard code (Story 2.1). Session-timeout enforcement is owned by Story 2.6 (`session.expiresIn: 1800`), so explicit coverage of this belt-and-suspenders branch is out of scope for 2.5. Add a unit test for the expired-session redirect when revisiting session lifecycle.
