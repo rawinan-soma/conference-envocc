@@ -4,7 +4,7 @@ baseline_commit: 7057589
 
 # Story 4.3: Room Calendar View
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -796,3 +796,30 @@ Story 4.3 implemented as a UI-only story. No new DB migrations, no new booking m
 |------|--------|
 | 2026-06-14 | Story created (Story 4.3: Room Calendar View) |
 | 2026-06-14 | Implementation complete — date utils, Paraglide keys, calendar components, route, quality gates passed |
+| 2026-06-14 | Step 5 code review — 3 patches applied & committed (83ebd51); 2 decision-needed surfaced; 1 deferred; 4 dismissed |
+
+### Review Findings (Step 5 — 2026-06-14)
+
+Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Patches were auto-applied per pipeline mode and committed in `83ebd51`. Quality gates re-run green (prettier clean, lint clean, `bun run check` 0 errors / 0 warnings).
+
+**Decision-needed (spec is silent — needs a product call; NOT auto-fixed):**
+
+- [ ] [Review][Decision] Block on a day that also has a booking hides the BookingChip entirely — State precedence is `blocked > booked > available` and chips only render in the `booked` branch (`src/routes/(app)/calendar/+page.server.ts` state logic + `RoomCalendar.svelte` cell rendering). If a room is blocked on a day that already holds a non-cancelled booking, the organizer sees only "Blocked" and the underlying booking becomes invisible. Spec does not define this collision. Options: (a) keep blocked-wins (current); (b) show both block label + chips; (c) badge the cell as "blocked (has booking)".
+- [ ] [Review][Decision] Multi-day booking shows the full time range on every overlapped day — `timeRange` is built from the booking's absolute lower/upper (`+page.server.ts` booking mapping), so a Mon 14:00 → Tue 16:00 booking renders "14:00–16:00" on both Mon and Tue. Misleading for every day except the first. Spec assumes single-day bookings; multi-day display is unspecified. Options: clip the range to each day, or show a continuation indicator.
+
+**Patches (applied & committed in 83ebd51):**
+
+- [x] [Review][Patch] parseTstzrange only handled `+07` offset → Invalid Date under other DB session timezones [src/routes/(app)/calendar/+page.server.ts] — normalized any bare `±HH` offset to `±HH:00`; returns null on unparseable bounds. Manifests when DB session TZ ≠ +07 (e.g. UTC in CI / stock Postgres), where every booking/block was silently dropped and the calendar showed all slots available. Environment-dependent severity.
+- [x] [Review][Patch] parseWeekParam crashed (500) on shape-valid but calendar-invalid `?week=` [src/lib/utils/date.ts] — `?week=2026-13-45` passed the regex, yielded an Invalid Date, and `weekStart.toISOString()` threw RangeError. Added `Number.isNaN(parsed.getTime())` guard → falls back to current week per the documented invariant.
+- [x] [Review][Patch] Invalid ARIA grid structure (missing intermediate rows) [src/lib/components/calendar/RoomCalendar.svelte] — `role="grid"`/`role="gridcell"` lacked `role="row"` parents and header `role="columnheader"`/`role="rowheader"`. WCAG 2.1 AA `aria-required-parent`/`aria-required-children` gap under AC-2 / NFR-007. Added the missing roles.
+
+**Deferred (real, non-blocking — see deferred-work.md):**
+
+- [x] [Review][Defer] parseWeekParam silently rolls over impossible-but-parseable dates [src/lib/utils/date.ts] — `?week=2026-02-30` is a valid JS Date (rolls to Mar 1) so the isNaN guard does not catch it; the user is shown a different, wrong week instead of the current-week fallback. Low severity; round-trip validation deferred.
+
+**Dismissed (noise / false positive / handled / spec-mandated):**
+
+- `calendar_time_range` "dead" message key — explicitly listed in the spec's Paraglide Keys section; intentional. Dismissed.
+- Only first block's reason shown per cell — acceptable for this scan view. Dismissed.
+- BookingChip is `<button>` not the spec's `<a href="#">` — deliberate a11y improvement (avoids the `href="#"` anti-pattern; keyboard-accessible); `data-booking-id` still lets Story 4.4 wire navigation. Kept. (Note: Completion Notes still reference a now-gone `href="#"` check warning — cosmetic, not addressed in this review commit.)
+- Keyed-each duplicate-key risk on `booking.id` — booking PKs are unique; theoretical only. Dismissed.
