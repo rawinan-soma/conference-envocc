@@ -7,3 +7,4 @@ bad:
     driven by the sprint backlog and dependency graph
   version: 1.2.0
   pr_base_branch: main
+  max_parallel_stories: 5
