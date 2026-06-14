@@ -35,3 +35,7 @@
 ## Deferred from: code review of 2-5-authorization-guard-dispatcher (2026-06-12)
 
 - `requireUser` in `src/lib/server/auth/guards.ts` has a defensive expired-session branch (`session.expiresAt < new Date()` → redirect 302) that has no direct test coverage. Pre-existing guard code (Story 2.1). Session-timeout enforcement is owned by Story 2.6 (`session.expiresIn: 1800`), so explicit coverage of this belt-and-suspenders branch is out of scope for 2.5. Add a unit test for the expired-session redirect when revisiting session lifecycle.
+
+## Deferred from: code review of 4-3-room-calendar-view (2026-06-14)
+
+- `parseWeekParam` in `src/lib/utils/date.ts` silently rolls over impossible-but-parseable dates: a `?week=` value like `2026-02-30` passes the `^\d{4}-\d{2}-\d{2}$` regex and is a *valid* JS Date (rolls forward to Mar 1), so the new `Number.isNaN` guard does not catch it. The user is shown a different, wrong week instead of the documented current-week fallback. Low severity (cosmetic / no crash). Fix when revisiting date handling: detect rollover by comparing the parsed Bangkok Y/M/D back to the input components and fall back to the current week on mismatch.

@@ -17,6 +17,7 @@ import { bookings } from '../schema/bookings.js';
 import { rooms } from '../schema/rooms.js';
 import type { Room } from '../schema/rooms.js';
 import type { Booking } from '../../services/booking-service.js';
+import { addDays } from '$lib/utils/date.js';
 
 export type WeekCalendarRow = {
 	room: Room;
@@ -33,8 +34,11 @@ export type WeekCalendarRow = {
  * @param weekStart - Monday midnight UTC (caller is responsible for timezone conversion)
  */
 export async function getWeekCalendar(weekStart: Date): Promise<WeekCalendarRow[]> {
-	// Compute weekEnd as exactly 7 × 24 h in UTC to avoid local-time DST drift.
-	const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+	// Compute weekEnd as 7 calendar days after weekStart in Asia/Bangkok.
+	// addDays() uses @internationalized/date ZonedDateTime.add() — correct for
+	// Bangkok's fixed UTC+7 offset (no DST), and consistent with the rest of the
+	// calendar feature's date arithmetic.
+	const weekEnd = addDays(weekStart, 7);
 
 	// Fetch all active rooms in stable display order (floor asc, name asc) — matches listRooms().
 	const allRooms = await db
