@@ -605,3 +605,170 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 		expect(booking2?.id, 'Booking on day 2 must succeed').toBeTruthy();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// 4.2-INT-001 — Week Calendar Read-Model: Correct Data [P1]
+// RED PHASE — scaffolded as test.skip(); activate at Task 2.3 after
+// getWeekCalendar() is implemented. Expect FAIL on first activation.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.2 — Week Calendar Read-Model: Correct Data (P1)', () => {
+	test('[P1] 4.2-INT-001 — getWeekCalendar returns per-room bookings; deactivated rooms absent', async () => {
+		// Activate at Task 2.3 after getWeekCalendar() is implemented.
+		//
+		// Strategy:
+		//   1. Seed 2 active rooms and 1 inactive room.
+		//   2. Seed bookings for the week (2026-07-14 Mon → 2026-07-21 Mon) for both active rooms.
+		//   3. Call getWeekCalendar(weekStart) where weekStart = Monday 2026-07-14 00:00:00 UTC.
+		//   4. Assert result contains entries only for active rooms.
+		//   5. Assert the inactive room is absent from result.
+		//   6. Assert each active room's bookings array contains the correct seeded bookings.
+		//
+		// AC-1: per-room bookings returned for the week; deactivated rooms absent.
+		// No Thai text — per project rule; Rawinan handles all translations.
+
+		const client = await pool.connect();
+		let activeRoomId1: string;
+		let activeRoomId2: string;
+		let inactiveRoomId: string;
+
+		try {
+			// Seed active room 1
+			activeRoomId1 = `test-4.2-int-001-active1-${randomUUID()}`;
+			await client.query(
+				`INSERT INTO rooms (id, name, floor, capacity, features, is_active)
+         VALUES ($1, $2, $3, $4, $5, true)`,
+				[activeRoomId1, `Active Room 1 ${activeRoomId1}`, '1', 10, '{}']
+			);
+
+			// Seed active room 2
+			activeRoomId2 = `test-4.2-int-001-active2-${randomUUID()}`;
+			await client.query(
+				`INSERT INTO rooms (id, name, floor, capacity, features, is_active)
+         VALUES ($1, $2, $3, $4, $5, true)`,
+				[activeRoomId2, `Active Room 2 ${activeRoomId2}`, '2', 20, '{}']
+			);
+
+			// Seed inactive room
+			inactiveRoomId = `test-4.2-int-001-inactive-${randomUUID()}`;
+			await client.query(
+				`INSERT INTO rooms (id, name, floor, capacity, features, is_active)
+         VALUES ($1, $2, $3, $4, $5, false)`,
+				[inactiveRoomId, `Inactive Room ${inactiveRoomId}`, '3', 5, '{}']
+			);
+
+			// Seed a booking for active room 1 within the week (Mon 2026-07-14 10:00–11:00 UTC)
+			await client.query(
+				`INSERT INTO bookings (room_id, during, status)
+         VALUES ($1, tstzrange('2026-07-14 10:00:00+00'::timestamptz, '2026-07-14 11:00:00+00'::timestamptz, '[)'), 'active')`,
+				[activeRoomId1]
+			);
+
+			// Seed a booking for active room 2 within the week (Tue 2026-07-15 14:00–15:00 UTC)
+			await client.query(
+				`INSERT INTO bookings (room_id, during, status)
+         VALUES ($1, tstzrange('2026-07-15 14:00:00+00'::timestamptz, '2026-07-15 15:00:00+00'::timestamptz, '[)'), 'active')`,
+				[activeRoomId2]
+			);
+
+			// Seed a cancelled booking for active room 1 — must NOT appear in results
+			await client.query(
+				`INSERT INTO bookings (room_id, during, status)
+         VALUES ($1, tstzrange('2026-07-16 09:00:00+00'::timestamptz, '2026-07-16 10:00:00+00'::timestamptz, '[)'), 'cancelled')`,
+				[activeRoomId1]
+			);
+
+			// Seed a booking for the inactive room within the week — must NOT appear in results
+			await client.query(
+				`INSERT INTO bookings (room_id, during, status)
+         VALUES ($1, tstzrange('2026-07-14 13:00:00+00'::timestamptz, '2026-07-14 14:00:00+00'::timestamptz, '[)'), 'active')`,
+				[inactiveRoomId]
+			);
+		} finally {
+			client.release();
+		}
+
+		// Import and call the function under test
+		const { getWeekCalendar } = await import('../../src/lib/server/db/queries/bookings.js');
+
+		// weekStart = Monday 2026-07-14 00:00:00 UTC
+		const weekStart = new Date('2026-07-14T00:00:00.000Z');
+		const result = await getWeekCalendar(weekStart);
+
+		// Assert: inactive room must not appear in results
+		const resultRoomIds = result.map((row) => row.room.id);
+		expect(
+			resultRoomIds,
+			'Inactive room must be absent from getWeekCalendar results'
+		).not.toContain(inactiveRoomId);
+
+		// Assert: both active rooms must appear
+		expect(resultRoomIds, 'Active room 1 must appear in results').toContain(activeRoomId1);
+		expect(resultRoomIds, 'Active room 2 must appear in results').toContain(activeRoomId2);
+
+		// Assert: active room 1 has 1 booking (the active one; cancelled excluded)
+		const room1Row = result.find((row) => row.room.id === activeRoomId1);
+		expect(
+			room1Row?.bookings.length,
+			'Active room 1 must have exactly 1 booking (cancelled booking excluded)'
+		).toBe(1);
+		expect(room1Row?.bookings[0]?.status, "Active room 1 booking status must be 'active'").toBe(
+			'active'
+		);
+
+		// Assert: active room 2 has 1 booking
+		const room2Row = result.find((row) => row.room.id === activeRoomId2);
+		expect(room2Row?.bookings.length, 'Active room 2 must have exactly 1 booking').toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.2-INT-002 — Week Calendar Read-Model: Index-Backed Query [P1]
+// RED PHASE — scaffolded as test.skip(); activate at Task 2.4 after
+// 4.2-INT-001 passes. Uses SET enable_seqscan = off to probe the planner.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () => {
+	test('[P1] 4.2-INT-002 — EXPLAIN ANALYZE confirms GiST index is usable for range-overlap query (R-007)', async () => {
+		// Activate at Task 2.4 after 4.2-INT-001 passes.
+		//
+		// Strategy: SET enable_seqscan = off forces the planner to use an index if any
+		// applicable one exists. If a Seq Scan still appears after this SET, the composite
+		// GiST index (room_id, during) cannot serve the during-only query — trigger the
+		// migration fallback in Task 2.4.
+		//
+		// MUST use a dedicated client (pool.connect()) so SET + EXPLAIN run on the same
+		// connection. pool.query() may assign different connections per call.
+		//
+		// AC-2 (R-007 mitigation): GiST index is usable for the tstzrange && range-overlap query.
+		// If this fails: add migration drizzle/0008_booking_gist_index.sql (see Dev Notes §GiST Index).
+
+		const client = await pool.connect();
+		try {
+			await client.query('SET enable_seqscan = off');
+			const explainResult = await client.query<{ 'QUERY PLAN': string }>(`
+        EXPLAIN (ANALYZE, FORMAT TEXT)
+        SELECT * FROM bookings
+        WHERE during && tstzrange(
+          '2026-07-14 00:00:00+07'::timestamptz,
+          '2026-07-21 00:00:00+07'::timestamptz,
+          '[)'
+        )
+        AND status != 'cancelled'
+      `);
+			const plan = explainResult.rows.map((r) => r['QUERY PLAN']).join('\n');
+			// Positive assertion: planner chose an index-based strategy (Index Scan or Bitmap Index Scan).
+			// If this fails even with enable_seqscan=off, the index is not usable for this access pattern
+			// → add migration 0008_booking_gist_index.sql (see §GiST Index in Dev Notes).
+			expect(
+				plan,
+				'GiST index must be usable for during && range query (enable_seqscan=off, planner must pick Index Scan)'
+			).toMatch(/Index Scan|Bitmap.*Index/i);
+		} finally {
+			// Reset the session-level GUC before returning the connection to the pool
+			// so subsequent tests that reuse this connection are not affected.
+			await client.query('RESET enable_seqscan');
+			client.release();
+		}
+	});
+});
