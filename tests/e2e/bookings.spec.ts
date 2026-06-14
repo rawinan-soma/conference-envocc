@@ -63,7 +63,7 @@ async function loginViaDevBypass(page: Page): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.3 — Room Calendar: Grid Rendering (AC-1)', () => {
-	test.skip('[P1] 4.3-E2E-001 — /calendar renders rooms on Y axis × days on X axis; booking chips visible; empty cells link to booking form', async ({
+	test('[P1] 4.3-E2E-001 — /calendar renders rooms on Y axis × days on X axis; booking chips visible; empty cells link to booking form', async ({
 		page
 	}) => {
 		// Activation condition: /bookings/new route exists (Story 4.4 complete).
@@ -109,7 +109,7 @@ test.describe('Story 4.3 — Room Calendar: Grid Rendering (AC-1)', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.3 — Room Calendar: Accessibility (AC-2, NFR-007)', () => {
-	test.skip('[P2] 4.3-A11Y-001 — /calendar passes axe-core zero WCAG 2.1 AA violations; slot states distinguishable without color alone', async ({
+	test('[P2] 4.3-A11Y-001 — /calendar passes axe-core zero WCAG 2.1 AA violations; slot states distinguishable without color alone', async ({
 		page
 	}) => {
 		// Activation condition: calendar page renders with at least one room.

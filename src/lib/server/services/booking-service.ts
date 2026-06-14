@@ -1,5 +1,5 @@
 /**
- * Booking service — Story 4.1
+ * Booking service — Story 4.1, expanded in Story 4.4
  *
  * Provides createBooking with:
  * - INSERT into bookings using tstzrange half-open [) range
@@ -42,10 +42,15 @@ export class ConflictError extends Error {
 // Types
 // ---------------------------------------------------------------------------
 
-/** Minimal input type for Story 4.1 scope — full booking form schema belongs to Story 4.4 */
+/** Full booking form input — Story 4.4 */
 export type CreateBookingInput = {
-	startAt: string;
-	endAt: string;
+	eventName: string;
+	agenda?: string;
+	startAt: string; // ISO datetime string (UTC)
+	endAt: string; // ISO datetime string (UTC)
+	cateringEnabled: boolean;
+	registrationEnabled: boolean;
+	registrationClosesAt?: string; // ISO datetime string (UTC) or undefined
 };
 
 /** Booking row type — mirrors RoomBlock export pattern from room-blocks.ts */
@@ -67,7 +72,7 @@ export type Booking = typeof bookings.$inferSelect;
  *
  * @param actorId - User ID performing the action
  * @param roomId  - Room to book
- * @param input   - { startAt, endAt } ISO timestamps
+ * @param input   - Full booking form input (Story 4.4)
  * @throws ConflictError if the slot conflicts with an existing active booking (23P01)
  */
 export async function createBooking(
@@ -78,15 +83,22 @@ export async function createBooking(
 	return db.transaction(async (tx) => {
 		// --- INSERT into bookings ---
 		// bookings_no_overlap EXCLUDE constraint catches booking-vs-booking overlap (AC-2).
-		// No id in values — DB generates via generatedAlwaysAsIdentity.
 		let booking: Booking;
 		try {
 			const [inserted] = await tx
 				.insert(bookings)
 				.values({
 					roomId,
+					organizerId: actorId,
+					eventName: input.eventName,
+					agenda: input.agenda ?? null,
 					during: sql`tstzrange(${input.startAt}::timestamptz, ${input.endAt}::timestamptz, '[)')`,
-					status: 'active'
+					status: 'active',
+					cateringEnabled: input.cateringEnabled,
+					registrationEnabled: input.registrationEnabled,
+					registrationClosesAt: input.registrationClosesAt
+						? new Date(input.registrationClosesAt)
+						: null
 				})
 				.returning();
 
@@ -113,13 +125,18 @@ export async function createBooking(
 			throw err;
 		}
 
-		// --- Write audit log (AC-3) ---
-		const duringString = `[${input.startAt}, ${input.endAt})`;
+		// --- Write audit log ---
 		await writeAuditLog(tx, {
 			actorId,
 			entity: 'booking',
 			action: 'create',
-			diff: { roomId, during: duringString }
+			diff: {
+				roomId,
+				eventName: input.eventName,
+				during: `[${input.startAt}, ${input.endAt})`,
+				cateringEnabled: input.cateringEnabled,
+				registrationEnabled: input.registrationEnabled
+			}
 		});
 
 		return booking;

@@ -5,7 +5,7 @@ import { enqueueJob, QUEUE } from '$lib/server/jobs';
 import { sql } from 'drizzle-orm';
 
 export async function load() {
-	let insertedId: number | null = null;
+	let insertedId: string | null = null;
 
 	try {
 		await db.transaction(async (tx) => {
@@ -13,6 +13,8 @@ export async function load() {
 				.insert(bookings)
 				.values({
 					roomId: 'skeleton-probe',
+					organizerId: 'skeleton-probe', // ADD: dummy value for NOT NULL column (Story 4.4)
+					eventName: 'Skeleton Probe', // ADD: dummy value for NOT NULL column (Story 4.4)
 					// Use raw SQL for tstzrange with Asia/Bangkok offset (+07)
 					during: sql`tstzrange('2099-01-01 10:00:00+07', '2099-01-01 11:00:00+07', '[)')`,
 					status: 'active'

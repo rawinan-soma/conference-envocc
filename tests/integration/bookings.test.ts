@@ -162,8 +162,8 @@ describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () 
 				try {
 					await conn.query('BEGIN');
 					await conn.query(
-						`INSERT INTO bookings (room_id, during, status)
-               VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+						`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+               VALUES (gen_random_uuid()::text, $1, 'conc-test-actor', 'CONC Test Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 						[roomId, slotStart, slotEnd]
 					);
 					await conn.query('COMMIT');
@@ -264,7 +264,10 @@ describe('Story 4.1 — Sequential Conflict → ConflictError (AC-3)', () => {
 
 		const input = {
 			startAt: '2026-07-16T09:00:00.000Z',
-			endAt: '2026-07-16T10:00:00.000Z'
+			endAt: '2026-07-16T10:00:00.000Z',
+			eventName: 'Test Event INT-001',
+			cateringEnabled: false,
+			registrationEnabled: false
 		};
 
 		// First booking succeeds
@@ -323,8 +326,8 @@ describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
 		const insertClient = await pool.connect();
 		try {
 			await insertClient.query(
-				`INSERT INTO bookings (room_id, during, status)
-           VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, 'int-002-actor', 'INT-002 Test Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 				[roomId, slotStart, slotEnd]
 			);
 			await insertClient.query(
@@ -341,7 +344,13 @@ describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
 		let thrown: unknown = null;
 		let newBooking: { id: unknown; status: unknown } | null = null;
 		try {
-			newBooking = await createBooking(actorId, roomId, { startAt: slotStart, endAt: slotEnd });
+			newBooking = await createBooking(actorId, roomId, {
+				startAt: slotStart,
+				endAt: slotEnd,
+				eventName: 'Test Event INT-002',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
 		} catch (err: unknown) {
 			thrown = err;
 		}
@@ -394,8 +403,8 @@ describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () =>
 		const insertClient = await pool.connect();
 		try {
 			await insertClient.query(
-				`INSERT INTO bookings (room_id, during, status)
-           VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, 'int-003-actor', 'INT-003 Test Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 				[roomId, slotStart, slotEnd]
 			);
 		} finally {
@@ -405,7 +414,13 @@ describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () =>
 		// Step 2: service call must throw ConflictError
 		let thrown: unknown = null;
 		try {
-			await createBooking(actorId, roomId, { startAt: slotStart, endAt: slotEnd });
+			await createBooking(actorId, roomId, {
+				startAt: slotStart,
+				endAt: slotEnd,
+				eventName: 'Test Event INT-003',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
 		} catch (err: unknown) {
 			thrown = err;
 		}
@@ -464,7 +479,10 @@ describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1,
 		// First booking: 10:00–11:00
 		const booking1 = await createBooking(actorId, roomId, {
 			startAt: '2026-07-19T10:00:00.000Z',
-			endAt: '2026-07-19T11:00:00.000Z'
+			endAt: '2026-07-19T11:00:00.000Z',
+			eventName: 'Test Event INT-004 First',
+			cateringEnabled: false,
+			registrationEnabled: false
 		});
 		expect(booking1.id, 'First back-to-back booking must succeed').toBeTruthy();
 
@@ -474,7 +492,10 @@ describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1,
 		try {
 			booking2 = await createBooking(actorId, roomId, {
 				startAt: '2026-07-19T11:00:00.000Z',
-				endAt: '2026-07-19T12:00:00.000Z'
+				endAt: '2026-07-19T12:00:00.000Z',
+				eventName: 'Test Event INT-004 Second',
+				cateringEnabled: false,
+				registrationEnabled: false
 			});
 		} catch (err: unknown) {
 			thrown = err;
@@ -521,7 +542,10 @@ describe('Story 4.1 — ConflictError carries Paraglide key, not raw 23P01 (P1, 
 
 		const input = {
 			startAt: '2026-07-20T09:00:00.000Z',
-			endAt: '2026-07-20T10:00:00.000Z'
+			endAt: '2026-07-20T10:00:00.000Z',
+			eventName: 'Test Event INT-005',
+			cateringEnabled: false,
+			registrationEnabled: false
 		};
 
 		await createBooking(actorId, roomId, input); // first booking succeeds
@@ -582,7 +606,10 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 		// Day 1: 2026-07-21 10:00–11:00
 		const booking1 = await createBooking(actorId, roomId, {
 			startAt: '2026-07-21T10:00:00.000Z',
-			endAt: '2026-07-21T11:00:00.000Z'
+			endAt: '2026-07-21T11:00:00.000Z',
+			eventName: 'Test Event INT-006 Day1',
+			cateringEnabled: false,
+			registrationEnabled: false
 		});
 		expect(booking1.id, 'Booking on day 1 must succeed').toBeTruthy();
 
@@ -592,7 +619,10 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 		try {
 			booking2 = await createBooking(actorId, roomId, {
 				startAt: '2026-07-22T10:00:00.000Z',
-				endAt: '2026-07-22T11:00:00.000Z'
+				endAt: '2026-07-22T11:00:00.000Z',
+				eventName: 'Test Event INT-006 Day2',
+				cateringEnabled: false,
+				registrationEnabled: false
 			});
 		} catch (err: unknown) {
 			thrown = err;
@@ -659,29 +689,29 @@ describe('Story 4.2 — Week Calendar Read-Model: Correct Data (P1)', () => {
 
 			// Seed a booking for active room 1 within the week (Mon 2026-07-14 10:00–11:00 UTC)
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-14 10:00:00+00'::timestamptz, '2026-07-14 11:00:00+00'::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Test Event Room1', tstzrange('2026-07-14 10:00:00+00'::timestamptz, '2026-07-14 11:00:00+00'::timestamptz, '[)'), 'active')`,
 				[activeRoomId1]
 			);
 
 			// Seed a booking for active room 2 within the week (Tue 2026-07-15 14:00–15:00 UTC)
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-15 14:00:00+00'::timestamptz, '2026-07-15 15:00:00+00'::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Test Event Room2', tstzrange('2026-07-15 14:00:00+00'::timestamptz, '2026-07-15 15:00:00+00'::timestamptz, '[)'), 'active')`,
 				[activeRoomId2]
 			);
 
 			// Seed a cancelled booking for active room 1 — must NOT appear in results
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-16 09:00:00+00'::timestamptz, '2026-07-16 10:00:00+00'::timestamptz, '[)'), 'cancelled')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Cancelled Event', tstzrange('2026-07-16 09:00:00+00'::timestamptz, '2026-07-16 10:00:00+00'::timestamptz, '[)'), 'cancelled')`,
 				[activeRoomId1]
 			);
 
 			// Seed a booking for the inactive room within the week — must NOT appear in results
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-14 13:00:00+00'::timestamptz, '2026-07-14 14:00:00+00'::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Inactive Room Event', tstzrange('2026-07-14 13:00:00+00'::timestamptz, '2026-07-14 14:00:00+00'::timestamptz, '[)'), 'active')`,
 				[inactiveRoomId]
 			);
 		} finally {
@@ -788,7 +818,7 @@ describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () =
 // ---------------------------------------------------------------------------
 
 describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-2, AC-4, AC-6)', () => {
-	test.skip('[P0] 4.4-INT-001 — createBooking with full expanded input persists eventName, agenda, cateringEnabled, registrationEnabled, and id is a UUID v7 string', async () => {
+	test('[P0] 4.4-INT-001 — createBooking with full expanded input persists eventName, agenda, cateringEnabled, registrationEnabled, and id is a UUID v7 string', async () => {
 		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
 		// Activate at Task 5 after CreateBookingInput is updated in booking-service.ts.
 		//
@@ -806,11 +836,7 @@ describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-
 		// Using cast to unknown to avoid compile-time type errors in red phase (module
 		// signature will change in Task 5 — this cast is intentional for red-phase scaffold).
 
-		// Dynamic import — module shape does not match current signature until Task 5
-		const { createBooking } =
-			(await import('../../src/lib/server/services/booking-service.js')) as {
-				createBooking: (...args: unknown[]) => Promise<Record<string, unknown>>;
-			};
+		const { createBooking } = await import('../../src/lib/server/services/booking-service.js');
 
 		const client = await pool.connect();
 		let roomId: string;
@@ -835,11 +861,11 @@ describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-
 		const booking = await createBooking(actorId, roomId, input);
 
 		// AC-6: id must be a UUID v7 string (not a number)
-		expect(typeof booking['id'], 'booking.id must be a string (UUID v7)').toBe('string');
-		expect(booking['id'], 'booking.id must be non-empty').toBeTruthy();
+		expect(typeof booking.id, 'booking.id must be a string (UUID v7)').toBe('string');
+		expect(booking.id, 'booking.id must be non-empty').toBeTruthy();
 		// UUID v7 format: starts with a time component; 36 chars total for standard UUID format.
 		// The uuidv7() package produces standard 8-4-4-4-12 hyphenated UUID.
-		expect((booking['id'] as string).length, 'UUID v7 id must be 36 characters').toBe(36);
+		expect(booking.id.length, 'UUID v7 id must be 36 characters').toBe(36);
 
 		// Assert persisted columns (read back from DB to confirm insert succeeded)
 		const result = await pool.query<{
@@ -851,7 +877,7 @@ describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-
 			organizer_id: string;
 		}>(
 			'SELECT id, event_name, agenda, catering_enabled, registration_enabled, organizer_id FROM bookings WHERE id = $1',
-			[booking['id']]
+			[booking.id]
 		);
 
 		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
@@ -870,7 +896,7 @@ describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-
 // ---------------------------------------------------------------------------
 
 describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
-	test.skip('[P0] 4.4-INT-002 — createBooking with registrationEnabled=true and registrationClosesAt persists correctly', async () => {
+	test('[P0] 4.4-INT-002 — createBooking with registrationEnabled=true and registrationClosesAt persists correctly', async () => {
 		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
 		// Activate at Task 5 after CreateBookingInput is updated in booking-service.ts.
 		//
@@ -883,10 +909,7 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 		//   3. Read back from DB and assert both columns are persisted.
 		//   4. Assert registrationClosesAt is stored as a valid timestamptz (not null).
 
-		const { createBooking } =
-			(await import('../../src/lib/server/services/booking-service.js')) as {
-				createBooking: (...args: unknown[]) => Promise<Record<string, unknown>>;
-			};
+		const { createBooking } = await import('../../src/lib/server/services/booking-service.js');
 
 		const client = await pool.connect();
 		let roomId: string;
@@ -911,14 +934,14 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 
 		const booking = await createBooking(actorId, roomId, input);
 
-		expect(booking['id'], 'booking must be created').toBeTruthy();
+		expect(booking.id, 'booking must be created').toBeTruthy();
 
 		// Read back registration columns from DB
 		const result = await pool.query<{
 			registration_enabled: boolean;
 			registration_closes_at: Date | null;
 		}>('SELECT registration_enabled, registration_closes_at FROM bookings WHERE id = $1', [
-			booking['id']
+			booking.id
 		]);
 
 		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
@@ -942,7 +965,7 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boundary)', () => {
-	test.skip('[P1] 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt succeeds at service level (validation is route-layer responsibility)', async () => {
+	test('[P1] 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt succeeds at service level (validation is route-layer responsibility)', async () => {
 		// THIS TEST WILL FAIL — createBooking signature has not yet been expanded.
 		// Activate at Task 5.
 		//
@@ -960,10 +983,7 @@ describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boun
 		//   2. Assert it does NOT throw (service-layer passes; validation is route's job).
 		//   3. Assert registration_closes_at is null in the DB.
 
-		const { createBooking } =
-			(await import('../../src/lib/server/services/booking-service.js')) as {
-				createBooking: (...args: unknown[]) => Promise<Record<string, unknown>>;
-			};
+		const { createBooking } = await import('../../src/lib/server/services/booking-service.js');
 
 		const client = await pool.connect();
 		let roomId: string;
@@ -985,7 +1005,7 @@ describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boun
 		};
 
 		let thrown: unknown = null;
-		let booking: Record<string, unknown> | null = null;
+		let booking: Awaited<ReturnType<typeof createBooking>> | null = null;
 		try {
 			booking = await createBooking(actorId, roomId, input);
 		} catch (err: unknown) {
@@ -1002,7 +1022,7 @@ describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boun
 		// registration_closes_at must be null (nothing was provided)
 		const result = await pool.query<{
 			registration_closes_at: Date | null;
-		}>('SELECT registration_closes_at FROM bookings WHERE id = $1', [booking!['id']]);
+		}>('SELECT registration_closes_at FROM bookings WHERE id = $1', [booking!.id]);
 
 		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
 		expect(

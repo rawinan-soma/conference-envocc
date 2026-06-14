@@ -10,7 +10,7 @@ export type CalendarCell = {
 	state: CellState;
 	/** Pre-formatted bookings for display (time range + event name placeholder). */
 	bookings: Array<{
-		id: number;
+		id: string; // Changed from number (UUID v7 migration, Story 4.4)
 		timeRange: string;
 		eventName: string | null;
 		/** True when this cell is a continuation day (not the booking's start day). */
