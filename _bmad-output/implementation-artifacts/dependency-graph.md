@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-14T00:00:00+07:00 (phase 0 re-run: CORRECTION — PR #119 for story 4.2 is OPEN not merged; reverted 4.2 from done → review; CI all green on PR #119)_
+_Last updated: 2026-06-14T22:00:00+07:00 (phase 0 reconcile: PR #119 (4.2) MERGED — 4.2 → done; 4.3 now Ready to Work)_
 
 ## Stories
 
@@ -26,8 +26,8 @@ _Last updated: 2026-06-14T00:00:00+07:00 (phase 0 re-run: CORRECTION — PR #119
 | 3.3 | 3 | Deactivate a room | done | #19 | #116 | merged | 3.1 | ✅ Yes (done) |
 | 3.4 | 3 | Block time slots | done | #20 | #115 | merged | 3.1 | ✅ Yes (done) |
 | 4.1 | 4 | Conflict translation & EXCLUDE predicate | done | #21 | #118 | merged | epic 3 complete | ✅ Yes (done) |
-| 4.2 | 4 | Room calendar read-model | review | #22 | #119 | open | 4.1 | ✅ Yes (4.1 PR #118 merged; PR #119 open, CI green, awaiting merge) |
-| 4.3 | 4 | Room Calendar view | backlog | #23 | — | — | 4.2 | ❌ No (4.2 PR #119 not yet merged) |
+| 4.2 | 4 | Room calendar read-model | done | #22 | #119 | merged | 4.1 | ✅ Yes (done) |
+| 4.3 | 4 | Room Calendar view | backlog | #23 | — | — | 4.2 | ✅ Yes |
 | 4.4 | 4 | Create a booking (conflict-free) | backlog | #24 | — | — | 4.1, 4.3 | ❌ No (4.3 not yet merged) |
 | 4.5 | 4 | Booking confirmation, link, token & QR | backlog | #25 | — | — | 4.4 | ❌ No (4.4 not yet started) |
 | 4.6 | 4 | Booking confirmation email | backlog | #26 | — | — | 4.4 | ❌ No (4.4 not yet started) |
@@ -81,10 +81,10 @@ _Last updated: 2026-06-14T00:00:00+07:00 (phase 0 re-run: CORRECTION — PR #119
 - **3.3** depends on: 3.1 ✅ **DONE (PR #116 merged)**
 - **3.4** depends on: 3.1 ✅ **DONE (PR #115 merged)**
 
-### Epic 4 (IN PROGRESS — 4.1 done PR #118; 4.2 in review PR #119 open, CI green)
+### Epic 4 (IN PROGRESS — 4.1 done PR #118; 4.2 done PR #119 merged; 4.3 Ready to Work)
 - **4.1** depends on: epic 3 complete ✅ **DONE (PR #118 merged)**
-- **4.2** depends on: 4.1 ✅ **IN REVIEW (PR #119 open, all CI checks pass — awaiting merge)**
-- **4.3** depends on: 4.2
+- **4.2** depends on: 4.1 ✅ **DONE (PR #119 merged)**
+- **4.3** depends on: 4.2 ✅ **UNBLOCKED — Ready to Work**
 - **4.4** depends on: 4.1, 4.3
 - **4.5** depends on: 4.4
 - **4.6** depends on: 4.4
@@ -127,7 +127,7 @@ _Last updated: 2026-06-14T00:00:00+07:00 (phase 0 re-run: CORRECTION — PR #119
 
 - **Epic 3:** COMPLETE. All 4 stories merged to main (3.1 PR #113, 3.2 PR #114, 3.3 PR #116, 3.4 PR #115).
 
-- **Epic 4:** Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last. Story 4.1 **DONE (PR #118 merged)**. Story 4.2 **IN REVIEW (PR #119 open, all CI checks passing — awaiting merge)**. Story 4.3 blocked until 4.2 merges.
+- **Epic 4:** Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last. Story 4.1 **DONE (PR #118 merged)**. Story 4.2 **DONE (PR #119 merged)**. Story 4.3 **READY TO WORK** (all dependencies merged).
 
 - **Epic 5:** After 5.1 merges, story 5.2 unblocks 5.3/5.6/5.7/5.8 in parallel. Stories 5.4 and 5.5 require 5.3.
 
@@ -135,8 +135,8 @@ _Last updated: 2026-06-14T00:00:00+07:00 (phase 0 re-run: CORRECTION — PR #119
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 (done PR #116). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1, 2, and 3 are fully complete (all PRs merged). Epic 4 is active. Story 4.1 is done (PR #118 merged). Story 4.2 is in review (PR #119 open, CI green — awaiting merge to unblock 4.3).
+**Current state:** Epics 1, 2, and 3 are fully complete (all PRs merged). Epic 4 is active. Stories 4.1 (PR #118) and 4.2 (PR #119) are done. Story 4.3 is the next story to work.
 
-**Current bottleneck:** The chain 4.2 → 4.3 → 4.4 must be completed before 4.5/4.6/4.7 can start. PR #119 (4.2) needs to be merged next.
+**Current bottleneck:** The chain 4.3 → 4.4 must be completed before 4.5/4.6/4.7 can start. Story 4.3 (Room Calendar view) is now Ready to Work.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
