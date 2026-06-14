@@ -87,7 +87,7 @@ export async function load({ url }) {
 						const isContinuation = parsed
 							? formatDateBangkok(parsed.lower, 'date') !== dayDateStr
 							: false;
-						return { id: b.id, timeRange, eventName: null, isContinuation }; // eventName: Story 4.4
+						return { id: b.id, timeRange, eventName: b.eventName, isContinuation };
 					}),
 					blocks: dayBlocks.map(({ block: bl }) => ({ id: bl.id, reason: bl.reason })),
 					href: `/bookings/new?room=${row.room.id}&date=${dayDateStr}`,

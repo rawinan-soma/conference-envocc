@@ -57,6 +57,13 @@
       "when": 1781287178897,
       "tag": "0007_room_blocks",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781373578897,
+      "tag": "0008_bookings_expand",
+      "breakpoints": true
     }
   ]
 }

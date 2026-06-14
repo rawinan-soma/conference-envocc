@@ -1,5 +1,6 @@
-import { pgTable, text, integer } from 'drizzle-orm/pg-core';
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { customType } from 'drizzle-orm/pg-core';
+import { uuidv7 } from 'uuidv7';
 
 // Custom type for tstzrange — no native Drizzle support
 const tstzrange = customType<{ data: string }>({
@@ -8,14 +9,22 @@ const tstzrange = customType<{ data: string }>({
 	}
 });
 
-// NOTE: The existing migration (drizzle/0000_init.sql) uses `id serial PRIMARY KEY`
-// (integer). We match the actual DB column type here to avoid Drizzle type conflicts.
-// The UUID v7 PK for bookings will be corrected in Epic 4 (Story 4.4).
 export const bookings = pgTable('bookings', {
-	id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+	// UUID v7 — time-ordered, non-enumerable (architecture §Naming Patterns)
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => uuidv7()),
 	roomId: text('room_id').notNull(),
+	organizerId: text('organizer_id').notNull(),
+	eventName: text('event_name').notNull(),
+	agenda: text('agenda'),
 	during: tstzrange('during').notNull(),
-	status: text('status').notNull().default('active')
+	status: text('status').notNull().default('active'),
+	cateringEnabled: boolean('catering_enabled').notNull().default(false),
+	registrationEnabled: boolean('registration_enabled').notNull().default(false),
+	registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
 export type BookingInsert = typeof bookings.$inferInsert;

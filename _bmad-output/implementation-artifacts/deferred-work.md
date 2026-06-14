@@ -39,3 +39,7 @@
 ## Deferred from: code review of 4-3-room-calendar-view (2026-06-14)
 
 - `parseWeekParam` in `src/lib/utils/date.ts` silently rolls over impossible-but-parseable dates: a `?week=` value like `2026-02-30` passes the `^\d{4}-\d{2}-\d{2}$` regex and is a *valid* JS Date (rolls forward to Mar 1), so the new `Number.isNaN` guard does not catch it. The user is shown a different, wrong week instead of the documented current-week fallback. Low severity (cosmetic / no crash). Fix when revisiting date handling: detect rollover by comparing the parsed Bangkok Y/M/D back to the input components and fall back to the current week on mismatch.
+
+## Deferred from: code review of 4-4-create-a-booking-conflict-free (2026-06-15)
+
+- Naive `datetime-local` form values are cast `::timestamptz` with no explicit DB session timezone in `createBooking` (`src/lib/server/services/booking-service.ts:95`) and the DB pool (`src/lib/server/db/index.ts`) never sets a session timezone. The resolved UTC instant therefore depends on the server/session timezone. This is the exact pattern of the already-merged `block-slot-service.ts` (Story 3.4), which Story 4.4's spec designates as "the working reference" with no manual TZ conversion — so it is pre-existing and codebase-wide, not introduced here. Patching booking alone would diverge it from convention. Resolve project-wide: set a session timezone on the pg pool (e.g. `options: '-c timezone=Asia/Bangkok'`) or require offset-bearing datetime inputs, then update both booking and block-slot services together.

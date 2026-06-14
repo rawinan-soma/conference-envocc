@@ -28,6 +28,8 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import { sessions, users } from '$lib/server/db/schema/auth';
+import { userProfiles } from '$lib/server/db/schema/profiles';
+import { rooms } from '$lib/server/db/schema/rooms';
 import { env } from '$lib/server/env';
 import { auth } from '$lib/server/auth';
 
@@ -45,7 +47,20 @@ export const _DEV_BYPASS_USER = {
 	emailVerified: true
 } as const;
 
-export const POST: RequestHandler = async ({ cookies }) => {
+/**
+ * Seeded dev bypass room constants.
+ * Used when ?seedRoom=true is passed to ensure the calendar E2E test has at least
+ * one active room to render the grid. Export so E2E tests can reference the fixed id
+ * (e.g. future 4.4 tests that need a SEED_ROOM_ID).
+ */
+export const _DEV_BYPASS_ROOM = {
+	id: 'dev-bypass-room-00000000-0000-0000-0000-000000000001',
+	name: 'Dev Room A',
+	floor: '1',
+	capacity: 20
+} as const;
+
+export const POST: RequestHandler = async ({ cookies, url }) => {
 	// MUST check BOTH conditions — R-001 mitigation.
 	// Checking only AUTH_DEV_BYPASS: if someone sets it accidentally in prod, route is open.
 	// Checking only NODE_ENV: if NODE_ENV is misconfigured, flag alone doesn't protect prod.
@@ -86,6 +101,65 @@ export const POST: RequestHandler = async ({ cookies }) => {
 	} catch (upsertErr) {
 		console.error('[dev-bypass] User upsert failed:', upsertErr);
 		error(500, 'Dev bypass user upsert failed');
+	}
+
+	// Optionally upsert a dev profile row so authenticated routes that require a completed
+	// profile (profileComplete check in hooks.server.ts) are accessible.
+	// ?profileComplete=false skips this — useful for tests that need an incomplete-profile state.
+	// Default: profileComplete=true so calendar/booking E2E tests can reach protected pages.
+	const profileCompleteParam = url.searchParams.get('profileComplete');
+	const shouldCreateProfile = profileCompleteParam !== 'false';
+	if (shouldCreateProfile) {
+		try {
+			await db
+				.insert(userProfiles)
+				.values({
+					userId: _DEV_BYPASS_USER.id,
+					email: _DEV_BYPASS_USER.email,
+					title: 'Dr.',
+					firstName: 'Dev',
+					lastName: 'User',
+					phone: '0000000000',
+					organization: 'Test Org'
+				})
+				.onConflictDoUpdate({
+					target: userProfiles.userId,
+					set: {
+						email: _DEV_BYPASS_USER.email,
+						title: 'Dr.',
+						firstName: 'Dev',
+						lastName: 'User',
+						phone: '0000000000',
+						organization: 'Test Org'
+					}
+				});
+		} catch (profileErr) {
+			console.error('[dev-bypass] Profile upsert failed:', profileErr);
+			error(500, 'Dev bypass profile upsert failed');
+		}
+	}
+
+	// Optionally seed a dev room so E2E calendar tests have at least one active room to render.
+	// ?seedRoom=true enables this; default is false so existing tests that rely on an empty
+	// rooms table (e.g. rooms.test.ts) are not affected.
+	const seedRoomParam = url.searchParams.get('seedRoom');
+	const shouldSeedRoom = seedRoomParam === 'true';
+	if (shouldSeedRoom) {
+		try {
+			await db
+				.insert(rooms)
+				.values({
+					id: _DEV_BYPASS_ROOM.id,
+					name: _DEV_BYPASS_ROOM.name,
+					floor: _DEV_BYPASS_ROOM.floor,
+					capacity: _DEV_BYPASS_ROOM.capacity,
+					isActive: true
+				})
+				.onConflictDoNothing();
+		} catch (roomErr) {
+			console.error('[dev-bypass] Room seed failed:', roomErr);
+			error(500, 'Dev bypass room seed failed');
+		}
 	}
 
 	// Create a Better Auth session.

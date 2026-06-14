@@ -1198,8 +1198,8 @@ describe('Story 3.4 — Block Conflict: Block over an existing booking → 422 c
 		const bookingClient = await pool.connect();
 		try {
 			await bookingClient.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, 'test-organizer-001', 'Test Block Conflict Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 				[room.id, '2026-07-02T10:00:00.000Z', '2026-07-02T11:00:00.000Z']
 			);
 		} finally {

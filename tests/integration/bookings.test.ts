@@ -162,8 +162,8 @@ describe('Story 4.1 — Concurrent Double-Booking Prevention (AC-2, AR-11)', () 
 				try {
 					await conn.query('BEGIN');
 					await conn.query(
-						`INSERT INTO bookings (room_id, during, status)
-               VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+						`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+               VALUES (gen_random_uuid()::text, $1, 'conc-test-actor', 'CONC Test Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 						[roomId, slotStart, slotEnd]
 					);
 					await conn.query('COMMIT');
@@ -264,7 +264,10 @@ describe('Story 4.1 — Sequential Conflict → ConflictError (AC-3)', () => {
 
 		const input = {
 			startAt: '2026-07-16T09:00:00.000Z',
-			endAt: '2026-07-16T10:00:00.000Z'
+			endAt: '2026-07-16T10:00:00.000Z',
+			eventName: 'Test Event INT-001',
+			cateringEnabled: false,
+			registrationEnabled: false
 		};
 
 		// First booking succeeds
@@ -323,8 +326,8 @@ describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
 		const insertClient = await pool.connect();
 		try {
 			await insertClient.query(
-				`INSERT INTO bookings (room_id, during, status)
-           VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, 'int-002-actor', 'INT-002 Test Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 				[roomId, slotStart, slotEnd]
 			);
 			await insertClient.query(
@@ -341,7 +344,13 @@ describe('Story 4.1 — Cancelled Booking Does Not Block (AC-1, R-001)', () => {
 		let thrown: unknown = null;
 		let newBooking: { id: unknown; status: unknown } | null = null;
 		try {
-			newBooking = await createBooking(actorId, roomId, { startAt: slotStart, endAt: slotEnd });
+			newBooking = await createBooking(actorId, roomId, {
+				startAt: slotStart,
+				endAt: slotEnd,
+				eventName: 'Test Event INT-002',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
 		} catch (err: unknown) {
 			thrown = err;
 		}
@@ -394,8 +403,8 @@ describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () =>
 		const insertClient = await pool.connect();
 		try {
 			await insertClient.query(
-				`INSERT INTO bookings (room_id, during, status)
-           VALUES ($1, tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, 'int-003-actor', 'INT-003 Test Event', tstzrange($2::timestamptz, $3::timestamptz, '[)'), 'active')`,
 				[roomId, slotStart, slotEnd]
 			);
 		} finally {
@@ -405,7 +414,13 @@ describe('Story 4.1 — 23P01 → ConflictError (never raw throw) (AC-3)', () =>
 		// Step 2: service call must throw ConflictError
 		let thrown: unknown = null;
 		try {
-			await createBooking(actorId, roomId, { startAt: slotStart, endAt: slotEnd });
+			await createBooking(actorId, roomId, {
+				startAt: slotStart,
+				endAt: slotEnd,
+				eventName: 'Test Event INT-003',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
 		} catch (err: unknown) {
 			thrown = err;
 		}
@@ -464,7 +479,10 @@ describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1,
 		// First booking: 10:00–11:00
 		const booking1 = await createBooking(actorId, roomId, {
 			startAt: '2026-07-19T10:00:00.000Z',
-			endAt: '2026-07-19T11:00:00.000Z'
+			endAt: '2026-07-19T11:00:00.000Z',
+			eventName: 'Test Event INT-004 First',
+			cateringEnabled: false,
+			registrationEnabled: false
 		});
 		expect(booking1.id, 'First back-to-back booking must succeed').toBeTruthy();
 
@@ -474,7 +492,10 @@ describe('Story 4.1 — Back-to-Back Bookings: Half-Open [) Range Confirmed (P1,
 		try {
 			booking2 = await createBooking(actorId, roomId, {
 				startAt: '2026-07-19T11:00:00.000Z',
-				endAt: '2026-07-19T12:00:00.000Z'
+				endAt: '2026-07-19T12:00:00.000Z',
+				eventName: 'Test Event INT-004 Second',
+				cateringEnabled: false,
+				registrationEnabled: false
 			});
 		} catch (err: unknown) {
 			thrown = err;
@@ -521,7 +542,10 @@ describe('Story 4.1 — ConflictError carries Paraglide key, not raw 23P01 (P1, 
 
 		const input = {
 			startAt: '2026-07-20T09:00:00.000Z',
-			endAt: '2026-07-20T10:00:00.000Z'
+			endAt: '2026-07-20T10:00:00.000Z',
+			eventName: 'Test Event INT-005',
+			cateringEnabled: false,
+			registrationEnabled: false
 		};
 
 		await createBooking(actorId, roomId, input); // first booking succeeds
@@ -582,7 +606,10 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 		// Day 1: 2026-07-21 10:00–11:00
 		const booking1 = await createBooking(actorId, roomId, {
 			startAt: '2026-07-21T10:00:00.000Z',
-			endAt: '2026-07-21T11:00:00.000Z'
+			endAt: '2026-07-21T11:00:00.000Z',
+			eventName: 'Test Event INT-006 Day1',
+			cateringEnabled: false,
+			registrationEnabled: false
 		});
 		expect(booking1.id, 'Booking on day 1 must succeed').toBeTruthy();
 
@@ -592,7 +619,10 @@ describe('Story 4.1 — Same Room Different Days: No Conflict (P2)', () => {
 		try {
 			booking2 = await createBooking(actorId, roomId, {
 				startAt: '2026-07-22T10:00:00.000Z',
-				endAt: '2026-07-22T11:00:00.000Z'
+				endAt: '2026-07-22T11:00:00.000Z',
+				eventName: 'Test Event INT-006 Day2',
+				cateringEnabled: false,
+				registrationEnabled: false
 			});
 		} catch (err: unknown) {
 			thrown = err;
@@ -659,29 +689,29 @@ describe('Story 4.2 — Week Calendar Read-Model: Correct Data (P1)', () => {
 
 			// Seed a booking for active room 1 within the week (Mon 2026-07-14 10:00–11:00 UTC)
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-14 10:00:00+00'::timestamptz, '2026-07-14 11:00:00+00'::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Test Event Room1', tstzrange('2026-07-14 10:00:00+00'::timestamptz, '2026-07-14 11:00:00+00'::timestamptz, '[)'), 'active')`,
 				[activeRoomId1]
 			);
 
 			// Seed a booking for active room 2 within the week (Tue 2026-07-15 14:00–15:00 UTC)
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-15 14:00:00+00'::timestamptz, '2026-07-15 15:00:00+00'::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Test Event Room2', tstzrange('2026-07-15 14:00:00+00'::timestamptz, '2026-07-15 15:00:00+00'::timestamptz, '[)'), 'active')`,
 				[activeRoomId2]
 			);
 
 			// Seed a cancelled booking for active room 1 — must NOT appear in results
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-16 09:00:00+00'::timestamptz, '2026-07-16 10:00:00+00'::timestamptz, '[)'), 'cancelled')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Cancelled Event', tstzrange('2026-07-16 09:00:00+00'::timestamptz, '2026-07-16 10:00:00+00'::timestamptz, '[)'), 'cancelled')`,
 				[activeRoomId1]
 			);
 
 			// Seed a booking for the inactive room within the week — must NOT appear in results
 			await client.query(
-				`INSERT INTO bookings (room_id, during, status)
-         VALUES ($1, tstzrange('2026-07-14 13:00:00+00'::timestamptz, '2026-07-14 14:00:00+00'::timestamptz, '[)'), 'active')`,
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+         VALUES (gen_random_uuid()::text, $1, '4.2-int-001-actor', '4.2 Inactive Room Event', tstzrange('2026-07-14 13:00:00+00'::timestamptz, '2026-07-14 14:00:00+00'::timestamptz, '[)'), 'active')`,
 				[inactiveRoomId]
 			);
 		} finally {
@@ -770,5 +800,234 @@ describe('Story 4.2 — Week Calendar Read-Model: Index-Backed Query (P1)', () =
 			await client.query('RESET enable_seqscan');
 			client.release();
 		}
+	});
+});
+
+// ===========================================================================
+// STORY 4.4 — Create a Booking (Conflict-Free)
+// GREEN PHASE: All tests are active (test()) — activated during feat(4.4) implementation.
+// ---------------------------------------------------------------------------
+// AC-2: createBooking with full expanded input persists all columns
+// AC-4: registration_enabled + registration_closes_at columns written correctly
+// AC-6: bookings.id is UUID v7 (text string, not integer)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 4.4-INT-001 — createBooking with full expanded input persists all columns [P0]
+// Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.4 — createBooking Full Input: All Columns Persist (AC-1, AC-2, AC-4, AC-6)', () => {
+	test('[P0] 4.4-INT-001 — createBooking with full expanded input persists eventName, agenda, cateringEnabled, registrationEnabled, and id is a UUID v7 string', async () => {
+		// ACTIVE — createBooking accepts full expanded input (eventName, agenda, cateringEnabled,
+		// registrationEnabled, registrationClosesAt). Activated at Task 5; passing per feat(4.4).
+		//
+		// AC-1: expanded form fields (eventName, agenda, catering, registration) are written to DB.
+		// AC-6: bookings.id is now a UUID v7 text string, not an integer serial.
+		//
+		// Strategy:
+		//   1. Seed a room and organizer.
+		//   2. Call createBooking() with full expanded input including eventName, agenda,
+		//      cateringEnabled=true, registrationEnabled=false.
+		//   3. Assert the returned booking has id as a non-empty string (UUID v7).
+		//   4. Assert eventName, agenda, cateringEnabled are persisted (read back from DB).
+		//
+		// Dynamic import is required because the expanded service module does not exist yet.
+		// Using cast to unknown to avoid compile-time type errors in red phase (module
+		// signature will change in Task 5 — this cast is intentional for red-phase scaffold).
+
+		const { createBooking } = await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.4-int-001');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		// Full expanded input — matches Task 5 CreateBookingInput shape
+		const input = {
+			startAt: '2026-08-01T09:00:00.000Z',
+			endAt: '2026-08-01T10:00:00.000Z',
+			eventName: 'Annual Conference 4.4-INT-001',
+			agenda: 'Morning session agenda',
+			cateringEnabled: true,
+			registrationEnabled: false
+		};
+
+		const booking = await createBooking(actorId, roomId, input);
+
+		// AC-6: id must be a UUID v7 string (not a number)
+		expect(typeof booking.id, 'booking.id must be a string (UUID v7)').toBe('string');
+		expect(booking.id, 'booking.id must be non-empty').toBeTruthy();
+		// UUID v7 format: starts with a time component; 36 chars total for standard UUID format.
+		// The uuidv7() package produces standard 8-4-4-4-12 hyphenated UUID.
+		expect(booking.id.length, 'UUID v7 id must be 36 characters').toBe(36);
+
+		// Assert persisted columns (read back from DB to confirm insert succeeded)
+		const result = await pool.query<{
+			id: string;
+			event_name: string;
+			agenda: string | null;
+			catering_enabled: boolean;
+			registration_enabled: boolean;
+			organizer_id: string;
+		}>(
+			'SELECT id, event_name, agenda, catering_enabled, registration_enabled, organizer_id FROM bookings WHERE id = $1',
+			[booking.id]
+		);
+
+		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
+		const row = result.rows[0]!;
+		expect(row.event_name, 'event_name must be persisted').toBe(input.eventName);
+		expect(row.agenda, 'agenda must be persisted').toBe(input.agenda);
+		expect(row.catering_enabled, 'catering_enabled must be persisted as true').toBe(true);
+		expect(row.registration_enabled, 'registration_enabled must be false').toBe(false);
+		expect(row.organizer_id, 'organizer_id must be the actorId').toBe(actorId);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.4-INT-002 — createBooking with registrationEnabled=true persists registrationClosesAt [P0]
+// Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
+	test('[P0] 4.4-INT-002 — createBooking with registrationEnabled=true and registrationClosesAt persists correctly', async () => {
+		// ACTIVE — createBooking accepts full expanded input (registrationEnabled, registrationClosesAt).
+		// Activated at Task 5; passing per feat(4.4).
+		//
+		// AC-4: registration_enabled and registration_closes_at columns are written.
+		// Out-of-scope for 4.4: token/link generation (belongs to Story 4.5).
+		//
+		// Strategy:
+		//   1. Seed a room and organizer.
+		//   2. Call createBooking() with registrationEnabled=true and registrationClosesAt set.
+		//   3. Read back from DB and assert both columns are persisted.
+		//   4. Assert registrationClosesAt is stored as a valid timestamptz (not null).
+
+		const { createBooking } = await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.4-int-002');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		const registrationClosesAt = '2026-07-28T17:00:00.000Z';
+
+		const input = {
+			startAt: '2026-08-02T09:00:00.000Z',
+			endAt: '2026-08-02T10:00:00.000Z',
+			eventName: 'Registration Test Event 4.4-INT-002',
+			cateringEnabled: false,
+			registrationEnabled: true,
+			registrationClosesAt
+		};
+
+		const booking = await createBooking(actorId, roomId, input);
+
+		expect(booking.id, 'booking must be created').toBeTruthy();
+
+		// Read back registration columns from DB
+		const result = await pool.query<{
+			registration_enabled: boolean;
+			registration_closes_at: Date | null;
+		}>('SELECT registration_enabled, registration_closes_at FROM bookings WHERE id = $1', [
+			booking.id
+		]);
+
+		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
+		const row = result.rows[0]!;
+		expect(row.registration_enabled, 'registration_enabled must be true').toBe(true);
+		expect(row.registration_closes_at, 'registration_closes_at must not be null').not.toBeNull();
+
+		// Verify it stores the correct timestamp (within 1 second tolerance for timezone conversion)
+		const storedTime = new Date(row.registration_closes_at!).getTime();
+		const expectedTime = new Date(registrationClosesAt).getTime();
+		expect(
+			Math.abs(storedTime - expectedTime),
+			'registration_closes_at must match the provided ISO datetime (within 1s)'
+		).toBeLessThan(1000);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt [P1]
+// Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.4 — createBooking Registration Without ClosesAt (Schema Boundary)', () => {
+	test('[P1] 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt succeeds at service level (validation is route-layer responsibility)', async () => {
+		// ACTIVE — createBooking accepts registrationEnabled=true without registrationClosesAt.
+		// Activated at Task 5; passing per feat(4.4).
+		//
+		// Scope boundary: the registrationClosesAt-required-when-enabled rule is enforced
+		// at the route layer via BookingSchema (Valibot cross-field check in Task 4).
+		// The service itself does NOT re-validate this constraint — it accepts the input as-is.
+		// This test documents and verifies that boundary: the service succeeds even when
+		// registrationClosesAt is absent with registrationEnabled=true.
+		//
+		// This is intentional — the service trusts the route has already validated.
+		// Tests for the Valibot schema cross-field check belong in unit tests for booking.ts schema.
+		//
+		// Strategy:
+		//   1. Call createBooking() with registrationEnabled=true and no registrationClosesAt.
+		//   2. Assert it does NOT throw (service-layer passes; validation is route's job).
+		//   3. Assert registration_closes_at is null in the DB.
+
+		const { createBooking } = await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.4-int-003');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		const input = {
+			startAt: '2026-08-03T09:00:00.000Z',
+			endAt: '2026-08-03T10:00:00.000Z',
+			eventName: 'No ClosesAt Test 4.4-INT-003',
+			cateringEnabled: false,
+			registrationEnabled: true
+			// registrationClosesAt intentionally omitted
+		};
+
+		let thrown: unknown = null;
+		let booking: Awaited<ReturnType<typeof createBooking>> | null = null;
+		try {
+			booking = await createBooking(actorId, roomId, input);
+		} catch (err: unknown) {
+			thrown = err;
+		}
+
+		// Service must NOT throw (validation is the route's responsibility, not the service's)
+		expect(
+			thrown,
+			'createBooking must not throw when registrationClosesAt is absent — service trusts route validation'
+		).toBeNull();
+		expect(booking, 'booking must be returned').not.toBeNull();
+
+		// registration_closes_at must be null (nothing was provided)
+		const result = await pool.query<{
+			registration_closes_at: Date | null;
+		}>('SELECT registration_closes_at FROM bookings WHERE id = $1', [booking!.id]);
+
+		expect(result.rows.length, 'booking row must exist in DB').toBe(1);
+		expect(
+			result.rows[0]!.registration_closes_at,
+			'registration_closes_at must be null when not provided'
+		).toBeNull();
 	});
 });
