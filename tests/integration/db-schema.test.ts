@@ -112,10 +112,12 @@ describe('Story 1.8 — DB Schema: EXCLUDE Constraint (AC-2)', () => {
 
 			// Insert first booking: room-001, 10:00–11:00 UTC
 			await client.query(`
-        INSERT INTO bookings (id, room_id, during, status)
+        INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
         VALUES (
           gen_random_uuid()::text,
           'test-room-overlap-001',
+          'test-organizer-001',
+          'Test Event',
           tstzrange('2026-01-15 10:00:00+00', '2026-01-15 11:00:00+00', '[)'),
           'active'
         )
@@ -128,10 +130,12 @@ describe('Story 1.8 — DB Schema: EXCLUDE Constraint (AC-2)', () => {
 
 			try {
 				await client.query(`
-          INSERT INTO bookings (id, room_id, during, status)
+          INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
           VALUES (
             gen_random_uuid()::text,
             'test-room-overlap-001',
+            'test-organizer-001',
+            'Test Event 2',
             tstzrange('2026-01-15 10:30:00+00', '2026-01-15 11:30:00+00', '[)'),
             'active'
           )
@@ -171,10 +175,12 @@ describe('Story 1.8 — DB Schema: EXCLUDE Constraint (AC-2)', () => {
 
 			// Insert first booking: room, 10:00–11:00 [) half-open
 			await client.query(`
-        INSERT INTO bookings (id, room_id, during, status)
+        INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
         VALUES (
           gen_random_uuid()::text,
           'test-room-adjacent-001',
+          'test-organizer-001',
+          'Test Event A',
           tstzrange('2026-01-15 10:00:00+00', '2026-01-15 11:00:00+00', '[)'),
           'active'
         )
@@ -185,10 +191,12 @@ describe('Story 1.8 — DB Schema: EXCLUDE Constraint (AC-2)', () => {
 
 			try {
 				await client.query(`
-          INSERT INTO bookings (id, room_id, during, status)
+          INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
           VALUES (
             gen_random_uuid()::text,
             'test-room-adjacent-001',
+            'test-organizer-001',
+            'Test Event B',
             tstzrange('2026-01-15 11:00:00+00', '2026-01-15 12:00:00+00', '[)'),
             'active'
           )
@@ -232,10 +240,12 @@ describe('Story 1.8 — DB Schema: EXCLUDE Constraint (AC-2)', () => {
 
 			// Insert a cancelled booking
 			await client.query(`
-        INSERT INTO bookings (id, room_id, during, status)
+        INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
         VALUES (
           gen_random_uuid()::text,
           'test-room-cancelled-001',
+          'test-organizer-001',
+          'Cancelled Event',
           tstzrange('2026-01-15 14:00:00+00', '2026-01-15 15:00:00+00', '[)'),
           'cancelled'
         )
@@ -247,10 +257,12 @@ describe('Story 1.8 — DB Schema: EXCLUDE Constraint (AC-2)', () => {
 
 			try {
 				await client.query(`
-          INSERT INTO bookings (id, room_id, during, status)
+          INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
           VALUES (
             gen_random_uuid()::text,
             'test-room-cancelled-001',
+            'test-organizer-001',
+            'Active Event',
             tstzrange('2026-01-15 14:00:00+00', '2026-01-15 15:00:00+00', '[)'),
             'active'
           )
