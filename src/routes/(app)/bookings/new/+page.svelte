@@ -10,7 +10,7 @@
 	const { data }: { data: PageData } = $props();
 
 	// svelte-ignore state_referenced_locally
-	const { form, errors, message, enhance, submitting } = superForm(data.form);
+	const { form, errors, enhance, submitting } = superForm(data.form);
 </script>
 
 <svelte:head>
@@ -34,7 +34,6 @@
 	<BookingForm
 		{form}
 		{errors}
-		{message}
 		{enhance}
 		{submitting}
 		rooms={data.rooms}

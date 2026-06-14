@@ -16,6 +16,13 @@
  * Note: roomId is validated as non-empty (the pre-filled value from ?room= param
  * or from the room selector). The dev does NOT need to fetch-validate that the
  * room exists in this schema — that's handled in the service.
+ *
+ * registrationClosesAt: The `<input type="datetime-local">` is conditionally rendered when
+ * registrationEnabled is true. When the checkbox is unchecked and the input is hidden, the
+ * browser may still submit an empty string "". v.optional() skips validation only for
+ * `undefined`, not `""`, so without the v.literal('') branch, an empty string would fail
+ * isoDateTime and surface a spurious validation error. The union accepts "" as valid/absent.
+ * When the field is visible and filled, isoDateTime validates it normally.
  */
 import * as v from 'valibot';
 
@@ -28,8 +35,17 @@ export const BookingSchema = v.pipe(
 		agenda: v.optional(v.pipe(v.string(), v.trim())),
 		cateringEnabled: v.boolean(),
 		registrationEnabled: v.boolean(),
+		// Accept '' (empty string from a hidden/unfilled datetime-local input) as a valid
+		// absent value — v.optional() only bypasses for `undefined`, not `""`, so without
+		// the v.literal('') branch, a hidden input would submit "" and fail isoDateTime.
+		// The cross-field forward check uses !!d.registrationClosesAt, so '' is treated as
+		// absent (falsy) and triggers the "required" error when registrationEnabled is true.
+		// The service guard also uses !!input.registrationClosesAt, so '' → null stored (correct).
 		registrationClosesAt: v.optional(
-			v.pipe(v.string(), v.isoDateTime('Registration closing date must be a valid date-time.'))
+			v.union([
+				v.literal(''),
+				v.pipe(v.string(), v.isoDateTime('Registration closing date must be a valid date-time.'))
+			])
 		)
 	}),
 	v.check((d) => d.endAt > d.startAt, 'End time must be after start time.'),

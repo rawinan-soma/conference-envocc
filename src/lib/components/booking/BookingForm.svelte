@@ -11,32 +11,16 @@
 	interface Props {
 		form: Writable<BookingInput>;
 		errors: Writable<Partial<Record<keyof BookingInput | '_errors', string[]>>>;
-		message: Writable<string | undefined>;
 		enhance: (el: HTMLFormElement) => { destroy(): void };
 		submitting: Readable<boolean>;
 		rooms: Room[];
 		userProfile: UserProfile | null;
 	}
 
-	let { form, errors, message, enhance, submitting, rooms, userProfile }: Props = $props();
+	let { form, errors, enhance, submitting, rooms, userProfile }: Props = $props();
 </script>
 
 <form method="POST" action="?/create" use:enhance class="flex flex-col gap-5">
-	<!-- Form-level conflict error -->
-	{#if $message}
-		<div
-			role="alert"
-			aria-live="assertive"
-			class="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-		>
-			{#if $message === 'booking_conflict_error'}
-				{m.booking_conflict_error()}
-			{:else}
-				{$message}
-			{/if}
-		</div>
-	{/if}
-
 	<!-- Room selector -->
 	<div class="flex flex-col gap-1.5">
 		<Label for="roomId">{m.booking_room_label()}</Label>
