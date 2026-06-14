@@ -55,7 +55,10 @@ import AxeBuilder from '@axe-core/playwright';
 // ---------------------------------------------------------------------------
 
 async function loginViaDevBypass(page: Page): Promise<void> {
-	await page.request.post('/auth/dev-bypass');
+	// ?seedRoom=true seeds a fixed dev room (id: dev-bypass-room-00000000-0000-0000-0000-000000000001)
+	// so the /calendar page has at least one active room to render the grid (4.3-E2E-001).
+	// Idempotent — onConflictDoNothing means repeated calls are safe.
+	await page.request.post('/auth/dev-bypass?seedRoom=true');
 }
 
 // ---------------------------------------------------------------------------
