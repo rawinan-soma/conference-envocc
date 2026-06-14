@@ -23,10 +23,12 @@
 
 <div class="overflow-x-auto" role="grid" aria-label={m.calendar_title()}>
 	<!-- Column headers: day names -->
-	<div class="grid" style="grid-template-columns: 12rem repeat(7, 1fr);">
-		<div class="p-2 text-sm font-semibold text-gray-500">{m.calendar_rooms_column_header()}</div>
+	<div class="grid" role="row" style="grid-template-columns: 12rem repeat(7, 1fr);">
+		<div class="p-2 text-sm font-semibold text-gray-500" role="columnheader">
+			{m.calendar_rooms_column_header()}
+		</div>
 		{#each weekDates as isoDate (isoDate)}
-			<div class="p-2 text-center text-sm font-semibold">
+			<div class="p-2 text-center text-sm font-semibold" role="columnheader">
 				{formatDateBangkok(new Date(isoDate), 'dayShort')}
 				<span class="block text-xs font-normal text-gray-500">
 					{formatDateBangkok(new Date(isoDate), 'date').slice(8)}
@@ -37,9 +39,9 @@
 
 	<!-- Room rows -->
 	{#each grid as row (row.room.id)}
-		<div class="grid border-t" style="grid-template-columns: 12rem repeat(7, 1fr);">
+		<div class="grid border-t" role="row" style="grid-template-columns: 12rem repeat(7, 1fr);">
 			<!-- Room name column -->
-			<div class="p-2 text-sm font-medium border-r">
+			<div class="p-2 text-sm font-medium border-r" role="rowheader">
 				<span>{row.room.name}</span>
 				<span class="block text-xs text-gray-500"
 					>{m.calendar_room_floor_prefix({ floor: row.room.floor })}</span

@@ -11,13 +11,26 @@ import * as m from '$lib/paraglide/messages.js';
 
 // Parse lower and upper bounds from tstzrange string
 // (format: ["2026-06-15 09:00:00+07","..."))
+//
+// Postgres emits range bounds in the session timezone, so the offset suffix
+// varies (`+07`, `+00`, `Z`, …) depending on the DB session `TimeZone` setting
+// (e.g. UTC in CI / stock images). V8's Date parser rejects a bare ±HH offset
+// such as `+00`, so normalize any bare two-digit offset to `±HH:00`. Values
+// already in `±HH:MM` form or ending in `Z` are left untouched.
+function normalizeTstzBound(raw: string): string {
+	return raw
+		.trim()
+		.replace(' ', 'T')
+		.replace(/([+-]\d{2})$/, '$1:00');
+}
+
 function parseTstzrange(range: string): { lower: Date; upper: Date } | null {
 	const match = range.match(/[[(]"?([^",]+)"?,\s*"?([^")\]]+)"?[\])]/);
 	if (!match || !match[1] || !match[2]) return null;
-	return {
-		lower: new Date(match[1].trim().replace(' ', 'T').replace(/\+07$/, '+07:00')),
-		upper: new Date(match[2].trim().replace(' ', 'T').replace(/\+07$/, '+07:00'))
-	};
+	const lower = new Date(normalizeTstzBound(match[1]));
+	const upper = new Date(normalizeTstzBound(match[2]));
+	if (Number.isNaN(lower.getTime()) || Number.isNaN(upper.getTime())) return null;
+	return { lower, upper };
 }
 
 function rangeOverlapsDay(range: string, dayStart: Date): boolean {

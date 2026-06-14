@@ -31,7 +31,12 @@ export function parseWeekParam(param: string | null): Date {
 
 	// Parse as Bangkok midnight: "YYYY-MM-DDT00:00:00+07:00"
 	// ISO 8601 with explicit +07:00 offset means JS interprets it as UTC-7h correctly.
-	const base = iso ? new Date(`${iso}T00:00:00+07:00`) : bangkokMidnightNow();
+	// The regex only validates the *shape* of the param — a shape-valid but
+	// calendar-invalid value (e.g. "2026-13-45") yields an Invalid Date. Guard
+	// against it so a malicious/typo'd ?week= falls back to the current week
+	// instead of crashing the load function when weekStart.toISOString() throws.
+	const parsed = iso ? new Date(`${iso}T00:00:00+07:00`) : null;
+	const base = parsed && !Number.isNaN(parsed.getTime()) ? parsed : bangkokMidnightNow();
 
 	// Read the Bangkok weekday:
 	// base is the Bangkok midnight instant. Adding BANGKOK_OFFSET_MS shifts it
