@@ -25,7 +25,7 @@ import { listRooms, getRoomById } from '$lib/server/services/room-service.js';
 import type { Actions, PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async (event) => {
-	requireUser(event);
+	const user = requireUser(event);
 
 	const roomId = event.url.searchParams.get('room') ?? '';
 	const date = event.url.searchParams.get('date') ?? '';
@@ -55,7 +55,10 @@ export const load: PageServerLoad = async (event) => {
 	const fromId = event.url.searchParams.get('from');
 	if (fromId) {
 		const source = await getBookingById(fromId);
-		if (source) {
+		// Ownership gate (IDOR guard): only pre-fill from a booking the requester owns.
+		// If the source is missing or owned by someone else, silently fall through to an
+		// empty form — never surface 403, which would confirm the booking ID exists.
+		if (source && source.organizerId === user.id) {
 			initialData.roomId = source.roomId;
 			initialData.eventName = source.eventName;
 			initialData.agenda = source.agenda ?? '';

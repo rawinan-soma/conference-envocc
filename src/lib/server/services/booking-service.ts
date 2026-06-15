@@ -49,6 +49,13 @@ export class ConflictError extends Error {
 
 /** Full booking form input — Story 4.4 */
 export type CreateBookingInput = {
+	/**
+	 * Optional here because `createBooking` takes roomId as a separate parameter (and ignores
+	 * this field). `updateBooking` reads it from the input to apply room changes. Production
+	 * callers always pass `form.data`, which carries roomId; when absent (some tests), Drizzle
+	 * omits the column from the UPDATE rather than writing NULL.
+	 */
+	roomId?: string;
 	eventName: string;
 	agenda?: string;
 	startAt: string; // ISO datetime string (UTC)
@@ -213,6 +220,7 @@ export async function updateBooking(
 			const [updated] = await tx
 				.update(bookings)
 				.set({
+					roomId: input.roomId,
 					eventName: input.eventName,
 					agenda: input.agenda ?? null,
 					during: sql`tstzrange(${input.startAt}::timestamptz, ${input.endAt}::timestamptz, '[)')`,
@@ -257,6 +265,7 @@ export async function updateBooking(
 			action: 'update',
 			diff: {
 				bookingId,
+				roomId: input.roomId,
 				eventName: input.eventName,
 				during: `[${input.startAt}, ${input.endAt})`,
 				cateringEnabled: input.cateringEnabled,

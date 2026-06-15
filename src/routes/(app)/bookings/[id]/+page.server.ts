@@ -4,7 +4,7 @@
  * load:   Requires authenticated user. Fetches booking by [id].
  *         Asserts ownership (assertOwner). Returns booking data for display.
  *
- * cancel: Calls cancelBooking(). Redirects back to /calendar on success.
+ * cancel: Calls cancelBooking(). Redirects back to /bookings/[id] on success.
  *         Non-owner → 403 (assertOwner guard).
  */
 import { error, redirect } from '@sveltejs/kit';

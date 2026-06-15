@@ -21,7 +21,7 @@ import {
 	updateBooking,
 	ConflictError
 } from '$lib/server/services/booking-service.js';
-import { listRooms } from '$lib/server/services/room-service.js';
+import { listRooms, getRoomById } from '$lib/server/services/room-service.js';
 import { parseTstzrange } from '$lib/utils/tstzrange.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
 
@@ -38,6 +38,12 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	assertOwner(event, booking.organizerId);
+
+	// Cancel is a terminal state — a cancelled booking must not be editable (would revive it).
+	// Treat as not-found (same pattern as deactivated rooms) rather than exposing the edit form.
+	if (booking.status === 'cancelled') {
+		error(404, 'Booking not found');
+	}
 
 	// Parse tstzrange to datetime-local format (YYYY-MM-DDTHH:MM)
 	const range = parseTstzrange(booking.during);
@@ -92,10 +98,23 @@ export const actions: Actions = {
 		}
 		assertOwner(event, booking.organizerId);
 
+		// Cancel is a terminal state — block edits to a cancelled booking even via a direct POST
+		// (form actions bypass load, so the load-side guard alone is not enough).
+		if (booking.status === 'cancelled') {
+			error(404, 'Booking not found');
+		}
+
 		const form = await superValidate(event.request, valibot(BookingSchema));
 
 		if (!form.valid) {
 			return fail(422, { form });
+		}
+
+		// Validate room exists and is active (guards against tampered form data / deactivated rooms),
+		// matching the create action's guard.
+		const room = await getRoomById(form.data.roomId);
+		if (!room || !room.isActive) {
+			error(404, 'Room not found');
 		}
 
 		try {
