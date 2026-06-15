@@ -97,8 +97,9 @@ export const actions: Actions = {
 			error(404, 'Room not found');
 		}
 
+		let booking;
 		try {
-			await createBooking(user.id, form.data.roomId, form.data);
+			booking = await createBooking(user.id, form.data.roomId, form.data);
 		} catch (err: unknown) {
 			if (err instanceof ConflictError) {
 				return setError(form, '', err.key);
@@ -106,6 +107,6 @@ export const actions: Actions = {
 			throw err;
 		}
 
-		redirect(303, '/calendar');
+		redirect(303, `/bookings/${booking.id}`);
 	}
 };
