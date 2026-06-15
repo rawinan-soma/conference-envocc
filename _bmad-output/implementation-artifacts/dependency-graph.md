@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-15T15:30:00+07:00 (phase 0 reconcile: PR #126 merged — 4.8 done; epic 4 complete; epic 5 unblocked — 5.1 Ready to Work)_
+_Last updated: 2026-06-15T17:00:00+07:00 (phase 0 reconcile: 5.1 status corrected to review — worktree active, no PR yet)_
 
 ## Stories
 
@@ -33,7 +33,7 @@ _Last updated: 2026-06-15T15:30:00+07:00 (phase 0 reconcile: PR #126 merged — 
 | 4.6 | 4 | Booking confirmation email | done | #26 | #124 | merged | 4.4 | ✅ Yes (done) |
 | 4.7 | 4 | Edit, cancel, and duplicate a booking | done | #27 | #125 | merged | 4.4 | ✅ Yes (done) |
 | 4.8 | 4 | Organizer dashboard | done | #28 | #126 | merged | 4.4, 4.5 | ✅ Yes (done) |
-| 5.1 | 5 | Branded public registration page | backlog | #29 | — | — | epic 4 complete | ✅ Yes |
+| 5.1 | 5 | Branded public registration page | review | #29 | — | — | epic 4 complete | ✅ Yes |
 | 5.2 | 5 | Submit a registration | backlog | #30 | — | — | 5.1 | ❌ No (5.1 not merged) |
 | 5.3 | 5 | Confirmation email with self-cancel link | backlog | #31 | — | — | 5.2 | ❌ No (5.1 not merged) |
 | 5.4 | 5 | Self-cancel a registration | backlog | #32 | — | — | 5.3 | ❌ No (5.1 not merged) |
@@ -135,7 +135,7 @@ _Last updated: 2026-06-15T15:30:00+07:00 (phase 0 reconcile: PR #126 merged — 
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 (done PR #116). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is now active — story 5.1 (Branded public registration page) is Ready to Work. Stories 5.2–5.8 all depend on 5.1 merging before they can begin.
+**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is now active — story 5.1 (Branded public registration page) is in `review` status (implementation done, worktree active, PR not yet opened). Stories 5.2–5.8 all depend on 5.1 merging before they can begin.
 
 **Current bottleneck:** Story 5.1 is the gate for all of epic 5. Once 5.1's PR merges, stories 5.2, 5.6, 5.7, and 5.8 unblock in parallel.
 
