@@ -81,7 +81,7 @@ development_status:
   4-3-room-calendar-view: done
   4-4-create-a-booking-conflict-free: done
   4-5-booking-confirmation-link-token-qr: backlog
-  4-6-booking-confirmation-email: backlog
+  4-6-booking-confirmation-email: done
   4-7-edit-cancel-and-duplicate-a-booking: in-progress
   4-8-organizer-dashboard: backlog
   epic-4-retrospective: optional
