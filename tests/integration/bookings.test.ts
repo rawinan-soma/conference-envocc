@@ -1089,16 +1089,15 @@ describe('Story 4.6 — Booking Confirmation Email', () => {
 	});
 
 	// -------------------------------------------------------------------------
-	// 4.6-INT-003 — Idempotency key format: two distinct bookings → two distinct
-	//               singletonKeys, each producing a separate job row (AC-4, AC-5).
+	// 4.6-INT-003 — Idempotency (AC-4, AC-5):
+	//   (a) Same booking ID enqueued twice → exactly ONE job row (pg-boss dedup).
+	//   (b) Two distinct bookings → two distinct singletonKeys → two distinct rows.
 	// P2
 	// -------------------------------------------------------------------------
-	test('[P2] 4.6-INT-003 — two distinct bookings produce two distinct singletonKeys and two distinct job rows', async () => {
+	test('[P2] 4.6-INT-003 — same singletonKey deduplicates to one row; distinct bookings produce distinct rows', async () => {
 		// AC-4: singletonKey = 'booking-confirm-${bookingId}' ensures per-booking idempotency.
-		// AC-5 (INT-003 spec): two distinct bookings → two distinct singletonKey values → two job rows.
-		//
-		// This test proves the key format is correct and that distinct booking IDs
-		// produce distinct keys that do NOT collide in pg-boss.
+		// The core claim is that enqueuing the SAME booking twice produces ONE job —
+		// pg-boss must collapse the duplicate. Then verify distinct bookings stay distinct.
 
 		const { enqueueJob, QUEUE } = await import('../../src/lib/server/jobs/index.js');
 
@@ -1118,16 +1117,36 @@ describe('Story 4.6 — Booking Confirmation Email', () => {
 
 		const basePayload = {
 			to: 'organizer@example.com',
-			subject: '[Test] Key format proof',
-			textBody: 'Two distinct bookings must produce two distinct job rows.',
-			htmlBody: '<p>Two distinct bookings must produce two distinct job rows.</p>'
+			subject: '[Test] Idempotency proof',
+			textBody: 'Confirmation email for a single booking.',
+			htmlBody: '<p>Confirmation email for a single booking.</p>'
 		};
 
-		// Enqueue both keys — each must produce its own job row (no collision between distinct keys)
-		await enqueueJob(QUEUE.SEND_EMAIL, basePayload, { singletonKey: key1 });
+		// (a) Idempotency: enqueue key1 TWICE — must collapse to a single job row.
+		// Mirrors the route enqueue: `singletonKey` + `singletonSeconds` (the shared
+		// send-email queue is `standard` policy, under which singletonKey alone does
+		// NOT dedup — the debounce window is what enforces AC-4).
+		await enqueueJob(QUEUE.SEND_EMAIL, basePayload, {
+			singletonKey: key1,
+			singletonSeconds: 86_400
+		});
+		await enqueueJob(QUEUE.SEND_EMAIL, basePayload, {
+			singletonKey: key1,
+			singletonSeconds: 86_400
+		});
+
+		const dupResult = await pool.query<{ count: string }>(
+			`SELECT COUNT(*) AS count FROM pgboss.job WHERE name = $1 AND singleton_key = $2`,
+			[QUEUE.SEND_EMAIL, key1]
+		);
+		expect(
+			Number(dupResult.rows[0]?.count),
+			'enqueuing the same booking twice must produce exactly one job row (AC-4 dedup)'
+		).toBe(1);
+
+		// (b) Distinct booking → its own row; no collision with key1.
 		await enqueueJob(QUEUE.SEND_EMAIL, basePayload, { singletonKey: key2 });
 
-		// Assert both rows exist (distinct keys → distinct jobs, no cross-key dedup)
 		const result = await pool.query<{ singleton_key: string }>(
 			`SELECT singleton_key FROM pgboss.job WHERE name = $1 AND singleton_key IN ($2, $3)`,
 			[QUEUE.SEND_EMAIL, key1, key2]

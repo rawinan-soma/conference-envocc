@@ -95,7 +95,12 @@ export const actions: Actions = {
 			formatDateBangkok(new Date(form.data.startAt), 'date') +
 			' ' +
 			formatDateBangkok(new Date(form.data.startAt), 'time');
-		const endDisplay = formatDateBangkok(new Date(form.data.endAt), 'time');
+		// Include the end date as well as the time — bookings may span multiple days
+		// (the schema only enforces endAt > startAt), so a time-only end is ambiguous.
+		const endDisplay =
+			formatDateBangkok(new Date(form.data.endAt), 'date') +
+			' ' +
+			formatDateBangkok(new Date(form.data.endAt), 'time');
 
 		// event.locals.userProfile is guaranteed non-null for authenticated organizers
 		// (set by the profile middleware; requireUser already threw if unauthenticated)
@@ -110,16 +115,34 @@ export const actions: Actions = {
 			organizerName
 		});
 
-		await enqueueJob(
-			QUEUE.SEND_EMAIL,
-			{
-				to: userProfile.email,
-				subject: emailTemplate.subject,
-				textBody: emailTemplate.text,
-				htmlBody: emailTemplate.html
-			},
-			{ singletonKey: `booking-confirm-${booking.id}` } // AC-4: idempotency per booking
-		);
+		// Enqueue after the booking is committed. pg-boss is started in the worker
+		// process, not the web process, so boss.send() can throw here (e.g. queue not
+		// reachable). The booking already succeeded — log and continue so the organizer
+		// still gets the redirect rather than a 500. (Mirrors src/routes/skeleton.)
+		try {
+			await enqueueJob(
+				QUEUE.SEND_EMAIL,
+				{
+					to: userProfile.email,
+					subject: emailTemplate.subject,
+					textBody: emailTemplate.text,
+					htmlBody: emailTemplate.html
+				},
+				// AC-4: idempotency per booking. The shared `send-email` queue uses the
+				// default `standard` policy, under which `singletonKey` alone does NOT
+				// dedup. Pairing it with `singletonSeconds` makes pg-boss compute a
+				// (epoch-aligned) singleton slot, so a repeat enqueue for the same booking
+				// within that slot collapses to one job (verified by 4.6-INT-003). The slot
+				// is large (24h) so an immediate retry of this action always dedups; the
+				// real risk (a single createBooking double-enqueuing) is fully covered.
+				{ singletonKey: `booking-confirm-${booking.id}`, singletonSeconds: 86_400 }
+			);
+		} catch (jobErr: unknown) {
+			console.warn(
+				'[bookings/new] confirmation email enqueue failed (worker may not be running):',
+				jobErr
+			);
+		}
 
 		redirect(303, '/calendar');
 	}

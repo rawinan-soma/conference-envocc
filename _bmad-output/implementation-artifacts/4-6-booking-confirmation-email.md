@@ -539,7 +539,7 @@ Before marking this story done:
 - [x] `bun run check` — TypeScript zero errors
 - [x] `bun run lint` — ESLint zero warnings
 - [x] `bun run test:unit` — all pre-existing unit tests pass (2 pre-existing failures: env.test.ts DATABASE_URL not set at unit-test time; 1.4-UNIT-003 build fails — both pre-date this story)
-- [x] `bun run test:integration` — 4.6-INT-002 green; 4.6-INT-003 green; 4.6-INT-001 skip is expected
+- [x] `bun run test:integration` — 4.6-INT-002 green (pg-boss job-table + singletonKey-format proof via raw SQL — does NOT drive the `/bookings/new` action, so it does not by itself prove AC-1 "enqueued after createBooking"; AC-1 is established by the route code + the code-review audit); 4.6-INT-003 green (same-key dedup → one row, AC-4; plus distinct-keys → distinct rows); 4.6-INT-001 skip is expected
 - [x] `messages/en.json` has 6 new `booking_confirmation_email_*` keys with English values
 - [x] `messages/th.json` has same 6 keys with empty string values (no Thai text)
 - [x] `src/lib/server/email/templates/booking-confirmation.ts` created and imported correctly
@@ -568,7 +568,9 @@ claude-sonnet-4-6
 - All 6 ACs implemented and verified.
 - AC-1/AC-3: `enqueueJob` called in `/bookings/new` create action after `createBooking` commits, before redirect. No synchronous SMTP call.
 - AC-2: Worker delivers via existing `sendEmailHandler` (Story 1.5). No worker changes needed.
-- AC-4: `singletonKey: \`booking-confirm-${booking.id}\`` passed to `enqueueJob`. pg-boss stores the key; dedup behavior depends on queue policy (standard policy in production).
+- AC-4: enqueued with `{ singletonKey: \`booking-confirm-${booking.id}\`, singletonSeconds: 86400 }`. Code review found that the shared `send-email` queue uses pg-boss's default `standard` policy, under which `singletonKey` **alone does not deduplicate** (verified empirically — two rows). Pairing it with `singletonSeconds` opens a debounce window so a repeat enqueue for the same booking collapses to one job. INT-003 now proves this: the same key enqueued twice produces exactly one `pgboss.job` row. This is a per-send fix — the shared queue policy is unchanged (no blast radius on other email types).
+- Known delivery gap (not a code defect): emails render with `{ locale: 'th' }` and `th.json` values are intentionally empty until Rawinan supplies translations. The empty Thai **subject** fails `SendEmailPayload`'s `minLength(1)` at the worker, so confirmation emails will not deliver until the Thai subject is filled. Code is correct; this resolves when translations land.
+- Resilience: the enqueue is wrapped in try/catch in the route. pg-boss is started in the worker process, not the web process, so `boss.send()` can throw in the web tier — the booking is already committed, so the action logs and still redirects (mirrors `src/routes/skeleton`).
 - Thai translations: all 6 `th.json` values are empty strings — Rawinan handles all Thai translations.
 - Pre-existing test failures (not caused by this story): `env.test.ts` (DATABASE_URL not set in unit test process; process.exit(1)) and `1.4-UNIT-003` (bun run build fails at unit test time due to missing DATABASE_URL).
 - INT-002/INT-003: Both pass. Tests use `boss.start()` + `boss.createQueue()` in the 4.6 describe `beforeAll` to initialize pgboss schema in the Testcontainers DB.
