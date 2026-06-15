@@ -74,6 +74,11 @@
 		{m.booking_detail_title()}
 	</h1>
 
+	<!-- Booking confirmation success banner (Story 4.5) -->
+	<div class="mb-8 rounded-lg border border-green-200 bg-green-50 p-4">
+		<p class="text-sm font-medium text-green-800">{m.booking_confirmation_success()}</p>
+	</div>
+
 	<div class="space-y-4 rounded-lg border border-border p-6">
 		<!-- Event name -->
 		<div>
