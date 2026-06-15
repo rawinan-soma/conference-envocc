@@ -17,10 +17,22 @@
  *   AC-4: ConflictError carries Paraglide key 'booking_conflict_error' (key exists in messages/en.json)
  */
 import { sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
 
 import { db } from '../db/index.js';
 import { bookings } from '../db/schema/bookings.js';
 import { writeAuditLog } from './audit.js';
+
+/**
+ * Generate a cryptographically random registration token.
+ * Returns a 64-char lowercase hex string (32 bytes of entropy).
+ * Token is stored plaintext — accepted deviation from AR-05 (hash storage is
+ * incompatible with the resolvable/redisplayable link AC). See
+ * _bmad-output/implementation-artifacts/adr-4-5-registration-token-storage.md
+ */
+function generateRegistrationToken(): string {
+	return randomBytes(32).toString('hex');
+}
 
 // ---------------------------------------------------------------------------
 // ConflictError — structured 422 error surfaced from service layer
@@ -103,7 +115,11 @@ export async function createBooking(
 					registrationClosesAt:
 						input.registrationEnabled && input.registrationClosesAt
 							? sql`${input.registrationClosesAt}::timestamptz`
-							: null
+							: null,
+					// AC-1 (Story 4.5): generate a CSPRNG token when registration is enabled.
+					// Stored plaintext (accepted AR-05 deviation — see adr-4-5-registration-token-storage.md).
+					// Never log the actual token value.
+					registrationToken: input.registrationEnabled ? generateRegistrationToken() : null
 				})
 				.returning();
 
@@ -140,7 +156,9 @@ export async function createBooking(
 				eventName: input.eventName,
 				during: `[${input.startAt}, ${input.endAt})`,
 				cateringEnabled: input.cateringEnabled,
-				registrationEnabled: input.registrationEnabled
+				registrationEnabled: input.registrationEnabled,
+				// Never log the actual token value — use placeholder (Story 4.5)
+				registrationToken: input.registrationEnabled ? '[generated]' : null
 			}
 		});
 

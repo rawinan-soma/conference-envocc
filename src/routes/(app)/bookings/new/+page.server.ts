@@ -7,7 +7,7 @@
  *         Requires authenticated organizer (requireUser guard).
  *
  * create: Validates BookingSchema via superforms + valibot adapter.
- *         Validates room exists. Calls createBooking() — ConflictError → setError, success → redirect /calendar.
+ *         Validates room exists. Calls createBooking() — ConflictError → setError, success → redirect /bookings/[id].
  *         After successful booking, enqueues a send-email pg-boss job (Story 4.6, AC-1, AC-3).
  */
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -144,6 +144,6 @@ export const actions: Actions = {
 			);
 		}
 
-		redirect(303, '/calendar');
+		redirect(303, `/bookings/${booking.id}`);
 	}
 };
