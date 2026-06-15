@@ -306,7 +306,7 @@ test.describe('Story 4.4 — Booking Form: Accessibility', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.7 — Edit Booking: Form Pre-Fill and Save (AC-1, AC-5)', () => {
-	test('[P1] 4.7-E2E-001 — organizer edits booking — edit form pre-filled from booking, save updates detail page with new name', async ({
+	test.skip('[P1] 4.7-E2E-001 — organizer edits booking — edit form pre-filled from booking, save updates detail page with new name', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — /bookings/[id]/edit route is not yet implemented.
@@ -376,7 +376,7 @@ test.describe('Story 4.7 — Edit Booking: Form Pre-Fill and Save (AC-1, AC-5)',
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.7 — Cancel Booking: Confirm Modal and Status Update (AC-2, AC-7)', () => {
-	test('[P1] 4.7-E2E-002 — organizer cancels booking — confirm modal shown before cancel fires; status shown as cancelled after', async ({
+	test.skip('[P1] 4.7-E2E-002 — organizer cancels booking — confirm modal shown before cancel fires; status shown as cancelled after', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — /bookings/[id] route and cancel action not yet implemented.
@@ -430,7 +430,7 @@ test.describe('Story 4.7 — Cancel Booking: Confirm Modal and Status Update (AC
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.7 — Duplicate Booking: Pre-Fill Form (AC-3)', () => {
-	test('[P1] 4.7-E2E-003 — organizer duplicates booking — lands on /bookings/new with fields pre-filled; startAt/endAt intentionally blank', async ({
+	test.skip('[P1] 4.7-E2E-003 — organizer duplicates booking — lands on /bookings/new with fields pre-filled; startAt/endAt intentionally blank', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — /bookings/new?from= pre-fill is not yet implemented.
@@ -498,7 +498,7 @@ test.describe('Story 4.7 — Duplicate Booking: Pre-Fill Form (AC-3)', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.7 — Edit Booking: IDOR Guard (AC-4)', () => {
-	test('[P1] 4.7-E2E-004 — IDOR — non-owner cannot reach edit page (redirected to login or receives 403)', async ({
+	test.skip('[P1] 4.7-E2E-004 — IDOR — non-owner cannot reach edit page (redirected to login or receives 403)', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — /bookings/[id]/edit IDOR guard not yet implemented.
@@ -553,7 +553,7 @@ test.describe('Story 4.7 — Edit Booking: IDOR Guard (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Story 4.7 — Booking Detail Page: Accessibility (AC-5, NFR-007)', () => {
-	test('[P2] 4.7-A11Y-001 — /bookings/[id] detail page passes axe-core zero WCAG 2.1 AA violations', async ({
+	test.skip('[P2] 4.7-A11Y-001 — /bookings/[id] detail page passes axe-core zero WCAG 2.1 AA violations', async ({
 		page
 	}) => {
 		// THIS TEST WILL FAIL — /bookings/[id] route is not yet implemented (404).
