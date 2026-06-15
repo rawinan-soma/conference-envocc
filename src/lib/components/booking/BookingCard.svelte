@@ -40,12 +40,18 @@
 
 	// Copy the registration link to clipboard.
 	// Uses the same navigator.clipboard?.writeText() guard pattern as /bookings/[id]/+page.svelte.
+	// onCopy is only invoked when the write actually succeeded — guard on clipboard availability
+	// first so the "Link copied" toast does not fire when nothing was written.
 	async function copyLink(url: string): Promise<void> {
+		if (!navigator.clipboard) {
+			// Clipboard API unavailable (insecure origin or old browser) — silent, no toast.
+			return;
+		}
 		try {
-			await navigator.clipboard?.writeText(url);
+			await navigator.clipboard.writeText(url);
 			onCopy?.();
 		} catch {
-			// Clipboard unavailable or permission denied — silent per pattern.
+			// writeText() rejected (permission denied) — silent per pattern.
 		}
 	}
 </script>
