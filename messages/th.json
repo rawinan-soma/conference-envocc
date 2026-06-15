@@ -168,5 +168,6 @@
 	"dashboard_registrant_count_placeholder": "",
 	"dashboard_copy_link_success": "",
 	"dashboard_booking_card_room_label": "",
-	"dashboard_booking_card_time_label": ""
+	"dashboard_booking_card_time_label": "",
+	"dashboard_load_error": ""
 }

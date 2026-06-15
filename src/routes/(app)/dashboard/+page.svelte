@@ -13,6 +13,7 @@
     AC-11: this route resolves the 2.3 profile-complete → /dashboard redirect
 -->
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { resolve } from '$app/paths';
 	import type { Pathname, ResolvedPathname } from '$app/types';
 	import * as m from '$lib/paraglide/messages.js';
@@ -37,6 +38,11 @@
 			toastTimer = null;
 		}, 2500);
 	}
+
+	// Clear any pending toast timer on unmount to avoid a state update after destroy.
+	onDestroy(() => {
+		if (toastTimer) clearTimeout(toastTimer);
+	});
 </script>
 
 <svelte:head>
@@ -99,5 +105,10 @@
 				{/each}
 			</ul>
 		{/if}
+	{:catch}
+		<!-- Streamed query rejected (DB error). Show a calm error instead of a blank page. -->
+		<div role="alert" class="py-12 text-center">
+			<p class="text-muted-foreground">{m.dashboard_load_error()}</p>
+		</div>
 	{/await}
 </main>

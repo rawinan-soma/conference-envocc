@@ -82,6 +82,14 @@ so that I can manage them at a glance.
     - `4.8-A11Y-001`: heading hierarchy and interactive elements pass basic a11y check [P2]
     - All remain as `test.skip(` (matches repo convention; E2E requires seed wiring not done in CI)
 
+### Review Findings
+
+Step 5 adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). All three layers ran; 2 patches applied, the rest dismissed as noise/policy. No decision-needed, no actionable defers.
+
+- [x] [Review][Patch] Streamed query rejection had no `{:catch}` and there is no `+error.svelte` anywhere under `src/routes` — a DB error on the unawaited streamed promise would blank the page. Added a `{:catch}` branch rendering a calm `role="alert"` message via new i18n key `dashboard_load_error`. [src/routes/(app)/dashboard/+page.svelte]
+- [x] [Review][Patch] Toast `setTimeout` was never cleared on unmount (state update after destroy / latent leak). Added `onDestroy` cleanup that clears the pending timer. [src/routes/(app)/dashboard/+page.svelte]
+- Dismissed as noise/false-positive/policy: `during as unknown as string` cast (matches the established `/bookings/[id]/+page.svelte` convention); `registrationEnabled` true + null `registrationToken` mismatch (no DB state produces it; mirrors existing detail page); infinity/garbage date display (bookings always carry concrete bounded ranges, and the `range ? … : ''` guard handles null); empty Thai i18n values (explicit project policy — Rawinan translates, never write Thai in code); `status != 'cancelled'` SQL literal vs `ne()` (functionally equivalent, parameterized-safe); `upper(during) >= now()` boundary (matches AC-1 verbatim); redundant `aria-label` on card; IDOR test seeding bare UUIDs (still validly exercises the organizerId filter); query inlining filters vs spec's `and(eq,ne,sql)` composition (equivalent, parameterized).
+
 ## Dev Notes
 
 ### Scope Boundaries — Critical

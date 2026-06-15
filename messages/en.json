@@ -168,5 +168,6 @@
 	"dashboard_registrant_count_placeholder": "—",
 	"dashboard_copy_link_success": "Link copied",
 	"dashboard_booking_card_room_label": "Room",
-	"dashboard_booking_card_time_label": "Time"
+	"dashboard_booking_card_time_label": "Time",
+	"dashboard_load_error": "We couldn't load your bookings. Please refresh to try again."
 }
