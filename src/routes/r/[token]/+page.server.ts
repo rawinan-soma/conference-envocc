@@ -1,0 +1,54 @@
+/**
+ * Server load for the public registration page — Story 5.1
+ *
+ * Route: /r/[token]
+ *
+ * This route is PUBLIC — no authentication required.
+ * DO NOT add requireUser() here. The route is already allow-listed in
+ * src/hooks.server.ts (routeGuards pattern: /^\/(?!(?:login|auth|r|...)/).
+ *
+ * IDOR guard (R-001 BLOCK, score=9):
+ *   Token not found in DB → error(404, 'Event not found').
+ *   The DB query enforces isolation: WHERE registration_token = token.
+ *   registrationToken is excluded from returned data (data minimization).
+ *
+ * AC Coverage:
+ *   AC-1 (FR-040): Valid token → event name, room, date/time (Bangkok TZ), agenda, contact
+ *   AC-2: registrationEnabled=false → registrationEnabled flag returned; page shows closed msg
+ *   AC-3 (R-001 BLOCK): token not found → error(404)
+ *   AC-4: agenda=null → agenda field is null; Svelte template hides section
+ */
+
+import { error } from '@sveltejs/kit';
+import { getBookingByRegistrationToken } from '$lib/server/db/queries/bookings.js';
+import { parseTstzrange } from '$lib/utils/tstzrange.js';
+import { formatDateBangkok } from '$lib/utils/date.js';
+import type { PageServerLoad } from './$types.js';
+
+export const load: PageServerLoad = async ({ params }) => {
+	// NO requireUser — this route is public (unauthenticated)
+	const booking = await getBookingByRegistrationToken(params.token);
+
+	if (!booking) {
+		error(404, 'Event not found');
+	}
+
+	// Parse the tstzrange value (RegistrationPageRow types `during` as string directly,
+	// so no cast is needed — parseTstzrange accepts string).
+	const range = parseTstzrange(booking.during);
+	const dateStr = range ? formatDateBangkok(range.lower, 'date') : '';
+	const startTime = range ? formatDateBangkok(range.lower, 'time') : '';
+	const endTime = range ? formatDateBangkok(range.upper, 'time') : '';
+
+	return {
+		eventName: booking.eventName,
+		roomName: booking.roomName,
+		agenda: booking.agenda,
+		registrationEnabled: booking.registrationEnabled,
+		dateStr,
+		startTime,
+		endTime,
+		contactName: `${booking.organizerFirstName} ${booking.organizerLastName}`.trim(),
+		contactPhone: booking.organizerPhone // string — notNull() in user_profiles schema
+	};
+};
