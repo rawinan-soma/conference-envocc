@@ -36,8 +36,8 @@ So that I am registered for the event.
 
 - [ ] Task 1: Create `registrations` Drizzle schema and migration (AC: 3)
   - [ ] 1.1: Create `src/lib/server/db/schema/registrations.ts` — see Schema Spec in Dev Notes
-  - [ ] 1.2: Create `drizzle/0010_registrations.sql` — see Migration Spec in Dev Notes
-  - [ ] 1.3: Add `export * from './registrations.js';` to `src/lib/server/db/schema/index.ts`
+  - [ ] 1.2: Add `export * from './registrations.js';` to `src/lib/server/db/schema/index.ts` **first**, then run `bunx drizzle-kit generate` — this produces `drizzle/0010_registrations.sql`, the journal entry in `drizzle/meta/_journal.json`, and the snapshot in `drizzle/meta/`. Do NOT hand-write the SQL file. (See Migration Spec in Dev Notes for expected SQL output to verify.)
+  - [ ] 1.3: Verify the generated `drizzle/0010_registrations.sql` contains the FK constraint `REFERENCES bookings(id) ON DELETE CASCADE` and both indexes. If `drizzle-kit generate` omits the indexes, add them manually inside the generated file before committing.
   - [ ] 1.4: Add `'registrations'` to `TRUNCATABLE_TABLES` in `tests/support/fixtures/pg-factory.ts` — **before** `'bookings'` (FK child before parent)
   - [ ] 1.5: Add schema assertion to `tests/integration/db-schema.test.ts` — assert all columns exist in `registrations` table
 
@@ -46,20 +46,20 @@ So that I am registered for the event.
   - [ ] 2.2: Conditional meal type: `mealType` required when `cateringEnabled=true`, absent when `false`; uses `v.forward` with `v.literal('')` pattern (see `src/lib/schemas/booking.ts` for established pattern)
   - [ ] 2.3: Conditional title other text: `titleOtherText` required when `title='Other'`; uses same cross-field pattern
 
-- [ ] Task 3: Create `createRegistrant` query and `createRegistration` service (AC: 3)
+- [ ] Task 3: Create `createRegistrant` query and `createRegistration` service (AC: 3, 6)
   - [ ] 3.1: Create `src/lib/server/db/queries/registrations.ts` — `createRegistrant(tx, data)` — inserts into `registrations` table inside a transaction
-  - [ ] 3.2: Create `src/lib/server/services/registration-service.ts` — `createRegistration(bookingId, input)` — wraps everything in `db.transaction()`: check `registrationEnabled`, generate 32-byte CSPRNG cancel token, compute sha256 hash, call `createRegistrant(tx, ...)`, call `writeAuditLog(tx, ...)`, return plain token (for Story 5.3)
+  - [ ] 3.2: Create `src/lib/server/services/registration-service.ts` — `createRegistration(bookingId, input)` — wraps everything in `db.transaction()`: re-query `getBookingByRegistrationToken` (or `getBookingById`) inside the txn and throw `RegistrationClosedError` if `!registrationEnabled`; then generate 32-byte CSPRNG cancel token, compute sha256 hash, call `createRegistrant(tx, ...)`, call `writeAuditLog(tx, ...)`, return plain token (for Story 5.3). See Service Spec in Dev Notes.
   - [ ] 3.3: Cancel token: `crypto.randomBytes(32)` → hex plaintext (never stored); `sha256(plaintext)` → stored as `cancelTokenHash` (AR-05)
   - [ ] 3.4: `actorId: null` in audit log (unauthenticated external registrant)
+  - [ ] 3.5: Export `RegistrationClosedError` (custom error class) from `registration-service.ts` — used by the route action to map to `fail(400)`
 
 - [ ] Task 4: Add `register` form action to `src/routes/r/[token]/+page.server.ts` (AC: 3, 4, 6)
   - [ ] 4.1: Add `export const actions: Actions = { register: async (event) => { ... } }` — see Action Spec in Dev Notes
-  - [ ] 4.2: Load `cateringEnabled` and `registrationEnabled` in the existing `load` function and return them to the page (they are already available on the `RegistrationPageRow` from `getBookingByRegistrationToken`)
-  - [ ] 4.3: In the `register` action: re-query `getBookingByRegistrationToken(params.token)` → 404 if missing; check `registrationEnabled === false` → `fail(400, { form })` (R-005 MITIGATE mandatory guard)
+  - [ ] 4.2: Load `cateringEnabled` in the existing `load` function and return it to the page (it is already available on `RegistrationPageRow` from `getBookingByRegistrationToken`). Do NOT return `bookingId` to the page — it is an internal key.
+  - [ ] 4.3: In the `register` action: call `superValidate` first (body stream), then `getBookingByRegistrationToken` → 404 if missing; then validate form; then call `createRegistration`. Catch `RegistrationClosedError` → `fail(400, { form })`. See Action Spec.
   - [ ] 4.4: Validate with `superValidate(event.request, valibot(RegistrationSchema))`; `if (!form.valid) return fail(422, { form })`
   - [ ] 4.5: Call `createRegistration(booking.id, form.data)` → on success, return `{ form, success: true }`
   - [ ] 4.6: Also initialize the superform in `load` so the Svelte page has a `form` prop: `const form = await superValidate(valibot(RegistrationSchema))`
-  - [ ] 4.7: Import `booking.id` from the query result — it is needed as `bookingId` when calling `createRegistration`
 
 - [ ] Task 5: Update `src/routes/r/[token]/+page.svelte` — add form fields (AC: 1, 2, 4, 5, 7)
   - [ ] 5.1: Import `enhance` from `$app/forms` and `superForm` from `sveltekit-superforms`; wire form to `data.form`
@@ -148,7 +148,7 @@ export const registrations = pgTable('registrations', {
   email: text('email').notNull(),
   mealType: text('meal_type'),                  // nullable when cateringEnabled=false
   mealTypeOtherText: text('meal_type_other_text'), // nullable; required when mealType='Other'
-  cancelTokenHash: text('cancel_token_hash').notNull(), // sha256 hex of 32-byte CSPRNG (AR-05)
+  cancelTokenHash: text('cancel_token_hash'),   // nullable — Story 5.4 sets to NULL after single use (AR-05); populated on insert
   status: text('status').notNull().default('registered'), // 'registered' | 'cancelled'
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -160,41 +160,47 @@ export type RegistrationInsert = typeof registrations.$inferInsert;
 
 **Column naming convention:** snake_case DB column names → camelCase Drizzle field names (same as `bookings.ts`). The `user_profiles` table is the only exception with camelCase column names in the DB.
 
-### Migration Spec for `drizzle/0010_registrations.sql`
+### Migration Spec for `drizzle/0010_registrations.sql` (generated output reference)
+
+Do NOT hand-write this file. Run `bunx drizzle-kit generate` after completing Task 1.1 and 1.2 (schema file + schema index export). The generator produces the `.sql` file, the journal entry, and the snapshot automatically.
+
+The expected SQL content (for verification after generation) should look like this — confirm your generated output matches:
 
 ```sql
 -- Migration 0010: registrations table — Story 5.2
 -- Creates the registrations table linked to bookings.
 
-CREATE TABLE IF NOT EXISTS registrations (
-  id TEXT PRIMARY KEY,
-  booking_id TEXT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  title_other_text TEXT,
-  first_name TEXT NOT NULL,
-  last_name TEXT NOT NULL,
-  organization TEXT NOT NULL,
-  email TEXT NOT NULL,
-  meal_type TEXT,
-  meal_type_other_text TEXT,
-  cancel_token_hash TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'registered',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS "registrations" (
+  "id" text PRIMARY KEY NOT NULL,
+  "booking_id" text NOT NULL,
+  "title" text NOT NULL,
+  "title_other_text" text,
+  "first_name" text NOT NULL,
+  "last_name" text NOT NULL,
+  "organization" text NOT NULL,
+  "email" text NOT NULL,
+  "meal_type" text,
+  "meal_type_other_text" text,
+  "cancel_token_hash" text,
+  "status" text DEFAULT 'registered' NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
--- Index for registrant lookup by booking (for headcount in Stories 5.7, 5.8)
-CREATE INDEX IF NOT EXISTS idx_registrations_booking_id
-  ON registrations(booking_id);
-
--- Index for cancel token lookup (Story 5.4: self-cancel flow)
--- cancel_token_hash is not unique — hash collisions are astronomically rare
--- but single-use enforcement is handled in application code (Story 5.4)
-CREATE INDEX IF NOT EXISTS idx_registrations_cancel_token_hash
-  ON registrations(cancel_token_hash);
+--> statement-breakpoint
+ALTER TABLE "registrations" ADD CONSTRAINT "registrations_booking_id_bookings_id_fk"
+  FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE cascade ON UPDATE no action;
 ```
 
-**Filename:** `drizzle/0010_registrations.sql` — the next migration after `0009_booking_registration_token.sql`.
+After verifying, also confirm that `drizzle/meta/_journal.json` now contains an entry with `"idx": 10` and the tag for this migration.
+
+**Note on indexes:** Drizzle-kit does not generate indexes for non-unique columns by default. After generation, manually add the following index DDL to the generated file (before or after the FK constraint):
+
+```sql
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_registrations_booking_id" ON "registrations" ("booking_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_registrations_cancel_token_hash" ON "registrations" ("cancel_token_hash");
+```
 
 ### RegistrationSchema Spec (`src/lib/schemas/registration.ts`)
 
@@ -276,6 +282,8 @@ const cancelTokenHash = createHash('sha256').update(cancelTokenPlain).digest('he
 
 **File:** `src/lib/server/services/registration-service.ts`
 
+The R-005 MITIGATE closed-guard lives in the **service**, not only in the route action. This allows the integration test (`5.2-INT-CLOSED-001`) to call the service directly and assert the guard throws — no running HTTP server needed.
+
 ```ts
 import { createHash, randomBytes } from 'node:crypto';
 import { db } from '$lib/server/db/index.js';
@@ -283,6 +291,18 @@ import { getBookingByRegistrationToken } from '$lib/server/db/queries/bookings.j
 import { createRegistrant } from '$lib/server/db/queries/registrations.js';
 import { writeAuditLog } from '$lib/server/services/audit.js';
 import type { RegistrationInput } from '$lib/schemas/registration.js';
+
+/**
+ * Thrown by createRegistration when registrationEnabled = false on the booking.
+ * The route action catches this and returns fail(400, { form }).
+ * The integration test (5.2-INT-CLOSED-001) asserts this is thrown.
+ */
+export class RegistrationClosedError extends Error {
+  constructor() {
+    super('Registration is closed for this event.');
+    this.name = 'RegistrationClosedError';
+  }
+}
 
 /**
  * Result of a successful registration.
@@ -296,11 +316,13 @@ export type CreateRegistrationResult = {
 
 /**
  * Creates a registration record inside a db.transaction().
+ * Re-checks registrationEnabled from the booking before inserting (R-005 MITIGATE).
  * Also writes an audit log entry.
  *
- * @param bookingId - The booking's primary key (from getBookingByRegistrationToken)
+ * @param bookingId - The booking's primary key (from getBookingByRegistrationToken in the action)
  * @param input - Validated RegistrationInput from superforms + valibot
  * @returns registrationId and plaintext cancelToken (for Story 5.3 email)
+ * @throws RegistrationClosedError if booking.registrationEnabled = false
  */
 export async function createRegistration(
   bookingId: string,
@@ -310,6 +332,15 @@ export async function createRegistration(
   const cancelTokenHash = createHash('sha256').update(cancelTokenPlain).digest('hex');
 
   const result = await db.transaction(async (tx) => {
+    // R-005 MITIGATE: re-read registrationEnabled inside the transaction (TOCTOU-safe)
+    // Use the existing getBookingByRegistrationToken or a direct query by bookingId.
+    // If the booking is closed, throw so no row is inserted.
+    // (The action also checks before calling this, but the service guard is the canonical one.)
+    //
+    // Implementation note: if getBookingByRegistrationToken requires the public token
+    // (not bookingId), use a separate getBookingById query, or pass the token as a parameter.
+    // Either approach is acceptable — what matters is the guard fires inside the transaction.
+
     const registration = await createRegistrant(tx, {
       bookingId,
       title: input.title,
@@ -331,7 +362,6 @@ export async function createRegistration(
       diff: {
         registrationId: registration.id,
         bookingId,
-        email: input.email,
         title: input.title
       }
     });
@@ -346,15 +376,22 @@ export async function createRegistration(
 }
 ```
 
+**Implementation note on the guard query inside the transaction:** The service receives `bookingId` (PK), not the public token. Add a `getBookingById(tx, id)` helper in `src/lib/server/db/queries/bookings.ts` that accepts a Drizzle transaction (same pattern as `createRegistrant` accepts `tx`), returns the booking row (or null), and is called inside the transaction body. If `!booking || !booking.registrationEnabled`, throw `RegistrationClosedError`.
+```
+
 ### `register` Action Spec (`+page.server.ts`)
 
-The existing `load` function must be extended to also return `cateringEnabled`, `bookingId`, and a superform `form` prop. The `register` action must re-query the DB (never trust form data for `registrationEnabled`).
+The existing `load` function must be extended to also return `cateringEnabled` and a superform `form` prop. Do NOT return `bookingId` to the page (internal key, not needed by the UI).
+
+The action does NOT implement the closed-guard itself — that guard lives in `createRegistration` (service layer, throws `RegistrationClosedError`). The action catches `RegistrationClosedError` and maps it to `fail(400, { form })`.
+
+Body-stream ordering: always call `superValidate(event.request, ...)` first to consume the body, then query the DB. This avoids an unconsumed-body error if an early check exits.
 
 ```ts
-// Extended load return (add to existing load):
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { RegistrationSchema } from '$lib/schemas/registration.js';
+import { createRegistration, RegistrationClosedError } from '$lib/server/services/registration-service.js';
 import type { Actions, PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -368,62 +405,38 @@ export const load: PageServerLoad = async ({ params }) => {
   return {
     // ... existing fields ...
     cateringEnabled: booking.cateringEnabled, // NEW — needed for conditional meal type field
-    bookingId: booking.id,                    // NEW — needed in action (but load already has it)
     form                                       // NEW — superform initial state
   };
 };
 
 export const actions: Actions = {
   register: async (event) => {
-    const { params } = event;
+    // Parse form first (consumes body stream)
+    const form = await superValidate(event.request, valibot(RegistrationSchema));
 
-    // Re-query booking — NEVER trust cateringEnabled/registrationEnabled from form data
-    const booking = await getBookingByRegistrationToken(params.token);
+    // Fetch booking — 404 if token invalid
+    const booking = await getBookingByRegistrationToken(event.params.token);
     if (!booking) { error(404, 'Event not found'); }
 
-    // R-005 MITIGATE: server-side closed guard — mandatory (closes 5.2-INT-CLOSED-001)
-    if (!booking.registrationEnabled) {
-      const form = await superValidate(event.request, valibot(RegistrationSchema));
-      return fail(400, { form });
-    }
-
-    const form = await superValidate(event.request, valibot(RegistrationSchema));
     if (!form.valid) {
       return fail(422, { form });
     }
 
-    await createRegistration(booking.id, form.data);
+    try {
+      await createRegistration(booking.id, form.data);
+    } catch (err) {
+      if (err instanceof RegistrationClosedError) {
+        // R-005 MITIGATE: registration closed — guard enforced in service layer
+        return fail(400, { form });
+      }
+      throw err;
+    }
 
-    // Story 5.3 will receive cancelToken and enqueue confirmation email.
+    // Story 5.3 will receive cancelToken from the service and enqueue confirmation email.
     // For Story 5.2 scope: return success flag only.
     return { form, success: true };
   }
 };
-```
-
-**Important note on `fail(400, ...)` + form ordering:** When checking `registrationEnabled` before validating the form body, the body stream must still be consumed to avoid leaking the request body. Consume it before `fail()`: `await event.request.formData()` or call `superValidate` first. Safest pattern: always call `superValidate` first, then check `registrationEnabled`.
-
-Corrected pattern:
-```ts
-register: async (event) => {
-  // Parse form first (consumes body stream) — then check closed state
-  const form = await superValidate(event.request, valibot(RegistrationSchema));
-
-  const booking = await getBookingByRegistrationToken(event.params.token);
-  if (!booking) { error(404, 'Event not found'); }
-
-  // R-005 guard: check after parsing form (body already consumed)
-  if (!booking.registrationEnabled) {
-    return fail(400, { form });
-  }
-
-  if (!form.valid) {
-    return fail(422, { form });
-  }
-
-  await createRegistration(booking.id, form.data);
-  return { form, success: true };
-}
 ```
 
 ### Svelte Page Spec (`+page.svelte`)
@@ -599,17 +612,19 @@ async function seedRegistrant(
 // 5. Assert audit_log row exists with entity='registration', action='create'
 ```
 
-**5.2-INT-CLOSED-001 (P0 — ACTIVATE):** Direct POST when closed returns 400
+**5.2-INT-CLOSED-001 (P0 — ACTIVATE):** `createRegistration` throws `RegistrationClosedError` when booking is closed
+
 ```ts
-// Strategy: Use fetch() directly to the /r/[token]?/register action endpoint
-// with registrationEnabled=false. This bypasses the UI and tests the server guard.
-// Assert: response.status === 400 (or redirect to closed-state page).
-// This test requires a running dev server OR uses the SvelteKit test adapter.
-// Implementation note: if no test adapter is available, test the service layer directly:
-//   Seed booking with registrationEnabled=false
-//   Ensure the action guard logic is tested by calling getBookingByRegistrationToken
-//   and asserting the result.registrationEnabled === false before the insert
-//   (document in test why direct HTTP is deferred to E2E)
+// Strategy (service-layer test — no running HTTP server needed):
+// 1. Seed user + profile + room + booking with registrationEnabled=false
+// 2. Dynamic import createRegistration and RegistrationClosedError from registration-service
+// 3. Build a validInput object matching RegistrationInput
+// 4. Call createRegistration(booking.id, validInput)
+// 5. Assert: throws RegistrationClosedError (instanceof check)
+// 6. Assert: no row inserted — query registrations table, expect count=0 for that bookingId
+//
+// This test exercises the real guard (service layer) that the route action catches.
+// The action's catch-and-return-fail(400) is covered by the E2E test (5.2-E2E-001 closed state).
 ```
 
 ### E2E Test Spec (`tests/e2e/registrations.spec.ts`)
@@ -755,7 +770,8 @@ _(to be filled during implementation)_
 
 **Updated files:**
 - `src/lib/server/db/schema/index.ts` — add `export * from './registrations.js'`
-- `src/routes/r/[token]/+page.server.ts` — extend load (cateringEnabled, bookingId, form) + add `register` action
+- `src/lib/server/db/queries/bookings.ts` — add `getBookingById(tx, id)` helper (used by createRegistration guard)
+- `src/routes/r/[token]/+page.server.ts` — extend load (cateringEnabled, form) + add `register` action
 - `src/routes/r/[token]/+page.svelte` — replace form placeholder with real form + success state
 - `messages/en.json` — add 22 new `reg_form_*` keys
 - `messages/th.json` — add 22 new `reg_form_*` keys (empty strings)
@@ -768,3 +784,4 @@ _(to be filled during implementation)_
 ### Change Log
 
 - 2026-06-15: Story 5.2 created — submit a registration (form fields, server action, registrations table, cancel token hash, audit log)
+- 2026-06-15: Story 5.2 validated — 4 findings fixed: (1) migration changed from hand-write to drizzle-kit generate; (2) cancelTokenHash made nullable for Story 5.4 single-use enforcement; (3) R-005 guard moved to service layer (RegistrationClosedError) so INT-CLOSED-001 can test it without HTTP; (4) duplicate contradictory action blocks collapsed to single correct pattern
