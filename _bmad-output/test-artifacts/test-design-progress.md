@@ -13,7 +13,7 @@ lastSaved: '2026-06-15'
 epicTwoRevision: v3
 epicThreeRevision: v1
 epicFourRevision: v1
-epicFiveRevision: v1
+epicFiveRevision: v2
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md

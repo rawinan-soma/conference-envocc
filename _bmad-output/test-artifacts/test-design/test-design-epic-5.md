@@ -10,6 +10,10 @@ stepsCompleted:
 lastStep: 'step-05-generate-output'
 nextStep: ''
 lastSaved: '2026-06-15'
+version: v2
+changeLog:
+  - 'v1 (2026-06-15): initial epic-level test design — all 5.1–5.8 stories backlog'
+  - 'v2 (2026-06-15): status update — 5.1 done (PR #128), 5.2 atdd-done; implementation status table added; foundation from 5.1 documented'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -24,13 +28,15 @@ inputDocuments:
   - tests/support/helpers/dev-bypass.ts
   - tests/support/fixtures/pg-factory.ts
   - tests/integration/booking-token.test.ts
+  - _bmad-output/test-artifacts/atdd-checklist-5-1-branded-public-registration-page.md
+  - _bmad-output/test-artifacts/atdd-checklist-5-2-submit-a-registration.md
 ---
 
 # Test Design: Epic 5 — External Registration & Headcount
 
 **Date:** 2026-06-15
 **Author:** Rawinan
-**Status:** Living Document (v1)
+**Status:** Living Document (v2 — updated 2026-06-15)
 **Mode:** Epic-Level Test Design
 
 ---
@@ -51,7 +57,21 @@ Epic 5 carries five distinct failure vectors that each block the shippable headl
 4. **Auto-close job idempotency** — the pg-boss registration-close sweeper must not double-close, must self-heal after worker restarts, and must tolerate already-closed bookings without error.
 5. **Mobile responsiveness** — NFR-004 mandates full-responsive external registration (mobile + desktop, equal). This is the only NFR with an explicit "equal" parity requirement rather than "usable."
 
-**Implementation Status (2026-06-15 — v1):** All eight stories (5.1–5.8) are `backlog`. Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registration_token` column and token generation (`createBooking`), `getBookingById`, the `r/[token]` route stub (token generation confirmed; page content is E5's job), pg-boss + nodemailer wired, IDOR template, dev bypass seam, Testcontainers fixture, CI pipeline.
+**Implementation Status (2026-06-15 — v2):**
+
+| Story | Status | Notes |
+|-------|--------|-------|
+| 5.1 Branded Public Registration Page | **done** | PR #128 merged 2026-06-15; `getBookingByRegistrationToken` implemented; `/r/[token]` route live; R-001 IDOR test (`5.1-INT-IDOR-001`) in CI gate |
+| 5.2 Submit a Registration | **atdd-done** | ATDD red-phase scaffolds committed in worktree; `registrations` schema + `createRegistration` service pending implementation |
+| 5.3–5.8 | backlog | Not yet started |
+
+Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registration_token` column and token generation (`createBooking`), `getBookingById`, the `r/[token]` route stub (token generation confirmed; page content is E5's job), pg-boss + nodemailer wired, IDOR template, dev bypass seam, Testcontainers fixture, CI pipeline.
+
+**Foundation deployed by 5.1 (now live in `main`):**
+- `getBookingByRegistrationToken(token)` — query returns full registration page row or null
+- `/r/[token]` route — public, unauthenticated; closed-state and 404-on-bad-token implemented
+- `tests/integration/registrations.test.ts` — file created; 5.1-INT-001, 5.1-INT-IDOR-001, 5.1-INT-002 are green (P0 active)
+- `tests/e2e/registrations.spec.ts` — file created; 5.1 E2E scaffolds are `test.skip` pending seed wiring
 
 **Foundation Available from E1–E4:**
 
@@ -62,12 +82,12 @@ Epic 5 carries five distinct failure vectors that each block the shippable headl
 - `hooks.server.ts` `routeGuards` registry — `/r/[token]` already explicitly allow-listed as public
 - `src/lib/server/services/audit.ts` — `writeAuditLog()` for registration mutations
 
-**Risk Summary:**
+**Risk Summary (v2 — 2026-06-15):**
 
 - Total risks identified: 13
 - High-priority risks (score ≥ 6): 7
-- Score = 9 (BLOCK): 1 (R-001 — IDOR on public token route)
-- Score = 6 (MITIGATE): 6
+- Score = 9 (BLOCK): 1 (R-001 — IDOR on public token route) → **CLOSED** by 5.1 (PR #128)
+- Score = 6 (MITIGATE): 6 → 5 open (R-002 through R-007 excluding R-001), R-005 partially addressed (5.2 atdd-done)
 
 ---
 
@@ -93,7 +113,7 @@ Epic 5 carries five distinct failure vectors that each block the shippable headl
 
 | Risk ID | Category | Title | P | I | Score | Status |
 |---------|----------|-------|---|---|-------|--------|
-| R-001 | SEC | Forged / replayed registration token reveals another event's data | 3 | 3 | **9** | OPEN |
+| R-001 | SEC | Forged / replayed registration token reveals another event's data | 3 | 3 | **9** | **CLOSED** (5.1 done; `5.1-INT-IDOR-001` green) |
 | R-002 | SEC | Single-use cancel token is hashed but collision or replay enables double-cancel or impersonation | 2 | 3 | **6** | OPEN |
 | R-003 | SEC | Resend-link endpoint discloses whether an email is registered (enumeration) | 3 | 2 | **6** | OPEN |
 | R-004 | BUS | Auto-close pg-boss job double-fires after worker restart, closing already-open registrations | 2 | 3 | **6** | OPEN |
@@ -107,7 +127,7 @@ Epic 5 carries five distinct failure vectors that each block the shippable headl
 | R-012 | BUS | No-capacity rule (FR-032) is accidentally broken by a guard that caps registrations | 1 | 3 | **3** | OPEN |
 | R-013 | OPS | Cancel token single-use state lost on DB failover / migration rollback | 1 | 2 | **2** | OPEN |
 
-**Total: 13 risks (1 BLOCK score=9, 6 MITIGATE score=6, 3 MONITOR score=4, 3 DOCUMENT score ≤3)**
+**Total: 13 risks (1 BLOCK score=9 → CLOSED by 5.1, 6 MITIGATE score=6 → 5 OPEN / 0 CLOSED, 3 MONITOR score=4, 3 DOCUMENT score ≤3)**
 
 ---
 
@@ -372,16 +392,16 @@ Estimates include test setup, fixture seeding, pg-boss job harness wiring, Mailp
 
 | Risk ID | Score | Status | Closing Test |
 |---------|-------|--------|-------------|
-| R-001 | 9 (BLOCK) | OPEN | `5.1-INT-IDOR-001` |
+| R-001 | 9 (BLOCK) | **CLOSED** — 5.1 done (PR #128); `5.1-INT-IDOR-001` green in CI | `5.1-INT-IDOR-001` |
 | R-002 | 6 | OPEN | `5.4-INT-001` |
 | R-003 | 6 | OPEN | `5.5-INT-001` |
 | R-004 | 6 | OPEN | `5.6-INT-002` |
-| R-005 | 6 | OPEN | `5.2-INT-CLOSED-001` |
+| R-005 | 6 | OPEN — 5.2 atdd-done; `5.2-INT-CLOSED-001` scaffolded (red) | `5.2-INT-CLOSED-001` |
 | R-006 | 6 | OPEN | `5.7-INT-001` |
 | R-007 | 6 | OPEN | `5.8-INT-IDOR-001` |
 | R-008 | 4 | OPEN | `5.2-E2E-MOBILE-001/002` |
 | R-009 | 4 | OPEN | `5.3-INT-001`, `5.3-INT-004/005` |
-| R-010 | 4 | OPEN | `5.2-INT-002`, `5.2-INT-004` |
+| R-010 | 4 | OPEN — 5.2 atdd-done; `5.2-INT-002/004` scaffolded (skip) | `5.2-INT-002`, `5.2-INT-004` |
 | R-011 | 3 | OPEN | `5.6-INT-005` (lint) |
-| R-012 | 3 | OPEN | `5.2-INT-005` |
+| R-012 | 3 | OPEN — 5.2 atdd-done; `5.2-INT-005` scaffolded (skip) | `5.2-INT-005` |
 | R-013 | 2 | OPEN | Accepted; documented only |
