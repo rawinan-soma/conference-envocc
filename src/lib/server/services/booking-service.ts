@@ -26,7 +26,9 @@ import { writeAuditLog } from './audit.js';
 /**
  * Generate a cryptographically random registration token.
  * Returns a 64-char lowercase hex string (32 bytes of entropy).
- * Token is stored plaintext — see Story 4.5 token model deviation note.
+ * Token is stored plaintext — accepted deviation from AR-05 (hash storage is
+ * incompatible with the resolvable/redisplayable link AC). See
+ * _bmad-output/implementation-artifacts/adr-4-5-registration-token-storage.md
  */
 function generateRegistrationToken(): string {
 	return randomBytes(32).toString('hex');
@@ -115,7 +117,7 @@ export async function createBooking(
 							? sql`${input.registrationClosesAt}::timestamptz`
 							: null,
 					// AC-1 (Story 4.5): generate a CSPRNG token when registration is enabled.
-					// Stored plaintext (intentional AR-05 deviation — see story 4.5 token model note).
+					// Stored plaintext (accepted AR-05 deviation — see adr-4-5-registration-token-storage.md).
 					// Never log the actual token value.
 					registrationToken: input.registrationEnabled ? generateRegistrationToken() : null
 				})

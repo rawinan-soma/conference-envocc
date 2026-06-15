@@ -22,16 +22,34 @@
 			dateStyle: 'medium',
 			timeStyle: 'short'
 		});
-		try {
-			return `${fmt.format(new Date(start))} – ${fmt.format(new Date(end))}`;
-		} catch {
+		// Guard against unparseable / unbounded ranges. `Intl.DateTimeFormat.format()`
+		// does NOT throw on an Invalid Date — it returns the literal string "Invalid Date".
+		// So an empty try/catch is insufficient: we must check the dates explicitly and
+		// fall back to the raw range string when either bound fails to parse.
+		const startDate = new Date(start);
+		const endDate = new Date(end);
+		if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
 			return raw;
 		}
+		return `${fmt.format(startDate)} – ${fmt.format(endDate)}`;
 	});
 
 	// Derive resolved hrefs for navigation — required by svelte/no-navigation-without-resolve rule.
 	const calendarHref = $derived(resolve('/calendar' as Pathname));
 	const qrDownloadHref = $derived(resolve(`/bookings/${data.booking.id}/qr` as Pathname));
+
+	// Copy the registration link to the clipboard.
+	// `navigator.clipboard` is undefined on insecure (non-HTTPS) origins and
+	// writeText() rejects on permission denial — guard both so the failure is not
+	// a silent unhandled promise rejection.
+	async function copyRegistrationLink(url: string): Promise<void> {
+		try {
+			await navigator.clipboard?.writeText(url);
+		} catch {
+			// Clipboard unavailable or permission denied — the link is still visible
+			// and selectable on-screen, so no user-facing error is surfaced here.
+		}
+	}
 </script>
 
 <svelte:head>
@@ -80,7 +98,7 @@
 				</a>
 				<button
 					type="button"
-					onclick={() => navigator.clipboard.writeText(data.registrationUrl!)}
+					onclick={() => copyRegistrationLink(data.registrationUrl!)}
 					class="shrink-0 rounded-sm px-2 py-1 text-xs font-medium hover:bg-accent"
 					aria-label={m.booking_copy_link_aria()}
 				>
