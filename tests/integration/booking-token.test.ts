@@ -1,20 +1,14 @@
 /**
  * ATDD Red-Phase Integration Scaffolds — Story 4.5: Booking Confirmation Registration Link & QR
  *
- * STATUS: TDD RED PHASE — All tests marked test.skip() — activate task-by-task during implementation.
+ * STATUS: ACTIVE — All tests are live (not skipped). Implementation complete for
+ *   Tasks 1–2 (DB migration + schema), 3 (qrcode install), 5 (token generation), 6 (getBookingById).
+ *   Run: `bun run test:integration`
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
  * starts Testcontainers when DATABASE_URL is not set, or uses the CI Postgres
  * service when DATABASE_URL is already provided.
- *
- * Activation guide:
- *   1. Remove `test.skip(` → `test(` for the current task's test(s).
- *   2. Ensure Postgres is running (via Testcontainers or CI service).
- *   3. Run: `bun run test:integration` — verify it FAILS first (red).
- *   4. Implement the feature (per task in story 4.5).
- *   5. Run again — verify it PASSES (green).
- *   6. Commit passing tests.
  *
  * AC Coverage:
  *   - AC-1: Token generated and persisted when registrationEnabled = true; null when false
