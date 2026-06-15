@@ -79,13 +79,17 @@
 		<!-- Catering -->
 		<div class="flex flex-col gap-0.5">
 			<span class="text-xs text-muted-foreground">{m.booking_catering_label()}</span>
-			<span class="text-sm font-medium">{data.booking.cateringEnabled ? 'Yes' : 'No'}</span>
+			<span class="text-sm font-medium"
+				>{data.booking.cateringEnabled ? m.booking_value_yes() : m.booking_value_no()}</span
+			>
 		</div>
 
 		<!-- Registration -->
 		<div class="flex flex-col gap-0.5">
 			<span class="text-xs text-muted-foreground">{m.booking_registration_label()}</span>
-			<span class="text-sm font-medium">{data.booking.registrationEnabled ? 'Yes' : 'No'}</span>
+			<span class="text-sm font-medium"
+				>{data.booking.registrationEnabled ? m.booking_value_yes() : m.booking_value_no()}</span
+			>
 		</div>
 	</div>
 

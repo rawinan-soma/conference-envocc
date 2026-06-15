@@ -137,5 +137,7 @@
 	"booking_duplicate_button": "",
 	"booking_not_found": "",
 	"booking_status_active": "",
-	"booking_status_cancelled": ""
+	"booking_status_cancelled": "",
+	"booking_value_yes": "",
+	"booking_value_no": ""
 }

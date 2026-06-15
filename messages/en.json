@@ -137,5 +137,7 @@
 	"booking_duplicate_button": "Duplicate",
 	"booking_not_found": "Booking not found.",
 	"booking_status_active": "Active",
-	"booking_status_cancelled": "Cancelled"
+	"booking_status_cancelled": "Cancelled",
+	"booking_value_yes": "Yes",
+	"booking_value_no": "No"
 }

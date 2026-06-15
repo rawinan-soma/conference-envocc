@@ -64,6 +64,6 @@ export const actions: Actions = {
 
 		await cancelBooking(user.id, id);
 
-		redirect(303, '/calendar');
+		redirect(303, `/bookings/${id}`);
 	}
 };
