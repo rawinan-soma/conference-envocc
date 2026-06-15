@@ -9,10 +9,11 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-13'
+lastSaved: '2026-06-15'
 epicTwoRevision: v3
 epicThreeRevision: v1
 epicFourRevision: v1
+epicFiveRevision: v1
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -274,3 +275,47 @@ Revision: v1 (2026-06-13) — initial generation; all 8 stories backlog.
 Non-negotiable: `4.1-CONC-001` concurrent double-booking test (AR-11 mandate) in PR gate.
 Reuses `idor-template.ts` (Story 2.7), `db-schema.test.ts` (E1/E3), Testcontainers fixture without modification.
 Planned test files: `bookings.test.ts` (new), `bookings.spec.ts` (new), `db-schema.test.ts` (append 2 tests), `k6/calendar-load.js` (new, on-demand).
+
+---
+
+# Epic 5 Test Design Run — 2026-06-15
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "Epic 5 (External Registration & Headcount)" + sprint-status.yaml present)
+- **Epic**: Epic 5 — External Registration & Headcount (8 stories; 5.1–5.8 all backlog; epic-5 in-progress)
+- **Prerequisites confirmed**: Epic + stories with acceptance criteria available; architecture.md available; Epics 1–4 all done
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Drizzle + PostgreSQL + pg-boss + nodemailer + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **Pact.js utils**: disabled (tea_use_pactjs_utils: false)
+- **ADR loaded**: adr-4-5-registration-token-storage.md — event registration token plaintext; self-cancel token hashed per AR-05
+- **Existing test infrastructure confirmed**: Testcontainers Postgres tier active; pg-boss + Mailpit wired; `idor-template.ts` available; `booking-token.test.ts` (IT-001–005) establishes `registration_token` shape; `hooks.server.ts` `/r/[token]` allow-listed as public
+- **FRs in scope**: FR-040–047, FR-021, FR-022, FR-032, FR-033, FR-092, FR-035
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+Key risks identified: Token IDOR on public `/r/[token]` route (SEC, P×I=9 — BLOCK), single-use cancel token replay (SEC, 6), resend endpoint enumeration (SEC, 6), auto-close job double-fire (BUS, 6), closed-state POST bypass (BUS, 6), catering aggregation concurrency (DATA, 6), registrant list IDOR (BUS, 6).
+Medium: mobile responsiveness parity (PERF, 4), confirmation email dropped to DLQ (BUS, 4), "Other→text" field lost (DATA, 4).
+Document: auto-close lint boundary (TECH, 3), no-capacity guard accidental cap (BUS, 3), cancel token state on DB failover (OPS, 2).
+Total: 13 risks (1 BLOCK score=9, 6 MITIGATE score=6, 3 MONITOR score=4, 3 DOCUMENT score ≤3).
+
+## Step 4: Coverage Plan
+
+Coverage matrix: 17 P0 (~30–45h), 19 P1 (~20–32h), 11 P2 (~8–16h), 4 P3 (~3–6h). Total 51 scenarios (~61–99h ~2–3 weeks).
+Execution: PR gate (P0+P1 Vitest+Playwright < 15 min via Testcontainers Postgres); nightly (P2 + k6 load + timing); on-demand (P3 visual snapshot).
+Mandatory PR gate: `5.1-INT-IDOR-001` (BLOCK), `5.2-INT-CLOSED-001`, `5.4-INT-001` (single-use), `5.5-INT-001` (neutral disclosure), `5.6-INT-002` (idempotency), `5.7-INT-001` (concurrent catering), `5.8-INT-IDOR-001`.
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-5.md`
+Revision: v1 (2026-06-15) — initial generation; all 8 stories backlog.
+1 BLOCK risk (R-001 score=9 token IDOR) + 6 MITIGATE risks identified with mitigation plans.
+17 P0 + 19 P1 + 11 P2 + 4 P3 scenarios planned.
+Non-negotiable: `5.1-INT-IDOR-001` (BLOCK, score=9 automatic gate fail) in every PR.
+Reuses `idor-template.ts` (Story 2.7) for `5.1-INT-IDOR-001` and `5.8-INT-IDOR-001`.
+Planned test files: `registrations.test.ts` (new), `registrations.spec.ts` (new), `db-schema.test.ts` (append), `k6/registration-load.js` (new, on-demand).
+ADR 4.5 scope: event token plaintext (confirmed by E4 tests); self-cancel token hashed (new in E5).
