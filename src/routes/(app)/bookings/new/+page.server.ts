@@ -15,7 +15,11 @@ import { valibot } from 'sveltekit-superforms/adapters';
 
 import { BookingSchema } from '$lib/schemas/booking.js';
 import { requireUser } from '$lib/server/auth/guards.js';
-import { createBooking, ConflictError } from '$lib/server/services/booking-service.js';
+import {
+	createBooking,
+	ConflictError,
+	getBookingById
+} from '$lib/server/services/booking-service.js';
 import { listRooms, getRoomById } from '$lib/server/services/room-service.js';
 
 import type { Actions, PageServerLoad } from './$types.js';
@@ -33,21 +37,38 @@ export const load: PageServerLoad = async (event) => {
 	const startAt = date ? `${date}T09:00` : '';
 	const endAt = date ? `${date}T10:00` : '';
 
+	const initialData = {
+		roomId,
+		startAt,
+		endAt,
+		eventName: '',
+		agenda: '',
+		cateringEnabled: false,
+		registrationEnabled: false,
+		registrationClosesAt: ''
+	};
+
+	// ?from=[id] duplicate pre-fill — AC-3 (Story 4.7)
+	// Pre-fills room, eventName, agenda, catering, registration from the source booking.
+	// startAt/endAt are intentionally NOT pre-filled (blank) — submitting a duplicate with
+	// the same time would conflict with the still-active original.
+	const fromId = event.url.searchParams.get('from');
+	if (fromId) {
+		const source = await getBookingById(fromId);
+		if (source) {
+			initialData.roomId = source.roomId;
+			initialData.eventName = source.eventName;
+			initialData.agenda = source.agenda ?? '';
+			initialData.cateringEnabled = source.cateringEnabled;
+			initialData.registrationEnabled = source.registrationEnabled;
+			// registrationClosesAt intentionally NOT pre-filled — old date is invalid for new booking
+		}
+	}
+
 	// Load rooms list and pre-fill form in parallel
 	const [rooms, form] = await Promise.all([
 		listRooms(),
-		superValidate(
-			{
-				roomId,
-				startAt,
-				endAt,
-				eventName: '',
-				agenda: '',
-				cateringEnabled: false,
-				registrationEnabled: false
-			},
-			valibot(BookingSchema)
-		)
+		superValidate(initialData, valibot(BookingSchema))
 	]);
 
 	return {

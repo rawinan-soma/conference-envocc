@@ -975,7 +975,7 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.7 — Edit Booking: DB Update (AC-1)', () => {
-	test.skip('[P0] 4.7-INT-001 — updateBooking changes eventName and DB reflects new value', async () => {
+	test('[P0] 4.7-INT-001 — updateBooking changes eventName and DB reflects new value', async () => {
 		// THIS TEST WILL FAIL until updateBooking() is implemented in booking-service.ts.
 		// Activate at Task 1.2 → run → expect FAIL → implement updateBooking → PASS.
 		//
@@ -1043,7 +1043,7 @@ describe('Story 4.7 — Edit Booking: DB Update (AC-1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.7 — Edit Booking: Conflict Detection (AC-1)', () => {
-	test.skip('[P0] 4.7-INT-002 — updateBooking into an occupied slot raises ConflictError (same 23P01 path as createBooking)', async () => {
+	test('[P0] 4.7-INT-002 — updateBooking into an occupied slot raises ConflictError (same 23P01 path as createBooking)', async () => {
 		// THIS TEST WILL FAIL until updateBooking() catches 23P01 and throws ConflictError.
 		// Activate at Task 1.2 → run → expect FAIL → implement cause-chain catch → PASS.
 		//
@@ -1123,7 +1123,7 @@ describe('Story 4.7 — Edit Booking: Conflict Detection (AC-1)', () => {
 // ---------------------------------------------------------------------------
 
 describe("Story 4.7 — Cancel Booking: Slot Freed (AC-2, EXCLUDE predicate 'status<>cancelled')", () => {
-	test.skip("[P0] 4.7-INT-003 — cancelBooking sets status='cancelled'; EXCLUDE predicate frees slot for a new active booking", async () => {
+	test("[P0] 4.7-INT-003 — cancelBooking sets status='cancelled'; EXCLUDE predicate frees slot for a new active booking", async () => {
 		// THIS TEST WILL FAIL until cancelBooking() is implemented in booking-service.ts.
 		// Activate at Task 1.3 → run → expect FAIL → implement cancelBooking → PASS.
 		//
@@ -1208,7 +1208,7 @@ describe("Story 4.7 — Cancel Booking: Slot Freed (AC-2, EXCLUDE predicate 'sta
 // ---------------------------------------------------------------------------
 
 describe('Story 4.7 — Edit Booking: Ownership Guard (AC-4)', () => {
-	test.skip('[P0] 4.7-INT-004 — non-owner cannot edit a booking (assertOwner throws 403-equivalent error)', async () => {
+	test('[P0] 4.7-INT-004 — non-owner cannot edit a booking (assertOwner throws 403-equivalent error)', async () => {
 		// THIS TEST WILL FAIL until updateBooking() enforces ownership via assertOwner.
 		// Activate at Task 1.2 + Task 3 (edit action guards) → run → expect FAIL → implement → PASS.
 		//
@@ -1287,7 +1287,7 @@ describe('Story 4.7 — Edit Booking: Ownership Guard (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.7 — Cancel Booking: Ownership Guard (AC-4)', () => {
-	test.skip('[P0] 4.7-INT-005 — non-owner cannot cancel a booking (assertOwner denies and status remains active)', async () => {
+	test('[P0] 4.7-INT-005 — non-owner cannot cancel a booking (assertOwner denies and status remains active)', async () => {
 		// THIS TEST WILL FAIL until cancelBooking() enforces ownership.
 		// Activate at Task 1.3 + Task 2 (cancel action guards) → run → expect FAIL → implement → PASS.
 		//
@@ -1351,7 +1351,7 @@ describe('Story 4.7 — Cancel Booking: Ownership Guard (AC-4)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.7 — Duplicate Pre-Fill: Correct Field Values (AC-3)', () => {
-	test.skip('[P1] 4.7-INT-006 — getBookingById returns correct fields for duplicate pre-fill; startAt/endAt intentionally not pre-filled', async () => {
+	test('[P1] 4.7-INT-006 — getBookingById returns correct fields for duplicate pre-fill; startAt/endAt intentionally not pre-filled', async () => {
 		// THIS TEST WILL FAIL until getBookingById() is implemented in booking-service.ts.
 		// Activate at Task 1.1 → run → expect FAIL → implement getBookingById → PASS.
 		//

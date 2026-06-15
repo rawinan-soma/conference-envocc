@@ -15,12 +15,15 @@
 		submitting: Readable<boolean>;
 		rooms: Room[];
 		userProfile: UserProfile | null;
+		formAction?: string;
+		submitLabel?: string;
 	}
 
-	let { form, errors, enhance, submitting, rooms, userProfile }: Props = $props();
+	let { form, errors, enhance, submitting, rooms, userProfile, formAction, submitLabel }: Props =
+		$props();
 </script>
 
-<form method="POST" action="?/create" use:enhance class="flex flex-col gap-5">
+<form method="POST" action={formAction ?? '?/create'} use:enhance class="flex flex-col gap-5">
 	<!-- Room selector -->
 	<div class="flex flex-col gap-1.5">
 		<Label for="roomId">{m.booking_room_label()}</Label>
@@ -212,6 +215,6 @@
 
 	<!-- Submit -->
 	<Button type="submit" disabled={$submitting} class="self-start">
-		{$submitting ? '…' : m.booking_submit_button()}
+		{$submitting ? '…' : (submitLabel ?? m.booking_submit_button())}
 	</Button>
 </form>

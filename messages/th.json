@@ -122,5 +122,20 @@
 	"booking_contact_title_label": "",
 	"booking_contact_email_label": "",
 	"booking_contact_phone_label": "",
-	"booking_contact_org_label": ""
+	"booking_contact_org_label": "",
+
+	"booking_detail_title": "",
+	"booking_edit_title": "",
+	"booking_edit_button": "",
+	"booking_edit_save_button": "",
+	"booking_edit_success": "",
+	"booking_cancel_button": "",
+	"booking_cancel_confirm_title": "",
+	"booking_cancel_confirm_body": "",
+	"booking_cancel_confirm_action": "",
+	"booking_cancel_success": "",
+	"booking_duplicate_button": "",
+	"booking_not_found": "",
+	"booking_status_active": "",
+	"booking_status_cancelled": ""
 }

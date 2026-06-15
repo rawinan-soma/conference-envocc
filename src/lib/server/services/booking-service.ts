@@ -1,5 +1,5 @@
 /**
- * Booking service — Story 4.1, expanded in Story 4.4
+ * Booking service — Story 4.1, expanded in Story 4.4, Story 4.7
  *
  * Provides createBooking with:
  * - INSERT into bookings using tstzrange half-open [) range
@@ -7,7 +7,12 @@
  * - 23P01 exclusion_violation caught → throws ConflictError('booking_conflict_error')
  * - Audit log written inside the same transaction
  *
- * IMPORTANT: No application-level overlap pre-check (SELECT before INSERT).
+ * Story 4.7 additions:
+ * - getBookingById: SELECT by PK
+ * - updateBooking: UPDATE inside transaction (same 23P01 cause-chain, ownership check, audit)
+ * - cancelBooking: UPDATE status='cancelled', ownership check, audit
+ *
+ * IMPORTANT: No application-level overlap pre-check (SELECT before INSERT/UPDATE).
  * The EXCLUDE constraint is the sole conflict authority. A pre-check would
  * reintroduce the TOCTOU race that 4.1-CONC-001 exists to eliminate.
  *
@@ -16,7 +21,7 @@
  *   AC-3: 23P01 caught by cause-chain walk → ConflictError('booking_conflict_error')
  *   AC-4: ConflictError carries Paraglide key 'booking_conflict_error' (key exists in messages/en.json)
  */
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import { db } from '../db/index.js';
 import { bookings } from '../db/schema/bookings.js';
@@ -145,5 +150,168 @@ export async function createBooking(
 		});
 
 		return booking;
+	});
+}
+
+// ---------------------------------------------------------------------------
+// getBookingById — Story 4.7
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch a single booking row by primary key.
+ *
+ * @param id - Booking UUID
+ * @returns The booking row, or undefined if not found
+ */
+export async function getBookingById(id: string): Promise<Booking | undefined> {
+	const [row] = await db.select().from(bookings).where(eq(bookings.id, id));
+	return row;
+}
+
+// ---------------------------------------------------------------------------
+// updateBooking — Story 4.7
+// ---------------------------------------------------------------------------
+
+/**
+ * Update an existing booking.
+ *
+ * Runs inside a transaction:
+ *   1. Ownership check — throws 403 if actorId !== booking.organizerId.
+ *   2. UPDATE bookings SET … WHERE id = bookingId (RETURNING).
+ *      bookings_no_overlap EXCLUDE constraint still fires on conflict (23P01 → ConflictError).
+ *   3. Write audit_log entry with action='update'.
+ *
+ * Edit self-conflict is not an issue: Postgres EXCLUDE checks the new row against OTHER rows,
+ * not itself — no "exclude self" workaround is needed.
+ *
+ * @param actorId   - User ID performing the action
+ * @param bookingId - Booking to update
+ * @param input     - Full booking form input (same schema as createBooking)
+ * @throws 403 HttpError if actorId does not own the booking
+ * @throws ConflictError if the new slot conflicts with another active booking (23P01)
+ */
+export async function updateBooking(
+	actorId: string,
+	bookingId: string,
+	input: CreateBookingInput
+): Promise<Booking> {
+	return db.transaction(async (tx) => {
+		// --- Ownership check (service-level IDOR guard, AC-4) ---
+		const [existing] = await tx.select().from(bookings).where(eq(bookings.id, bookingId));
+		if (!existing) {
+			const { error } = await import('@sveltejs/kit');
+			error(404, 'Booking not found');
+		}
+		if (existing.organizerId !== actorId) {
+			const { error } = await import('@sveltejs/kit');
+			error(403, 'Forbidden: you do not own this resource');
+		}
+
+		// --- UPDATE bookings ---
+		let booking: Booking;
+		try {
+			const [updated] = await tx
+				.update(bookings)
+				.set({
+					eventName: input.eventName,
+					agenda: input.agenda ?? null,
+					during: sql`tstzrange(${input.startAt}::timestamptz, ${input.endAt}::timestamptz, '[)')`,
+					cateringEnabled: input.cateringEnabled,
+					registrationEnabled: input.registrationEnabled,
+					registrationClosesAt:
+						input.registrationEnabled && input.registrationClosesAt
+							? sql`${input.registrationClosesAt}::timestamptz`
+							: null,
+					updatedAt: sql`now()`
+				})
+				.where(eq(bookings.id, bookingId))
+				.returning();
+
+			if (!updated) {
+				throw new Error('Update returned no rows — unexpected DB state');
+			}
+			booking = updated;
+		} catch (err: unknown) {
+			// Catch Postgres 23P01 (exclusion_violation) from the EXCLUDE constraint.
+			// Drizzle may wrap pg errors in DrizzleQueryError, so walk the cause chain to find
+			// the original pg error code (pattern from createBooking).
+			let pgCode: string | undefined;
+			let cur: unknown = err;
+			while (cur instanceof Error) {
+				if ('code' in cur && typeof (cur as { code?: unknown }).code === 'string') {
+					pgCode = (cur as { code: string }).code;
+					break;
+				}
+				cur = (cur as Error).cause;
+			}
+			if (pgCode === '23P01') {
+				throw new ConflictError('booking_conflict_error');
+			}
+			throw err;
+		}
+
+		// --- Write audit log ---
+		await writeAuditLog(tx, {
+			actorId,
+			entity: 'booking',
+			action: 'update',
+			diff: {
+				bookingId,
+				eventName: input.eventName,
+				during: `[${input.startAt}, ${input.endAt})`,
+				cateringEnabled: input.cateringEnabled,
+				registrationEnabled: input.registrationEnabled
+			}
+		});
+
+		return booking;
+	});
+}
+
+// ---------------------------------------------------------------------------
+// cancelBooking — Story 4.7
+// ---------------------------------------------------------------------------
+
+/**
+ * Cancel a booking by setting status = 'cancelled'.
+ *
+ * The EXCLUDE constraint predicate is `WHERE status <> 'cancelled'`, so cancelling
+ * a booking automatically frees the slot for new active bookings — no schema change needed.
+ *
+ * Runs inside a transaction:
+ *   1. Ownership check — throws 403 if actorId !== booking.organizerId.
+ *   2. UPDATE bookings SET status='cancelled' WHERE id = bookingId.
+ *   3. Write audit_log entry with action='cancel'.
+ *
+ * @param actorId   - User ID performing the action
+ * @param bookingId - Booking to cancel
+ * @throws 403 HttpError if actorId does not own the booking
+ */
+export async function cancelBooking(actorId: string, bookingId: string): Promise<void> {
+	await db.transaction(async (tx) => {
+		// --- Ownership check (service-level IDOR guard, AC-4) ---
+		const [existing] = await tx.select().from(bookings).where(eq(bookings.id, bookingId));
+		if (!existing) {
+			const { error } = await import('@sveltejs/kit');
+			error(404, 'Booking not found');
+		}
+		if (existing.organizerId !== actorId) {
+			const { error } = await import('@sveltejs/kit');
+			error(403, 'Forbidden: you do not own this resource');
+		}
+
+		// --- UPDATE status = 'cancelled' ---
+		await tx
+			.update(bookings)
+			.set({ status: 'cancelled', updatedAt: sql`now()` })
+			.where(eq(bookings.id, bookingId));
+
+		// --- Write audit log ---
+		await writeAuditLog(tx, {
+			actorId,
+			entity: 'booking',
+			action: 'cancel',
+			diff: { bookingId }
+		});
 	});
 }
