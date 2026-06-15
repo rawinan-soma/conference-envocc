@@ -18,14 +18,18 @@ import { BookingSchema } from '$lib/schemas/booking.js';
 import { requireUser } from '$lib/server/auth/guards.js';
 import { enqueueJob, QUEUE } from '$lib/server/jobs/index.js';
 import { getBookingConfirmationTemplate } from '$lib/server/email/templates/booking-confirmation.js';
-import { createBooking, ConflictError } from '$lib/server/services/booking-service.js';
+import {
+	createBooking,
+	ConflictError,
+	getBookingById
+} from '$lib/server/services/booking-service.js';
 import { listRooms, getRoomById } from '$lib/server/services/room-service.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
 
 import type { Actions, PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async (event) => {
-	requireUser(event);
+	const user = requireUser(event);
 
 	const roomId = event.url.searchParams.get('room') ?? '';
 	const date = event.url.searchParams.get('date') ?? '';
@@ -37,21 +41,41 @@ export const load: PageServerLoad = async (event) => {
 	const startAt = date ? `${date}T09:00` : '';
 	const endAt = date ? `${date}T10:00` : '';
 
+	const initialData = {
+		roomId,
+		startAt,
+		endAt,
+		eventName: '',
+		agenda: '',
+		cateringEnabled: false,
+		registrationEnabled: false,
+		registrationClosesAt: ''
+	};
+
+	// ?from=[id] duplicate pre-fill — AC-3 (Story 4.7)
+	// Pre-fills room, eventName, agenda, catering, registration from the source booking.
+	// startAt/endAt are intentionally NOT pre-filled (blank) — submitting a duplicate with
+	// the same time would conflict with the still-active original.
+	const fromId = event.url.searchParams.get('from');
+	if (fromId) {
+		const source = await getBookingById(fromId);
+		// Ownership gate (IDOR guard): only pre-fill from a booking the requester owns.
+		// If the source is missing or owned by someone else, silently fall through to an
+		// empty form — never surface 403, which would confirm the booking ID exists.
+		if (source && source.organizerId === user.id) {
+			initialData.roomId = source.roomId;
+			initialData.eventName = source.eventName;
+			initialData.agenda = source.agenda ?? '';
+			initialData.cateringEnabled = source.cateringEnabled;
+			initialData.registrationEnabled = source.registrationEnabled;
+			// registrationClosesAt intentionally NOT pre-filled — old date is invalid for new booking
+		}
+	}
+
 	// Load rooms list and pre-fill form in parallel
 	const [rooms, form] = await Promise.all([
 		listRooms(),
-		superValidate(
-			{
-				roomId,
-				startAt,
-				endAt,
-				eventName: '',
-				agenda: '',
-				cateringEnabled: false,
-				registrationEnabled: false
-			},
-			valibot(BookingSchema)
-		)
+		superValidate(initialData, valibot(BookingSchema))
 	]);
 
 	return {

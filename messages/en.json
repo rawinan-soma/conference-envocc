@@ -124,7 +124,7 @@
 	"booking_contact_phone_label": "Phone",
 	"booking_contact_org_label": "Organization",
 
-	"booking_detail_title": "Booking Confirmation",
+	"booking_detail_title": "Booking Details",
 	"booking_confirmation_success": "Your room has been booked successfully.",
 	"booking_registration_link_heading": "Registration Link",
 	"booking_registration_link_hint": "Share this link so attendees can register for your event.",
@@ -142,5 +142,21 @@
 	"booking_confirmation_email_event_label": "Event:",
 	"booking_confirmation_email_room_label": "Room:",
 	"booking_confirmation_email_time_label": "Time:",
-	"booking_confirmation_email_footer": "This email was sent automatically. Please do not reply."
+	"booking_confirmation_email_footer": "This email was sent automatically. Please do not reply.",
+
+	"booking_edit_title": "Edit Booking",
+	"booking_edit_button": "Edit",
+	"booking_edit_save_button": "Save changes",
+	"booking_edit_success": "Booking updated.",
+	"booking_cancel_button": "Cancel booking",
+	"booking_cancel_confirm_title": "Cancel this booking?",
+	"booking_cancel_confirm_body": "This will free the room slot. Registered attendees will not be notified automatically.",
+	"booking_cancel_confirm_action": "Yes, cancel booking",
+	"booking_cancel_success": "Booking cancelled.",
+	"booking_duplicate_button": "Duplicate",
+	"booking_not_found": "Booking not found.",
+	"booking_status_active": "Active",
+	"booking_status_cancelled": "Cancelled",
+	"booking_value_yes": "Yes",
+	"booking_value_no": "No"
 }

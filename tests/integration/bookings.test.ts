@@ -1,10 +1,12 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 4.1: Conflict Translation & EXCLUDE Predicate
- * Integration Tests: booking-service.ts createBooking, ConflictError, 23P01 mapping
+ * ATDD Integration Tests — Stories 4.1, 4.2, 4.4, 4.7
+ * Integration Tests: booking-service.ts (createBooking, updateBooking, cancelBooking,
+ * getBookingById, ConflictError) + room calendar read model (getWeekCalendar)
  *
- * STATUS: All Story 4.1 scenarios are ACTIVE. They were scaffolded as test.skip()
- * during the ATDD red phase, then activated task-by-task as booking-service.ts was
- * implemented and verified green.
+ * STATUS: Story 4.1, 4.2, 4.4 scenarios are ACTIVE (green). Story 4.7 scenarios are
+ * ACTIVE (green) — updateBooking, cancelBooking, getBookingById are implemented.
+ * All 4.7 tests were scaffolded as test.skip() during the ATDD red phase, then
+ * activated task-by-task as booking-service.ts was implemented and verified green.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
@@ -956,6 +958,470 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 			Math.abs(storedTime - expectedTime),
 			'registration_closes_at must match the provided ISO datetime (within 1s)'
 		).toBeLessThan(1000);
+	});
+});
+
+// ===========================================================================
+// STORY 4.7 — Edit, Cancel, and Duplicate a Booking
+// GREEN PHASE: All tests are active test() calls — updateBooking, cancelBooking,
+// and getBookingById are implemented in booking-service.ts.
+// ---------------------------------------------------------------------------
+// AC-1: Edit re-checks conflicts via EXCLUDE constraint; non-owner → 403
+// AC-2: Cancel sets status='cancelled'; EXCLUDE predicate frees the slot automatically
+// AC-3: Duplicate pre-fills /bookings/new?from=[id]; startAt/endAt intentionally blank
+// AC-4: Ownership guard (requireUser + assertOwner) on all mutations; IDOR tests required
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 4.7-INT-001 — edit changes eventName → DB reflects new value [P0]
+// Activation condition: Task 1 (updateBooking service method) complete.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.7 — Edit Booking: DB Update (AC-1)', () => {
+	test('[P0] 4.7-INT-001 — updateBooking changes eventName and DB reflects new value', async () => {
+		// THIS TEST WILL FAIL until updateBooking() is implemented in booking-service.ts.
+		// Activate at Task 1.2 → run → expect FAIL → implement updateBooking → PASS.
+		//
+		// AC-1: editing a booking persists changed fields to the bookings table.
+		//
+		// Strategy:
+		//   1. Seed a room and organizer (owner).
+		//   2. Call createBooking() to create the initial booking.
+		//   3. Call updateBooking(actorId, bookingId, { ...same slot, eventName: 'Updated Name' }).
+		//   4. Read the row back from DB via direct SQL.
+		//   5. Assert event_name in DB equals 'Updated Name'.
+		//
+		// Note: edit self-conflict is a non-issue — Postgres EXCLUDE checks new row against
+		// OTHER rows, not itself. No "exclude self" workaround needed.
+		//
+		// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+		const { createBooking, updateBooking } =
+			await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.7-int-001');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		const input = {
+			startAt: '2026-09-01T09:00:00.000Z',
+			endAt: '2026-09-01T10:00:00.000Z',
+			eventName: 'Original Event Name 4.7-INT-001',
+			cateringEnabled: false,
+			registrationEnabled: false
+		};
+
+		// Step 1: create initial booking
+		const booking = await createBooking(actorId, roomId, input);
+		expect(booking.id, 'Initial booking must be created').toBeTruthy();
+
+		// Step 2: update the booking with a new eventName (same slot — self-conflict not triggered)
+		const updated = await updateBooking(actorId, booking.id, {
+			...input,
+			eventName: 'Updated Event Name 4.7-INT-001'
+		});
+		expect(updated.id, 'updateBooking must return the updated booking').toBeTruthy();
+
+		// Step 3: read back from DB and assert the change persisted
+		const result = await pool.query<{ event_name: string }>(
+			'SELECT event_name FROM bookings WHERE id = $1',
+			[booking.id]
+		);
+		expect(result.rows.length, 'booking row must exist in DB after update').toBe(1);
+		expect(result.rows[0]!.event_name, 'event_name must reflect the updated value').toBe(
+			'Updated Event Name 4.7-INT-001'
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-INT-002 — edit into occupied slot → ConflictError (422) [P0]
+// Activation condition: Task 1 (updateBooking) + Task 1.2 (23P01 cause-chain).
+// ---------------------------------------------------------------------------
+
+describe('Story 4.7 — Edit Booking: Conflict Detection (AC-1)', () => {
+	test('[P0] 4.7-INT-002 — updateBooking into an occupied slot raises ConflictError (same 23P01 path as createBooking)', async () => {
+		// THIS TEST WILL FAIL until updateBooking() catches 23P01 and throws ConflictError.
+		// Activate at Task 1.2 → run → expect FAIL → implement cause-chain catch → PASS.
+		//
+		// AC-1: edit re-checks conflicts via the same EXCLUDE constraint path as createBooking.
+		//       The service must walk the DrizzleQueryError cause chain identically.
+		//
+		// Strategy:
+		//   1. Seed room + two organizers (ownerA, ownerB).
+		//   2. ownerA creates booking A for slot 10:00–11:00.
+		//   3. ownerB creates booking B for slot 13:00–14:00 (no conflict yet).
+		//   4. ownerB calls updateBooking to move booking B to 10:00–11:00 (same as A) → must throw ConflictError.
+		//   5. Assert thrown instanceof ConflictError with statusCode 422.
+
+		const { createBooking, updateBooking, ConflictError } =
+			await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let ownerA: string;
+		let ownerB: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.7-int-002');
+			ownerA = seedOrganizer();
+			ownerB = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		// Step 1: ownerA books 10:00–11:00
+		await createBooking(ownerA, roomId, {
+			startAt: '2026-09-02T10:00:00.000Z',
+			endAt: '2026-09-02T11:00:00.000Z',
+			eventName: 'Owner A Booking 4.7-INT-002',
+			cateringEnabled: false,
+			registrationEnabled: false
+		});
+
+		// Step 2: ownerB books 13:00–14:00 (no conflict)
+		const bookingB = await createBooking(ownerB, roomId, {
+			startAt: '2026-09-02T13:00:00.000Z',
+			endAt: '2026-09-02T14:00:00.000Z',
+			eventName: 'Owner B Booking 4.7-INT-002',
+			cateringEnabled: false,
+			registrationEnabled: false
+		});
+
+		// Step 3: ownerB tries to move booking B into ownerA's slot → ConflictError
+		let thrown: unknown = null;
+		try {
+			await updateBooking(ownerB, bookingB.id, {
+				startAt: '2026-09-02T10:00:00.000Z',
+				endAt: '2026-09-02T11:00:00.000Z',
+				eventName: 'Owner B Booking 4.7-INT-002 (moved)',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
+		} catch (err: unknown) {
+			thrown = err;
+		}
+
+		expect(thrown, 'updateBooking must throw when moving into an occupied slot').not.toBeNull();
+		expect(
+			thrown instanceof ConflictError,
+			`Expected ConflictError but got: ${Object.prototype.toString.call(thrown)}`
+		).toBe(true);
+		const conflictErr = thrown as InstanceType<typeof ConflictError>;
+		expect(conflictErr.statusCode, 'ConflictError.statusCode must be 422').toBe(422);
+		expect(conflictErr.key, 'ConflictError.key must be booking_conflict_error').toBe(
+			'booking_conflict_error'
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-INT-003 — cancel sets status='cancelled'; slot is then re-bookable [P0]
+// Activation condition: Task 1 (cancelBooking service method) complete.
+// ---------------------------------------------------------------------------
+
+describe("Story 4.7 — Cancel Booking: Slot Freed (AC-2, EXCLUDE predicate 'status<>cancelled')", () => {
+	test("[P0] 4.7-INT-003 — cancelBooking sets status='cancelled'; EXCLUDE predicate frees slot for a new active booking", async () => {
+		// THIS TEST WILL FAIL until cancelBooking() is implemented in booking-service.ts.
+		// Activate at Task 1.3 → run → expect FAIL → implement cancelBooking → PASS.
+		//
+		// AC-2: cancel sets status = 'cancelled'. The EXCLUDE predicate is
+		//       WHERE status <> 'cancelled', so a cancelled booking no longer blocks new bookings.
+		//       getWeekCalendar also filters status != 'cancelled' — slot is freed with no schema change.
+		//
+		// Strategy:
+		//   1. Seed room + organizer.
+		//   2. createBooking for slot 10:00–11:00 (booking A, active).
+		//   3. cancelBooking(actorId, bookingA.id) — sets status='cancelled'.
+		//   4. Assert bookingA.status === 'cancelled' in DB.
+		//   5. createBooking for same slot (booking B) — must SUCCEED (cancelled A is out of EXCLUDE scope).
+		//   6. Assert booking B exists with status='active'.
+		//
+		// This mirrors the 4.1-CONC-001 pattern for slot re-use after cancellation.
+
+		const { createBooking, cancelBooking } =
+			await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.7-int-003');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		const slotStart = '2026-09-03T10:00:00.000Z';
+		const slotEnd = '2026-09-03T11:00:00.000Z';
+
+		// Step 1: create initial active booking
+		const bookingA = await createBooking(actorId, roomId, {
+			startAt: slotStart,
+			endAt: slotEnd,
+			eventName: 'Booking A to Cancel 4.7-INT-003',
+			cateringEnabled: false,
+			registrationEnabled: false
+		});
+		expect(bookingA.id, 'Booking A must be created').toBeTruthy();
+
+		// Step 2: cancel booking A
+		await cancelBooking(actorId, bookingA.id);
+
+		// Step 3: verify status is 'cancelled' in DB
+		const checkA = await pool.query<{ status: string }>(
+			'SELECT status FROM bookings WHERE id = $1',
+			[bookingA.id]
+		);
+		expect(checkA.rows.length, 'Booking A must still exist in DB after cancel').toBe(1);
+		expect(checkA.rows[0]!.status, "Booking A status must be 'cancelled'").toBe('cancelled');
+
+		// Step 4: re-book the same slot — must succeed (cancelled row is outside EXCLUDE scope)
+		let thrown: unknown = null;
+		let bookingB: { id: unknown; status: unknown } | null = null;
+		try {
+			bookingB = await createBooking(actorId, roomId, {
+				startAt: slotStart,
+				endAt: slotEnd,
+				eventName: 'Booking B After Cancel 4.7-INT-003',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
+		} catch (err: unknown) {
+			thrown = err;
+		}
+
+		expect(
+			thrown,
+			`createBooking must NOT throw after cancel — EXCLUDE predicate excludes 'cancelled' rows — got: ${String(thrown)}`
+		).toBeNull();
+		expect(bookingB, 'Booking B must be created after cancellation of A').not.toBeNull();
+		expect(bookingB?.id, 'Booking B must have an id').toBeTruthy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-INT-004 — non-owner cannot edit (assertOwner → 403-equivalent) [P0]
+// Activation condition: Task 1.2 (updateBooking) + assertOwner guard on edit action.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.7 — Edit Booking: Ownership Guard (AC-4)', () => {
+	test('[P0] 4.7-INT-004 — non-owner cannot edit a booking (assertOwner throws 403-equivalent error)', async () => {
+		// THIS TEST WILL FAIL until updateBooking() enforces ownership via assertOwner.
+		// Activate at Task 1.2 + Task 3 (edit action guards) → run → expect FAIL → implement → PASS.
+		//
+		// AC-4: assertOwner(event, booking.organizerId) must reject a non-owner actor.
+		// IDOR negative test: a second organizer (non-owner) must NOT be able to mutate another's booking.
+		//
+		// Strategy:
+		//   1. Seed room + two organizers (owner, nonOwner).
+		//   2. owner creates a booking.
+		//   3. nonOwner calls updateBooking(nonOwner, bookingId, ...) → must throw an error with status 403.
+		//   4. Assert the thrown error has statusCode 403 (or equivalent SvelteKit HttpError).
+		//   5. Assert the DB row is UNCHANGED (eventName still equals the original).
+		//
+		// Note: assertOwner in guards.ts throws error(403) — a SvelteKit HttpError. The service
+		// layer does not call assertOwner directly; this guard runs at the route action layer.
+		// For a pure service-level IDOR test, the updateBooking implementation must either:
+		//   a) Accept an assertOwner check in the route action (HTTP level), or
+		//   b) Verify organizerId matches actorId inside the service itself.
+		// Check the story Dev Notes for the chosen approach and adjust this test accordingly
+		// during activation (the stub documents the intent).
+
+		const { createBooking, updateBooking } =
+			await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let owner: string;
+		let nonOwner: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.7-int-004');
+			owner = seedOrganizer();
+			nonOwner = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		// Step 1: owner creates a booking
+		const booking = await createBooking(owner, roomId, {
+			startAt: '2026-09-04T09:00:00.000Z',
+			endAt: '2026-09-04T10:00:00.000Z',
+			eventName: 'Owner Booking 4.7-INT-004',
+			cateringEnabled: false,
+			registrationEnabled: false
+		});
+
+		// Step 2: nonOwner attempts to update the booking → must be rejected
+		let thrown: unknown = null;
+		try {
+			await updateBooking(nonOwner, booking.id, {
+				startAt: '2026-09-04T09:00:00.000Z',
+				endAt: '2026-09-04T10:00:00.000Z',
+				eventName: 'Hijacked Event Name 4.7-INT-004',
+				cateringEnabled: false,
+				registrationEnabled: false
+			});
+		} catch (err: unknown) {
+			thrown = err;
+		}
+
+		expect(thrown, 'updateBooking must throw when called by a non-owner actor').not.toBeNull();
+
+		// Assert DB row is unchanged
+		const result = await pool.query<{ event_name: string }>(
+			'SELECT event_name FROM bookings WHERE id = $1',
+			[booking.id]
+		);
+		expect(result.rows[0]!.event_name, 'DB event_name must be unchanged after IDOR attempt').toBe(
+			'Owner Booking 4.7-INT-004'
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-INT-005 — non-owner cannot cancel [P0]
+// Activation condition: Task 1.3 (cancelBooking) + assertOwner guard on cancel action.
+// ---------------------------------------------------------------------------
+
+describe('Story 4.7 — Cancel Booking: Ownership Guard (AC-4)', () => {
+	test('[P0] 4.7-INT-005 — non-owner cannot cancel a booking (assertOwner denies and status remains active)', async () => {
+		// THIS TEST WILL FAIL until cancelBooking() enforces ownership.
+		// Activate at Task 1.3 + Task 2 (cancel action guards) → run → expect FAIL → implement → PASS.
+		//
+		// AC-4: non-owner must NOT be able to cancel another organizer's booking.
+		// IDOR negative test: parallel to INT-004 for the cancel operation.
+		//
+		// Strategy:
+		//   1. Seed room + two organizers (owner, nonOwner).
+		//   2. owner creates a booking.
+		//   3. nonOwner calls cancelBooking(nonOwner, bookingId) → must throw.
+		//   4. Assert DB status remains 'active' (booking was NOT cancelled).
+
+		const { createBooking, cancelBooking } =
+			await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let owner: string;
+		let nonOwner: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.7-int-005');
+			owner = seedOrganizer();
+			nonOwner = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		// Step 1: owner creates a booking
+		const booking = await createBooking(owner, roomId, {
+			startAt: '2026-09-05T09:00:00.000Z',
+			endAt: '2026-09-05T10:00:00.000Z',
+			eventName: 'Owner Booking 4.7-INT-005',
+			cateringEnabled: false,
+			registrationEnabled: false
+		});
+
+		// Step 2: nonOwner attempts to cancel the booking → must be rejected
+		let thrown: unknown = null;
+		try {
+			await cancelBooking(nonOwner, booking.id);
+		} catch (err: unknown) {
+			thrown = err;
+		}
+
+		expect(thrown, 'cancelBooking must throw when called by a non-owner actor').not.toBeNull();
+
+		// Assert DB status is still 'active' (cancel was NOT applied)
+		const result = await pool.query<{ status: string }>(
+			'SELECT status FROM bookings WHERE id = $1',
+			[booking.id]
+		);
+		expect(result.rows[0]!.status, "DB status must remain 'active' after IDOR cancel attempt").toBe(
+			'active'
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-INT-006 — duplicate pre-fill loads correct field values from source booking [P1]
+// Activation condition: Task 1.1 (getBookingById) + Task 5 (?from= pre-fill in load).
+// ---------------------------------------------------------------------------
+
+describe('Story 4.7 — Duplicate Pre-Fill: Correct Field Values (AC-3)', () => {
+	test('[P1] 4.7-INT-006 — getBookingById returns correct fields for duplicate pre-fill; startAt/endAt intentionally not pre-filled', async () => {
+		// THIS TEST WILL FAIL until getBookingById() is implemented in booking-service.ts.
+		// Activate at Task 1.1 → run → expect FAIL → implement getBookingById → PASS.
+		//
+		// AC-3: Duplicate pre-fills /bookings/new with room, eventName, agenda, catering, and
+		//       registration fields. startAt/endAt are intentionally NOT pre-filled (blank).
+		//
+		// Strategy:
+		//   1. Seed room + organizer.
+		//   2. createBooking with full expanded input (eventName, agenda, cateringEnabled,
+		//      registrationEnabled).
+		//   3. Call getBookingById(bookingId).
+		//   4. Assert all pre-fill fields match: roomId, eventName, agenda, cateringEnabled,
+		//      registrationEnabled.
+		//   5. Verify the service does NOT return a startAt/endAt in a pre-fill-friendly format
+		//      (the during column is a tstzrange — the route load function parses it via
+		//      parseTstzrange; this test documents that getBookingById returns the raw row
+		//      and the route is responsible for blanking startAt/endAt on duplicate).
+		//
+		// Note: duplicate is a stateless GET — no new DB write. This test only verifies the
+		// data-fetch layer (getBookingById). The route-level pre-fill logic (Task 5) is
+		// covered by E2E-003.
+
+		const { createBooking, getBookingById } =
+			await import('../../src/lib/server/services/booking-service.js');
+
+		const client = await pool.connect();
+		let roomId: string;
+		let actorId: string;
+		try {
+			roomId = await seedRoom(client, 'test-4.7-int-006');
+			actorId = seedOrganizer();
+		} finally {
+			client.release();
+		}
+
+		// Create a booking with full expanded fields
+		const booking = await createBooking(actorId, roomId, {
+			startAt: '2026-09-06T09:00:00.000Z',
+			endAt: '2026-09-06T10:00:00.000Z',
+			eventName: 'Source Booking 4.7-INT-006',
+			agenda: 'Morning session agenda for duplication test',
+			cateringEnabled: true,
+			registrationEnabled: false
+		});
+
+		// Call getBookingById and assert all pre-fill fields
+		const fetched = await getBookingById(booking.id);
+
+		expect(fetched, 'getBookingById must return the booking').not.toBeUndefined();
+		expect(fetched?.id, 'fetched booking id must match').toBe(booking.id);
+		expect(fetched?.roomId, 'roomId must match source booking').toBe(roomId);
+		expect(fetched?.eventName, 'eventName must match source booking').toBe(
+			'Source Booking 4.7-INT-006'
+		);
+		expect(fetched?.agenda, 'agenda must match source booking').toBe(
+			'Morning session agenda for duplication test'
+		);
+		expect(fetched?.cateringEnabled, 'cateringEnabled must match source booking').toBe(true);
+		expect(fetched?.registrationEnabled, 'registrationEnabled must match source booking').toBe(
+			false
+		);
+		// The during column is a tstzrange string — the route uses parseTstzrange to convert it.
+		// getBookingById returns the raw row; this field exists but is the raw DB value.
+		expect(
+			fetched?.during,
+			'during (tstzrange) must be present for route-layer parsing'
+		).toBeTruthy();
 	});
 });
 

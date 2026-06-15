@@ -310,6 +310,267 @@ test.describe('Story 4.4 — Booking Form: Accessibility', () => {
 });
 
 // ===========================================================================
+// STORY 4.7 — Edit, Cancel, and Duplicate a Booking
+// RED PHASE: All tests are test.skip() — activate task-by-task during implementation.
+// ---------------------------------------------------------------------------
+// AC-1: Edit re-checks conflicts; form pre-fills from existing booking data
+// AC-2: Cancel sets status='cancelled'; confirm modal shown first (UX-DR8)
+// AC-3: Duplicate opens /bookings/new?from=[id] with fields pre-filled; time blank
+// AC-4: IDOR — non-owner cannot reach edit page (redirect or 403)
+// AC-5: /bookings/[id] detail/management page shows Edit, Cancel, Duplicate actions
+// AC-7: Cancel confirm modal lists consequences before cancel fires
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 4.7-E2E-001 — organizer edits booking — form pre-filled, saves, detail page updated [P1]
+// Activation condition: Task 1 (updateBooking) + Task 3 (edit route) complete.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.7 — Edit Booking: Form Pre-Fill and Save (AC-1, AC-5)', () => {
+	test.skip('[P1] 4.7-E2E-001 — organizer edits booking — edit form pre-filled from booking, save updates detail page with new name', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /bookings/[id]/edit route is not yet implemented.
+		// Activate at Task 3 after edit route (+page.server.ts + +page.svelte) are created.
+		//
+		// AC-1: edit form pre-fills all fields from the existing booking (eventName, times, room,
+		//       catering, registration). After save, the detail page reflects the updated eventName.
+		// AC-5: /bookings/[id] detail page must exist and show the Edit button linking to the edit route.
+		//
+		// Strategy:
+		//   1. Login via dev bypass (organizer session).
+		//   2. Seed a booking for the dev bypass room via API (or navigate to /bookings/new and create one).
+		//   3. Navigate to /bookings/[id] (detail page).
+		//   4. Click "Edit" button → lands on /bookings/[id]/edit.
+		//   5. Assert the event name field is pre-filled (not blank).
+		//   6. Clear the event name field and type a new name.
+		//   7. Submit the form.
+		//   8. Assert redirect/navigation to /bookings/[id] detail page.
+		//   9. Assert the detail page shows the updated event name.
+		//
+		// NOTE: Replace SEED_BOOKING_ID with the ID of a booking seeded in step 2.
+		// The dev bypass room id is: dev-bypass-room-00000000-0000-0000-0000-000000000001
+
+		await loginViaDevBypass(page);
+
+		// Navigate to /bookings/new to create a test booking for this test
+		// (or use a seeded booking ID if available in CI)
+		// Placeholder: replace with actual booking ID after seeding
+		const SEED_BOOKING_ID = 'REPLACE_WITH_SEEDED_BOOKING_ID';
+
+		// Navigate to detail page
+		await page.goto(`/bookings/${SEED_BOOKING_ID}`, { waitUntil: 'networkidle' });
+
+		// Assert detail page rendered
+		await expect(page.getByRole('heading', { name: /Booking Details/i })).toBeVisible();
+
+		// Click edit button
+		await page.getByRole('link', { name: /Edit/i }).click();
+		await page.waitForURL(`/bookings/${SEED_BOOKING_ID}/edit`, { timeout: 10_000 });
+
+		// Assert edit page rendered
+		await expect(page.getByRole('heading', { name: /Edit Booking/i })).toBeVisible();
+
+		// Assert event name field is pre-filled (not blank)
+		const eventNameInput = page.getByLabel(/Event name/i);
+		await expect(eventNameInput).toBeVisible();
+		const currentValue = await eventNameInput.inputValue();
+		expect(currentValue.length, 'Event name must be pre-filled (not blank)').toBeGreaterThan(0);
+
+		// Update event name
+		await eventNameInput.fill('E2E Updated Event Name 4.7-E2E-001');
+
+		// Submit the form
+		await page.getByRole('button', { name: /Save changes/i }).click();
+
+		// Assert redirect back to detail page
+		await page.waitForURL(`/bookings/${SEED_BOOKING_ID}`, { timeout: 10_000 });
+
+		// Assert updated name is visible on detail page
+		await expect(page.getByText('E2E Updated Event Name 4.7-E2E-001')).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-E2E-002 — organizer cancels booking — confirm modal shown, cancel fires [P1]
+// Activation condition: Task 1.3 (cancelBooking) + Task 2 (detail page + confirm modal) complete.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.7 — Cancel Booking: Confirm Modal and Status Update (AC-2, AC-7)', () => {
+	test.skip('[P1] 4.7-E2E-002 — organizer cancels booking — confirm modal shown before cancel fires; status shown as cancelled after', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /bookings/[id] route and cancel action not yet implemented.
+		// Activate at Task 2 (detail page + confirm modal + cancel action) complete.
+		//
+		// AC-2: cancel sets status='cancelled'; slot freed automatically.
+		// AC-7: UX-DR8 — confirm dialog must be shown BEFORE the cancel mutation fires.
+		//       The confirm action POSTs to ?/cancel. No direct mutation without confirmation.
+		//
+		// Strategy:
+		//   1. Login via dev bypass (organizer session).
+		//   2. Navigate to /bookings/[id] for a seeded active booking.
+		//   3. Click "Cancel booking" button.
+		//   4. Assert confirm modal appears (dialog/overlay with consequences listed).
+		//   5. Click "Yes, cancel booking" in the modal.
+		//   6. Assert the page shows the booking as cancelled (status indicator).
+		//
+		// NOTE: Replace SEED_BOOKING_ID with the ID of an active booking seeded for this test.
+		// The cancel action must not fire without confirmation (UX-DR8 gate).
+
+		await loginViaDevBypass(page);
+
+		const SEED_BOOKING_ID = 'REPLACE_WITH_SEEDED_BOOKING_ID';
+
+		await page.goto(`/bookings/${SEED_BOOKING_ID}`, { waitUntil: 'networkidle' });
+
+		// Assert detail page rendered
+		await expect(page.getByRole('heading', { name: /Booking Details/i })).toBeVisible();
+
+		// Click "Cancel booking" button — must show confirm modal, NOT immediately cancel
+		await page.getByRole('button', { name: /Cancel booking/i }).click();
+
+		// AC-7: confirm modal must appear (UX-DR8)
+		// The modal shows consequences before the destructive action fires
+		await expect(page.getByRole('dialog')).toBeVisible();
+		// The modal body describes consequences
+		await expect(page.getByText(/free the room slot/i)).toBeVisible();
+
+		// Confirm the cancel in the modal
+		await page.getByRole('button', { name: /Yes, cancel booking/i }).click();
+
+		// Assert the booking is now shown as cancelled
+		// (detail page re-renders or redirects showing cancelled status)
+		await expect(page.getByText(/Cancelled/i)).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-E2E-003 — organizer duplicates booking — /bookings/new pre-filled, time blank [P1]
+// Activation condition: Task 5 (?from= pre-fill in /bookings/new load) complete.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.7 — Duplicate Booking: Pre-Fill Form (AC-3)', () => {
+	test.skip('[P1] 4.7-E2E-003 — organizer duplicates booking — lands on /bookings/new with fields pre-filled; startAt/endAt intentionally blank', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /bookings/new?from= pre-fill is not yet implemented.
+		// Activate at Task 5 after the ?from= load logic is added to /bookings/new/+page.server.ts.
+		//
+		// AC-3: Duplicate opens /bookings/new?from=[id] with room, eventName, agenda, catering,
+		//       and registration pre-filled. startAt/endAt intentionally left blank to force the
+		//       user to pick a new time (submitting the old time would conflict with the still-active
+		//       original booking).
+		//
+		// Strategy:
+		//   1. Login via dev bypass (organizer session).
+		//   2. Navigate to /bookings/[id] for a seeded booking with known fields.
+		//   3. Click "Duplicate" button/link.
+		//   4. Assert navigation to /bookings/new?from=[id].
+		//   5. Assert eventName field is pre-filled with the source booking's eventName.
+		//   6. Assert startAt and endAt fields are BLANK (not pre-filled).
+		//   7. Assert the room select is pre-selected to the source room.
+		//
+		// NOTE: Replace SEED_BOOKING_ID with the ID of a known booking.
+		// The Duplicate button is a link: <a href="/bookings/new?from=[id]">Duplicate</a>
+		// No form POST — purely a navigation with query param.
+
+		await loginViaDevBypass(page);
+
+		const SEED_BOOKING_ID = 'REPLACE_WITH_SEEDED_BOOKING_ID';
+		// NOTE: EXPECTED_EVENT_NAME must match the actual eventName of the seeded booking
+		// identified by SEED_BOOKING_ID above. Update both values together during activation.
+		const EXPECTED_EVENT_NAME = 'Source Event Name for Duplicate Test';
+
+		await page.goto(`/bookings/${SEED_BOOKING_ID}`, { waitUntil: 'networkidle' });
+
+		// Click the Duplicate link/button
+		await page.getByRole('link', { name: /Duplicate/i }).click();
+
+		// Assert navigation to /bookings/new?from=...
+		await page.waitForURL(`/bookings/new?from=${SEED_BOOKING_ID}`, { timeout: 10_000 });
+
+		// Assert eventName is pre-filled from source booking
+		const eventNameInput = page.getByLabel(/Event name/i);
+		await expect(eventNameInput).toBeVisible();
+		const eventNameValue = await eventNameInput.inputValue();
+		expect(eventNameValue, 'eventName must be pre-filled from source booking').toBe(
+			EXPECTED_EVENT_NAME
+		);
+
+		// Assert startAt is BLANK (intentionally not pre-filled — user must pick a new time)
+		const startAtInput = page.getByLabel(/Start/i);
+		await expect(startAtInput).toBeVisible();
+		const startAtValue = await startAtInput.inputValue();
+		expect(
+			startAtValue,
+			'startAt must be blank on duplicate (must not conflict with original)'
+		).toBe('');
+
+		// Assert endAt is BLANK
+		const endAtInput = page.getByLabel(/End/i);
+		await expect(endAtInput).toBeVisible();
+		const endAtValue = await endAtInput.inputValue();
+		expect(endAtValue, 'endAt must be blank on duplicate').toBe('');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-E2E-004 — IDOR — non-owner cannot reach edit page (redirect or 403) [P1]
+// Activation condition: Task 3 (edit route) + assertOwner guard on edit load.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.7 — Edit Booking: IDOR Guard (AC-4)', () => {
+	test.skip('[P1] 4.7-E2E-004 — IDOR — non-owner cannot reach edit page (redirected to login or receives 403)', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /bookings/[id]/edit IDOR guard not yet implemented.
+		// Activate at Task 3 after assertOwner is wired in the edit load function.
+		//
+		// AC-4: non-owner must NOT be able to access /bookings/[id]/edit for another user's booking.
+		//       The guard sequence: requireUser + getBookingById + assertOwner(event, booking.organizerId).
+		//       Non-owner → error(403) (SvelteKit HttpError) → browser sees 403 page or redirect.
+		//
+		// Strategy:
+		//   1. Seed booking owned by organizer A (via direct API or dev bypass).
+		//   2. Login as organizer B (a different user — second dev bypass session or different cookie).
+		//   3. Navigate to /bookings/[BOOKING_A_ID]/edit.
+		//   4. Assert the user is NOT on the edit page — expect 403 response or redirect to /calendar.
+		//   5. Page must NOT show the edit form (no eventName input visible).
+		//
+		// NOTE: The dev bypass always creates the SAME organizer session (fixed ID).
+		// To test non-owner access, this test needs two distinct user sessions.
+		// One approach: use page.request.fetch() to hit the endpoint as a different user,
+		// or create a second booking with a different owner ID via direct DB seed and attempt
+		// access. Adjust the approach during activation based on how the auth seam works.
+		//
+		// IDOR template: see tests/integration/idor.test.ts (Story 2.7) for the two-user pattern.
+
+		await loginViaDevBypass(page);
+
+		// Attempt to access an edit page for a booking NOT owned by the dev bypass user
+		// Replace NON_OWNED_BOOKING_ID with the ID of a booking owned by a different user
+		const NON_OWNED_BOOKING_ID = 'REPLACE_WITH_NON_OWNED_BOOKING_ID';
+
+		const response = await page.goto(`/bookings/${NON_OWNED_BOOKING_ID}/edit`, {
+			waitUntil: 'networkidle'
+		});
+
+		// Assert the response is NOT 200 (either 403 or redirect)
+		// SvelteKit error(403) typically returns a 403 status.
+		const status = response?.status();
+		expect(
+			status === 403 || status === 302 || status === 404,
+			`Non-owner must receive 403/302/404 on edit page, got: ${status}`
+		).toBe(true);
+
+		// Assert the edit form is NOT rendered (eventName input must not be visible)
+		const editHeading = page.getByRole('heading', { name: /Edit Booking/i });
+		await expect(editHeading).not.toBeVisible();
+	});
+});
+
+// ===========================================================================
 // STORY 4.5 — Booking Confirmation: Registration Link & QR
 // RED PHASE: All tests are test.skip() — activate task-by-task during implementation
 // ---------------------------------------------------------------------------
@@ -380,6 +641,39 @@ test.describe('Story 4.5 — Confirmation Screen: Registration Enabled (AC-2, AC
 
 		// AC-3: Download QR link present
 		await expect(page.getByRole('link', { name: /Download QR/i })).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.7-A11Y-001 — booking detail page passes axe accessibility scan [P2]
+// Activation condition: Task 2 (detail page) complete and rendering without errors.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.7 — Booking Detail Page: Accessibility (AC-5, NFR-007)', () => {
+	test.skip('[P2] 4.7-A11Y-001 — /bookings/[id] detail page passes axe-core zero WCAG 2.1 AA violations', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /bookings/[id] route is not yet implemented (404).
+		// Activate at Task 2 after the detail page (+page.server.ts + +page.svelte) are created.
+		//
+		// AC-5: /bookings/[id] detail/management page exists.
+		// NFR-007: WCAG 2.1 AA compliance required.
+		// All action buttons (Edit, Cancel, Duplicate) must have accessible labels.
+		// Cancel confirm modal must be accessible.
+
+		await loginViaDevBypass(page);
+
+		const SEED_BOOKING_ID = 'REPLACE_WITH_SEEDED_BOOKING_ID';
+
+		await page.goto(`/bookings/${SEED_BOOKING_ID}`, { waitUntil: 'networkidle' });
+
+		// Assert page renders (not 404)
+		await expect(page.getByRole('heading', { name: /Booking Details/i })).toBeVisible();
+
+		// axe-core scan — zero WCAG 2.1 AA violations
+		const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+
+		expect(results.violations).toEqual([]);
 	});
 });
 
