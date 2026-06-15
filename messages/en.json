@@ -122,5 +122,11 @@
 	"booking_contact_title_label": "Title",
 	"booking_contact_email_label": "Email",
 	"booking_contact_phone_label": "Phone",
-	"booking_contact_org_label": "Organization"
+	"booking_contact_org_label": "Organization",
+	"booking_confirmation_email_subject": "Booking Confirmed: {eventName}",
+	"booking_confirmation_email_greeting": "Dear {name},",
+	"booking_confirmation_email_event_label": "Event:",
+	"booking_confirmation_email_room_label": "Room:",
+	"booking_confirmation_email_time_label": "Time:",
+	"booking_confirmation_email_footer": "This email was sent automatically. Please do not reply."
 }

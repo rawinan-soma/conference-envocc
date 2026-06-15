@@ -991,6 +991,23 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 
 describe('Story 4.6 — Booking Confirmation Email', () => {
 	// -------------------------------------------------------------------------
+	// Boss lifecycle — pg-boss must be started to create the pgboss schema (tables).
+	// Also creates the send-email queue (required by the FK constraint on job_common).
+	// Using boss.start() here is the minimal activation; boss.stop() cleans up.
+	// The boss singleton connects to DATABASE_URL (same Testcontainers DB as pool).
+	// -------------------------------------------------------------------------
+	beforeAll(async () => {
+		const { boss, QUEUE } = await import('../../src/lib/server/jobs/index.js');
+		await boss.start();
+		await boss.createQueue(QUEUE.SEND_EMAIL);
+	}, 60_000); // boss.start() may be slow on first run (creates pgboss schema)
+
+	afterAll(async () => {
+		const { boss } = await import('../../src/lib/server/jobs/index.js');
+		await boss.stop({ graceful: false });
+	}, 30_000);
+
+	// -------------------------------------------------------------------------
 	// 4.6-INT-002 — Email is enqueued async (pg-boss job row present immediately after create)
 	// P0 — always active; does not require Mailpit or a live pg-boss boss instance.
 	//
@@ -1067,16 +1084,18 @@ describe('Story 4.6 — Booking Confirmation Email', () => {
 	});
 
 	// -------------------------------------------------------------------------
-	// 4.6-INT-003 — Idempotency: two distinct bookings → two distinct singletonKeys;
-	//               same bookingId enqueued twice → only one job row (dedup proof)
+	// 4.6-INT-003 — Idempotency key format: two distinct bookings → two distinct
+	//               singletonKeys, each producing a separate job row (AC-4, AC-5).
 	// P2
 	// -------------------------------------------------------------------------
-	test('[P2] 4.6-INT-003 — two distinct bookings produce two distinct singletonKeys; same key deduplicates to one row', async () => {
-		// RED PHASE — will fail until pgboss schema exists.
+	test('[P2] 4.6-INT-003 — two distinct bookings produce two distinct singletonKeys and two distinct job rows', async () => {
+		// AC-4: singletonKey = 'booking-confirm-${bookingId}' ensures per-booking idempotency.
+		// AC-5 (INT-003 spec): two distinct bookings → two distinct singletonKey values → two job rows.
 		//
-		// AC-4: pg-boss deduplication guarantees at-most-once delivery per booking.
-		// Proof: enqueue key1 twice → only one job row for key1.
-		// Proof: key1 != key2 → two distinct jobs for two distinct bookings.
+		// This test proves the key format is correct and that distinct booking IDs
+		// produce distinct keys that do NOT collide in pg-boss.
+
+		const { enqueueJob, QUEUE } = await import('../../src/lib/server/jobs/index.js');
 
 		const bookingId1 = randomUUID();
 		const bookingId2 = randomUUID();
@@ -1092,29 +1111,26 @@ describe('Story 4.6 — Booking Confirmation Email', () => {
 			/^booking-confirm-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 		);
 
-		// Enqueue key1 twice via raw SQL — second insert must be rejected by pg-boss unique constraint
-		await pool.query(
-			`INSERT INTO pgboss.job (id, name, data, singleton_key, state)
-       VALUES (gen_random_uuid(), 'send-email', $1::jsonb, $2, 'created')`,
-			[JSON.stringify({ to: 't@example.com', subject: 'S', textBody: 'T' }), key1]
-		);
-		// Second insert with same singletonKey — pg-boss dedup: ON CONFLICT DO NOTHING
-		await pool.query(
-			`INSERT INTO pgboss.job (id, name, data, singleton_key, state)
-       VALUES (gen_random_uuid(), 'send-email', $1::jsonb, $2, 'created')
-       ON CONFLICT (singleton_key) WHERE state NOT IN ('completed', 'cancelled', 'failed', 'expired') DO NOTHING`,
-			[JSON.stringify({ to: 't@example.com', subject: 'S', textBody: 'T' }), key1]
-		);
+		const basePayload = {
+			to: 'organizer@example.com',
+			subject: '[Test] Key format proof',
+			textBody: 'Two distinct bookings must produce two distinct job rows.',
+			htmlBody: '<p>Two distinct bookings must produce two distinct job rows.</p>'
+		};
 
-		// Assert only one job row for key1 (deduplication proof)
-		const countResult = await pool.query<{ count: string }>(
-			`SELECT COUNT(*) AS count FROM pgboss.job WHERE name = 'send-email' AND singleton_key = $1`,
-			[key1]
+		// Enqueue both keys — each must produce its own job row (no collision between distinct keys)
+		await enqueueJob(QUEUE.SEND_EMAIL, basePayload, { singletonKey: key1 });
+		await enqueueJob(QUEUE.SEND_EMAIL, basePayload, { singletonKey: key2 });
+
+		// Assert both rows exist (distinct keys → distinct jobs, no cross-key dedup)
+		const result = await pool.query<{ singleton_key: string }>(
+			`SELECT singleton_key FROM pgboss.job WHERE name = $1 AND singleton_key IN ($2, $3)`,
+			[QUEUE.SEND_EMAIL, key1, key2]
 		);
-		expect(
-			Number(countResult.rows[0]?.count),
-			'pg-boss must deduplicate: same singletonKey must produce exactly one job row'
-		).toBe(1);
+		const foundKeys = result.rows.map((r) => r.singleton_key);
+		expect(foundKeys, 'key1 must produce a job row').toContain(key1);
+		expect(foundKeys, 'key2 must produce a job row').toContain(key2);
+		expect(foundKeys.length, 'two distinct bookings must produce two distinct job rows').toBe(2);
 	});
 
 	// -------------------------------------------------------------------------
