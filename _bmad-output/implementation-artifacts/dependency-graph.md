@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-15T22:30:00+07:00 (phase 0 reconcile: 5.1 PR #127 CLOSED → replaced by PR #128 OPEN — same branch/content, closed to clear GitGuardian cached incident; worktree active)_
+_Last updated: 2026-06-15T23:00:00+07:00 (phase 0 reconcile: PR #128 (5.1) CONFIRMED MERGED — 5.1 → done; 5.2 now Ready to Work)_
 
 ## Stories
 
@@ -33,14 +33,14 @@ _Last updated: 2026-06-15T22:30:00+07:00 (phase 0 reconcile: 5.1 PR #127 CLOSED 
 | 4.6 | 4 | Booking confirmation email | done | #26 | #124 | merged | 4.4 | ✅ Yes (done) |
 | 4.7 | 4 | Edit, cancel, and duplicate a booking | done | #27 | #125 | merged | 4.4 | ✅ Yes (done) |
 | 4.8 | 4 | Organizer dashboard | done | #28 | #126 | merged | 4.4, 4.5 | ✅ Yes (done) |
-| 5.1 | 5 | Branded public registration page | review | #29 | #128 | open | epic 4 complete | ✅ Yes |
-| 5.2 | 5 | Submit a registration | backlog | #30 | — | — | 5.1 | ❌ No (5.1 not merged) |
-| 5.3 | 5 | Confirmation email with self-cancel link | backlog | #31 | — | — | 5.2 | ❌ No (5.1 not merged) |
-| 5.4 | 5 | Self-cancel a registration | backlog | #32 | — | — | 5.3 | ❌ No (5.1 not merged) |
-| 5.5 | 5 | Resend a lost link | backlog | #33 | — | — | 5.3 | ❌ No (5.1 not merged) |
-| 5.6 | 5 | Registration open/close rules | backlog | #34 | — | — | 5.2 | ❌ No (5.1 not merged) |
-| 5.7 | 5 | Catering aggregation | backlog | #35 | — | — | 5.2 | ❌ No (5.1 not merged) |
-| 5.8 | 5 | Registrant list & dashboard headcount | backlog | #36 | — | — | 5.2 | ❌ No (5.1 not merged) |
+| 5.1 | 5 | Branded public registration page | done | #29 | #128 | merged | epic 4 complete | ✅ Yes (done) |
+| 5.2 | 5 | Submit a registration | backlog | #30 | — | — | 5.1 | ✅ Yes |
+| 5.3 | 5 | Confirmation email with self-cancel link | backlog | #31 | — | — | 5.2 | ❌ No (5.2 not merged) |
+| 5.4 | 5 | Self-cancel a registration | backlog | #32 | — | — | 5.3 | ❌ No (5.2 not merged) |
+| 5.5 | 5 | Resend a lost link | backlog | #33 | — | — | 5.3 | ❌ No (5.2 not merged) |
+| 5.6 | 5 | Registration open/close rules | backlog | #34 | — | — | 5.2 | ❌ No (5.2 not merged) |
+| 5.7 | 5 | Catering aggregation | backlog | #35 | — | — | 5.2 | ❌ No (5.2 not merged) |
+| 5.8 | 5 | Registrant list & dashboard headcount | backlog | #36 | — | — | 5.2 | ❌ No (5.2 not merged) |
 | 6.1 | 6 | Sign-in sheet PDF | backlog | #37 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
 | 6.2 | 6 | One-day reminder sweeper | backlog | #38 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
 | 6.3 | 6 | Cancellation notifies attendees | backlog | #39 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
@@ -92,7 +92,7 @@ _Last updated: 2026-06-15T22:30:00+07:00 (phase 0 reconcile: 5.1 PR #127 CLOSED 
 - **4.8** depends on: 4.4, 4.5 ✅ **DONE (PR #126 merged)**
 
 ### Epic 5 (requires epic 4 complete)
-- **5.1** depends on: epic 4 complete — PR #128 OPEN (review; PR #127 closed — replaced to clear GitGuardian cached incident)
+- **5.1** depends on: epic 4 complete ✅ **DONE (PR #128 merged 2026-06-15T14:38:49Z)**
 - **5.2** depends on: 5.1
 - **5.3** depends on: 5.2
 - **5.4** depends on: 5.3
@@ -135,8 +135,8 @@ _Last updated: 2026-06-15T22:30:00+07:00 (phase 0 reconcile: 5.1 PR #127 CLOSED 
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 (done PR #116). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is now active — story 5.1 (Branded public registration page) is in `review` status with PR #128 OPEN (PR #127 was closed and replaced by PR #128 — same branch/content, done to clear a GitGuardian cached incident). Worktree `story-5.1-branded-public-registration-page` is active. Stories 5.2–5.8 all depend on 5.1 merging before they can begin.
+**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is now active — story 5.1 (Branded public registration page) is **DONE** (PR #128 merged 2026-06-15T14:38:49Z). Story 5.2 is now Ready to Work. No active worktrees.
 
-**Current bottleneck:** Story 5.1 is the gate for all of epic 5. Once PR #128 merges, stories 5.2, 5.6, 5.7, and 5.8 unblock in parallel.
+**Current bottleneck:** Story 5.2 is the gate for 5.3/5.6/5.7/5.8 in parallel. Stories 5.4 and 5.5 require 5.3.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
