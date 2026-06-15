@@ -1730,14 +1730,39 @@ describe('Story 4.8 — Dashboard Query: Organizer Scope + IDOR Boundary (AC-1, 
 			'Each row must include roomName (joined from rooms table)'
 		).toBeTruthy();
 
-		// Assert ascending order by start time
-		if (result.length > 1) {
-			for (let i = 1; i < result.length; i++) {
-				// during is a tstzrange string — lower() extracts start
-				// If there are multiple results, just assert the array is non-empty (start ordering
-				// is verified at DB level; the functional correctness here is scoping).
-				expect(result[i - 1], 'rows must be present and ordered').toBeDefined();
-			}
+		// Assert ascending order by start time.
+		// Seed a second orgA booking (later slot) so the ORDER BY can be exercised with
+		// two rows.  We insert it after result is already fetched — so we need a second
+		// query to test ordering.  Re-fetch with both bookings present:
+		const client2 = await pool.connect();
+		try {
+			await client2.query(
+				`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 OrgA Event INT-001 B',
+                   tstzrange('2027-01-10 14:00:00+00'::timestamptz, '2027-01-10 15:00:00+00'::timestamptz, '[)'),
+                   'active')`,
+				[roomId, orgA]
+			);
+		} finally {
+			client2.release();
+		}
+
+		const { parseTstzrange } = await import('../../src/lib/utils/tstzrange.js');
+		const resultOrdered = await getUpcomingBookingsByOrganizer(orgA);
+		const orgAOrdered = resultOrdered.filter((r) => r.organizerId === orgA);
+		expect(
+			orgAOrdered.length,
+			'orgA should have 2 bookings for ordering check'
+		).toBeGreaterThanOrEqual(2);
+		for (let i = 1; i < orgAOrdered.length; i++) {
+			const prev = parseTstzrange(orgAOrdered[i - 1].during);
+			const curr = parseTstzrange(orgAOrdered[i].during);
+			expect(prev, 'previous row during must be parseable').not.toBeNull();
+			expect(curr, 'current row during must be parseable').not.toBeNull();
+			expect(
+				prev!.lower.getTime(),
+				'rows must be ordered ascending by lower(during)'
+			).toBeLessThanOrEqual(curr!.lower.getTime());
 		}
 	});
 });
