@@ -204,7 +204,7 @@ describe('Story 5.1 — Valid Token Resolves Event Data (AC-1, FR-040)', () => {
 		const { getBookingByRegistrationToken } =
 			await import('../../src/lib/server/db/queries/bookings.js');
 
-		const token = `5-1-int-001-${randomUUID().replace(/-/g, '')}`;
+		const regSlug = `5-1-int-001-${randomUUID().replace(/-/g, '')}`;
 		const eventName = 'ATDD Test Event 5.1-INT-001';
 		const agenda = 'Opening remarks. Keynote. Lunch.';
 
@@ -223,7 +223,7 @@ describe('Story 5.1 — Valid Token Resolves Event Data (AC-1, FR-040)', () => {
 				organizerId,
 				roomId,
 				eventName,
-				token,
+				token: regSlug,
 				registrationEnabled: true,
 				agenda
 			});
@@ -231,7 +231,7 @@ describe('Story 5.1 — Valid Token Resolves Event Data (AC-1, FR-040)', () => {
 			client.release();
 		}
 
-		const result = await getBookingByRegistrationToken(token);
+		const result = await getBookingByRegistrationToken(regSlug);
 
 		// AC-1: result must not be null — token found
 		expect(result, '5.1-INT-001: valid token must resolve to a booking row').not.toBeNull();
@@ -285,8 +285,8 @@ describe('Story 5.1 — IDOR Guard: Invalid Token Returns Null (AC-3, R-001 BLOC
 		const { getBookingByRegistrationToken } =
 			await import('../../src/lib/server/db/queries/bookings.js');
 
-		const tokenA = `5-1-idor-001-owner-a-${randomUUID().replace(/-/g, '')}`;
-		const tokenB = `5-1-idor-001-owner-b-${randomUUID().replace(/-/g, '')}`;
+		const regSlugA = `5-1-idor-001-owner-a-${randomUUID().replace(/-/g, '')}`;
+		const regSlugB = `5-1-idor-001-owner-b-${randomUUID().replace(/-/g, '')}`;
 		const eventNameA = 'IDOR Test Event — Owner A (SHOULD NOT LEAK)';
 		const eventNameB = 'IDOR Test Event — Owner B';
 
@@ -300,7 +300,7 @@ describe('Story 5.1 — IDOR Guard: Invalid Token Returns Null (AC-3, R-001 BLOC
 				organizerId: userIdA,
 				roomId: roomIdA,
 				eventName: eventNameA,
-				token: tokenA,
+				token: regSlugA,
 				slotStart: '2026-09-01 09:00:00+00',
 				slotEnd: '2026-09-01 10:00:00+00'
 			});
@@ -313,7 +313,7 @@ describe('Story 5.1 — IDOR Guard: Invalid Token Returns Null (AC-3, R-001 BLOC
 				organizerId: userIdB,
 				roomId: roomIdB,
 				eventName: eventNameB,
-				token: tokenB,
+				token: regSlugB,
 				slotStart: '2026-09-02 09:00:00+00',
 				slotEnd: '2026-09-02 10:00:00+00'
 			});
@@ -321,9 +321,9 @@ describe('Story 5.1 — IDOR Guard: Invalid Token Returns Null (AC-3, R-001 BLOC
 			client.release();
 		}
 
-		// tokenB is a valid seeded token — it MUST resolve to bookingB (not null).
+		// regSlugB is a valid seeded slug — it MUST resolve to bookingB (not null).
 		// A null result here would mean the WHERE clause is broken, not that isolation works.
-		const result = await getBookingByRegistrationToken(tokenB);
+		const result = await getBookingByRegistrationToken(regSlugB);
 
 		// R-001 BLOCK (mandatory): tokenB must resolve to bookingB — proves the WHERE clause works
 		expect(
@@ -374,7 +374,7 @@ describe('Story 5.1 — Closed Registration Shows Closed Flag (AC-2)', () => {
 		const { getBookingByRegistrationToken } =
 			await import('../../src/lib/server/db/queries/bookings.js');
 
-		const token = `5-1-int-002-${randomUUID().replace(/-/g, '')}`;
+		const regSlug = `5-1-int-002-${randomUUID().replace(/-/g, '')}`;
 		const eventName = 'ATDD Test Event 5.1-INT-002 (Closed)';
 
 		const client = await pool.connect();
@@ -386,7 +386,7 @@ describe('Story 5.1 — Closed Registration Shows Closed Flag (AC-2)', () => {
 				organizerId,
 				roomId,
 				eventName,
-				token,
+				token: regSlug,
 				registrationEnabled: false,
 				slotStart: '2026-08-05 14:00:00+00',
 				slotEnd: '2026-08-05 15:00:00+00'
@@ -395,7 +395,7 @@ describe('Story 5.1 — Closed Registration Shows Closed Flag (AC-2)', () => {
 			client.release();
 		}
 
-		const result = await getBookingByRegistrationToken(token);
+		const result = await getBookingByRegistrationToken(regSlug);
 
 		// Result must not be null — token found
 		expect(result, '5.1-INT-002: token must still resolve a closed booking').not.toBeNull();
@@ -432,7 +432,7 @@ describe('Story 5.1 — No Agenda Hides Section (AC-4)', () => {
 		const { getBookingByRegistrationToken } =
 			await import('../../src/lib/server/db/queries/bookings.js');
 
-		const token = `5-1-int-003-${randomUUID().replace(/-/g, '')}`;
+		const regSlug = `5-1-int-003-${randomUUID().replace(/-/g, '')}`;
 		const eventName = 'ATDD Test Event 5.1-INT-003 (No Agenda)';
 
 		const client = await pool.connect();
@@ -444,7 +444,7 @@ describe('Story 5.1 — No Agenda Hides Section (AC-4)', () => {
 				organizerId,
 				roomId,
 				eventName,
-				token,
+				token: regSlug,
 				agenda: null,
 				slotStart: '2026-08-10 09:00:00+00',
 				slotEnd: '2026-08-10 10:00:00+00'
@@ -453,7 +453,7 @@ describe('Story 5.1 — No Agenda Hides Section (AC-4)', () => {
 			client.release();
 		}
 
-		const result = await getBookingByRegistrationToken(token);
+		const result = await getBookingByRegistrationToken(regSlug);
 
 		expect(result).not.toBeNull();
 		if (!result) return;
@@ -484,10 +484,10 @@ describe('Story 5.1 — Non-Existent Token Returns Null (AC-3)', () => {
 		const { getBookingByRegistrationToken } =
 			await import('../../src/lib/server/db/queries/bookings.js');
 
-		// Token that should not exist
-		const nonExistentToken = `definitely-not-a-real-token-${randomUUID()}`;
+		// Slug that should not exist
+		const missingSlug = `definitely-not-a-real-token-${randomUUID()}`;
 
-		const result = await getBookingByRegistrationToken(nonExistentToken);
+		const result = await getBookingByRegistrationToken(missingSlug);
 
 		// AC-3: must return null, never throw
 		expect(result).toBeNull();
