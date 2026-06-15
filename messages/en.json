@@ -158,5 +158,15 @@
 	"booking_status_active": "Active",
 	"booking_status_cancelled": "Cancelled",
 	"booking_value_yes": "Yes",
-	"booking_value_no": "No"
+	"booking_value_no": "No",
+
+	"dashboard_manage_button": "Manage",
+	"dashboard_title": "My Bookings",
+	"dashboard_empty_title": "No upcoming bookings",
+	"dashboard_empty_cta": "Book a room",
+	"dashboard_registrant_count_label": "Registrants",
+	"dashboard_registrant_count_placeholder": "—",
+	"dashboard_copy_link_success": "Link copied",
+	"dashboard_booking_card_room_label": "Room",
+	"dashboard_booking_card_time_label": "Time"
 }
