@@ -10,7 +10,7 @@
  *   AC-1: returns per-room bookings for the week; deactivated rooms absent
  *   AC-2: GiST index on bookings(during) is usable for range-overlap query (R-007)
  */
-import { asc, eq, sql } from 'drizzle-orm';
+import { asc, eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { db } from '../index.js';
 import { bookings } from '../schema/bookings.js';
@@ -82,4 +82,53 @@ export async function getWeekCalendar(weekStart: Date): Promise<WeekCalendarRow[
 		room,
 		bookings: byRoom.get(room.id) ?? []
 	}));
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard query — Story 4.8
+// ---------------------------------------------------------------------------
+
+/**
+ * Extended booking row that includes the joined room name.
+ * Avoids N+1 fetches for room names on the dashboard.
+ *
+ * Story 4.8 AC-1 (FR-050): Only the requesting organizer's upcoming non-cancelled
+ * bookings are returned. IDOR boundary is enforced here in the DB query itself.
+ */
+export type UpcomingBookingRow = Booking & { roomName: string };
+
+/**
+ * Returns all upcoming, non-cancelled bookings for a specific organizer, ordered
+ * by start time ascending (lower(during) ASC).
+ *
+ * Filters:
+ *   - organizerId = organizerId            (IDOR boundary — enforced in query)
+ *   - status != 'cancelled'                (AC-1)
+ *   - upper(during) >= now()               (upcoming only — AC-1)
+ *
+ * JOIN: bookings INNER JOIN rooms ON roomId = rooms.id  (provides roomName — AC-2)
+ *
+ * NOTE: An index on bookings(organizer_id) may be needed if NFR-003 (<3s load)
+ * is at risk under production load. Do NOT add a migration without measuring.
+ *
+ * @param organizerId - The authenticated organizer's user ID
+ */
+export async function getUpcomingBookingsByOrganizer(
+	organizerId: string
+): Promise<UpcomingBookingRow[]> {
+	const rows = await db
+		.select({
+			...getTableColumns(bookings), // all booking columns (avoids column ambiguity in JOIN)
+			roomName: rooms.name // extra field from rooms table
+		})
+		.from(bookings)
+		.innerJoin(rooms, eq(bookings.roomId, rooms.id))
+		.where(
+			sql`${bookings.organizerId} = ${organizerId}
+          AND ${bookings.status} != 'cancelled'
+          AND upper(${bookings.during}) >= now()`
+		)
+		.orderBy(sql`lower(${bookings.during}) asc`);
+
+	return rows;
 }
