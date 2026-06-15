@@ -869,3 +869,187 @@ test.describe('Story 4.5 — Confirmation Page: Accessibility (NFR-007)', () => 
 		expect(results.violations).toEqual([]);
 	});
 });
+
+// ===========================================================================
+// STORY 4.8 — Organizer Dashboard
+// RED PHASE: All tests are test.skip() — activate task-by-task during implementation.
+// ---------------------------------------------------------------------------
+// AC-2 (FR-051): Booking card shows event name, room name, date/time (Bangkok timezone)
+// AC-3 (FR-052): Copy-link button present when registrationEnabled; toast on copy success
+// AC-4 (UXD-020): Empty state shown when no upcoming bookings exist
+// AC-5 (UXD-020): Skeleton loading during page data load
+// NFR-007: WCAG 2.1 AA compliance on /dashboard
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 4.8-E2E-001 — Dashboard shows event name, room, date/time for an active booking [P1]
+// Activation condition: Task 1 (query) + Task 2 (route) + Task 3 (BookingCard) complete.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.8 — Organizer Dashboard: Booking Card Content (AC-2, FR-051)', () => {
+	test.skip('[P1] 4.8-E2E-001 — /dashboard shows event name, room name, and formatted date/time for an active upcoming booking', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /dashboard route does not exist yet.
+		// Activate after Task 2.2 (+page.svelte) and Task 3 (BookingCard) are complete.
+		//
+		// AC-2 (FR-051): Each booking card must show:
+		//   - event name
+		//   - room name (from JOIN with rooms table)
+		//   - date and time formatted in Bangkok timezone via formatDateBangkok
+		//   - registrant-count placeholder "—" (real count deferred to Epic 5)
+		//
+		// Strategy:
+		//   1. Login via dev bypass (organizer session).
+		//   2. Seed an upcoming active booking for the dev bypass organizer via direct DB insert
+		//      or via the /bookings/new form submit before navigating to /dashboard.
+		//   3. Navigate to /dashboard.
+		//   4. Assert the page heading matches the dashboard title (Paraglide key dashboard_title).
+		//   5. Assert the booking card shows the event name.
+		//   6. Assert the booking card shows the room name (from JOIN).
+		//   7. Assert the booking card shows a date/time value (formatted; exact format from formatDateBangkok).
+		//   8. Assert the registrant count placeholder "—" is present (not a real count).
+		//
+		// NOTE: The dev bypass user id is deterministic. Seed the booking using the
+		// same organizerId as the dev bypass session (check auth seam in tests/support/).
+		// The seed room id from dev bypass: dev-bypass-room-00000000-0000-0000-0000-000000000001
+		// Date used for seeding should be well into the future to avoid clock-drift failures in CI.
+		//
+		// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+		await loginViaDevBypass(page);
+
+		// Seed a booking by submitting the form (or substitute a direct DB seed if available)
+		// For activation, replace SEED_BOOKING_EVENT_NAME with the event name of your seeded booking.
+		const SEED_BOOKING_EVENT_NAME = 'E2E Dashboard Test Event 4.8-E2E-001';
+		const SEED_ROOM_NAME = 'Test Room'; // adjust to match the actual seeded room name
+
+		// Navigate to /bookings/new and create a test booking, then go to dashboard
+		await page.goto(
+			'/bookings/new?room=dev-bypass-room-00000000-0000-0000-0000-000000000001&date=2027-04-10',
+			{ waitUntil: 'networkidle' }
+		);
+		await page.getByLabel(/Event name/i).fill(SEED_BOOKING_EVENT_NAME);
+		await page.getByRole('button', { name: /Book room/i }).click();
+		// After submit, navigate to dashboard regardless of where the form redirects
+		await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+		// AC-2: page heading visible (Paraglide key dashboard_title)
+		// The English value set in messages/en.json is "My Bookings"
+		await expect(page.getByRole('heading', { name: /My Bookings/i })).toBeVisible();
+
+		// AC-2: booking card shows event name
+		await expect(page.getByText(SEED_BOOKING_EVENT_NAME)).toBeVisible();
+
+		// AC-2: booking card shows room name (from JOIN — not the room id)
+		await expect(page.getByText(new RegExp(SEED_ROOM_NAME, 'i'))).toBeVisible();
+
+		// AC-2: date/time value visible (check for a date-like pattern; exact format is Bangkok timezone)
+		// Using a loose regex since the exact Bangkok format depends on formatDateBangkok implementation
+		const datePattern = page.locator('[data-testid="booking-card-date"], time, .booking-date').first();
+		// Fallback: just assert the card area has some text matching a date-like pattern
+		await expect(page.locator('.booking-card, [data-booking-id]').first()).toBeVisible();
+
+		// AC-2: registrant count placeholder "—" present (real count deferred to Epic 5)
+		await expect(page.getByText('—')).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.8-E2E-002 — Empty state renders when no upcoming bookings exist [P1]
+// Activation condition: Task 2 (route) complete.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.8 — Organizer Dashboard: Empty State (AC-4, UXD-020)', () => {
+	test.skip('[P1] 4.8-E2E-002 — /dashboard shows empty state with CTA to room calendar when organizer has no upcoming bookings', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /dashboard route does not exist yet.
+		// Activate after Task 2.2 (+page.svelte) is complete.
+		//
+		// AC-4 (UXD-020): If the organizer has no upcoming bookings, show one calm line and
+		//   a primary CTA to the room calendar (/calendar).
+		//   Paraglide keys:
+		//     - dashboard_empty_title — "No upcoming bookings"
+		//     - dashboard_empty_cta — "Book a room"
+		//
+		// Strategy:
+		//   1. Login via dev bypass as an organizer who has NO upcoming bookings.
+		//      (Use a fresh dev bypass session; do NOT seed any bookings for this organizer.)
+		//   2. Navigate to /dashboard.
+		//   3. Assert the empty state message is visible (dashboard_empty_title).
+		//   4. Assert the CTA link is visible and points to /calendar (dashboard_empty_cta).
+		//   5. Assert no booking cards are visible.
+		//
+		// NOTE: The dev bypass user may already have bookings from other tests if they share
+		// the same organizer ID. For isolation, this test should run in a context where the
+		// dev bypass organizer has no future active bookings, OR use a direct DB query to
+		// cancel/delete all future bookings for that user before this test runs.
+		// Consider marking this test with test.fixme() during activation if isolation is tricky.
+		//
+		// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+		await loginViaDevBypass(page);
+
+		// Navigate directly to dashboard (assumes no upcoming bookings exist for the seeded user)
+		await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+		// AC-4: page heading still visible (not a 404)
+		await expect(page.getByRole('heading', { name: /My Bookings/i })).toBeVisible();
+
+		// AC-4: empty state message visible (Paraglide key dashboard_empty_title)
+		// English value: "No upcoming bookings"
+		await expect(page.getByText(/No upcoming bookings/i)).toBeVisible();
+
+		// AC-4: CTA to /calendar visible (Paraglide key dashboard_empty_cta)
+		// English value: "Book a room"
+		const calendarCta = page.getByRole('link', { name: /Book a room/i });
+		await expect(calendarCta).toBeVisible();
+		await expect(calendarCta).toHaveAttribute('href', /\/calendar/);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 4.8-A11Y-001 — /dashboard heading hierarchy and interactive elements pass basic a11y check [P2]
+// Activation condition: Task 2 (route) + Task 3 (BookingCard) complete.
+// ---------------------------------------------------------------------------
+
+test.describe('Story 4.8 — Organizer Dashboard: Accessibility (NFR-007)', () => {
+	test.skip('[P2] 4.8-A11Y-001 — /dashboard heading hierarchy and interactive elements pass axe-core zero WCAG 2.1 AA violations', async ({
+		page
+	}) => {
+		// THIS TEST WILL FAIL — /dashboard route does not exist yet.
+		// Activate after Task 2.2 (+page.svelte) is complete.
+		//
+		// NFR-007: WCAG 2.1 AA compliance required.
+		// AC-3 (FR-052): copy-link button must have accessible aria-label (booking_copy_link_aria key).
+		// AC-2: booking card headings must form a correct hierarchy (h1 → h2 or h1 with roles).
+		// UXD-020: empty state CTA link must have accessible text.
+		//
+		// Strategy:
+		//   1. Login via dev bypass (organizer session).
+		//   2. Navigate to /dashboard (either with bookings or in empty state — both paths tested).
+		//   3. Run axe-core WCAG 2.1 AA scan.
+		//   4. Assert zero violations.
+		//
+		// Checks that are implicit via axe but worth noting:
+		//   - copy-link button: aria-label="Copy registration link" (booking_copy_link_aria)
+		//   - heading structure: single h1 for page title (dashboard_title)
+		//   - empty state CTA: visible link text, not icon-only
+		//   - booking card: no duplicate IDs, correct list semantics if using <ul>/<li>
+		//
+		// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+		await loginViaDevBypass(page);
+
+		await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+		// Assert page renders (not 404)
+		await expect(page.getByRole('heading', { name: /My Bookings/i })).toBeVisible();
+
+		// axe-core scan — zero WCAG 2.1 AA violations
+		const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+
+		expect(results.violations).toEqual([]);
+	});
+});

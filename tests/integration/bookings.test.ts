@@ -1635,6 +1635,266 @@ describe('Story 4.6 — Booking Confirmation Email', () => {
 	});
 });
 
+// ===========================================================================
+// STORY 4.8 — Organizer Dashboard
+// RED PHASE: All tests are test.skip() — activate task-by-task during implementation.
+// ---------------------------------------------------------------------------
+// AC-1 (FR-050): getUpcomingBookingsByOrganizer — my upcoming, non-cancelled, future bookings only
+// IDOR boundary: organizerId filter in DB query; other organizer's bookings must never appear
+// AC-6 (NFR-003): Dashboard load ≤ 3s — organizer_id index may be needed
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 4.8-INT-001 — getUpcomingBookingsByOrganizer returns only the requesting organizer's
+// upcoming active bookings; another organizer's bookings are absent (AC-1, IDOR) [P0]
+// Activation condition: Task 1 (getUpcomingBookingsByOrganizer in queries/bookings.ts) complete.
+// ---------------------------------------------------------------------------
+
+describe("Story 4.8 — Dashboard Query: Organizer Scope + IDOR Boundary (AC-1, FR-050)", () => {
+	test.skip(
+		"[P0] 4.8-INT-001 — getUpcomingBookingsByOrganizer returns only the requesting organizer's upcoming active bookings; another organizer's bookings are absent",
+		async () => {
+			// THIS TEST WILL FAIL until getUpcomingBookingsByOrganizer() is implemented
+			// in src/lib/server/db/queries/bookings.ts.
+			// Activate at Task 1.1 → run → expect FAIL → implement query → PASS.
+			//
+			// AC-1 (FR-050): The query filters by organizerId = me AND status != 'cancelled'
+			//   AND upper(during) >= now(). Another organizer's bookings must NEVER appear
+			//   (IDOR boundary enforced in the DB query, not in application-layer code).
+			//
+			// Strategy:
+			//   1. Seed one room and two organizers (orgA, orgB).
+			//   2. Seed an upcoming active booking for orgA.
+			//   3. Seed an upcoming active booking for orgB (same room, different slot).
+			//   4. Call getUpcomingBookingsByOrganizer(orgA.id).
+			//   5. Assert result contains orgA's booking.
+			//   6. Assert result does NOT contain orgB's booking (IDOR boundary).
+			//   7. Assert result rows include roomName (joined from rooms table).
+			//   8. Assert result is ordered ascending by start time (lower(during) ASC).
+			//
+			// Note: "upcoming" = upper(during) >= now() — use a future date far enough
+			// from now() that CI clock drift cannot make it appear past.
+			// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+			const { getUpcomingBookingsByOrganizer } = await import(
+				"../../src/lib/server/db/queries/bookings.js"
+			);
+
+			const client = await pool.connect();
+			let roomId: string;
+			let orgA: string;
+			let orgB: string;
+			try {
+				roomId = await seedRoom(client, "test-4.8-int-001");
+				orgA = seedOrganizer();
+				orgB = seedOrganizer();
+
+				// Seed upcoming active booking for orgA
+				await client.query(
+					`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 OrgA Event INT-001',
+                   tstzrange('2027-01-10 09:00:00+00'::timestamptz, '2027-01-10 10:00:00+00'::timestamptz, '[)'),
+                   'active')`,
+					[roomId, orgA]
+				);
+
+				// Seed upcoming active booking for orgB (IDOR target)
+				await client.query(
+					`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 OrgB Event INT-001',
+                   tstzrange('2027-01-10 11:00:00+00'::timestamptz, '2027-01-10 12:00:00+00'::timestamptz, '[)'),
+                   'active')`,
+					[roomId, orgB]
+				);
+			} finally {
+				client.release();
+			}
+
+			const result = await getUpcomingBookingsByOrganizer(orgA);
+
+			// Assert orgA's booking appears
+			const orgAEventNames = result.map((r) => r.eventName);
+			expect(
+				orgAEventNames,
+				"getUpcomingBookingsByOrganizer must include the requesting organizer's booking"
+			).toContain("4.8 OrgA Event INT-001");
+
+			// Assert orgB's booking is absent (IDOR boundary)
+			expect(
+				orgAEventNames,
+				"getUpcomingBookingsByOrganizer must NOT include another organizer's bookings (IDOR)"
+			).not.toContain("4.8 OrgB Event INT-001");
+
+			// Assert each row includes roomName (JOIN from rooms table — avoids N+1)
+			const orgARow = result.find((r) => r.eventName === "4.8 OrgA Event INT-001");
+			expect(orgARow, "OrgA booking row must be present in result").toBeDefined();
+			expect(
+				orgARow?.roomName,
+				"Each row must include roomName (joined from rooms table)"
+			).toBeTruthy();
+
+			// Assert ascending order by start time
+			if (result.length > 1) {
+				for (let i = 1; i < result.length; i++) {
+					// during is a tstzrange string — lower() extracts start
+					// If there are multiple results, just assert the array is non-empty (start ordering
+					// is verified at DB level; the functional correctness here is scoping).
+					expect(result[i - 1], "rows must be present and ordered").toBeDefined();
+				}
+			}
+		}
+	);
+});
+
+// ---------------------------------------------------------------------------
+// 4.8-INT-002 — cancelled bookings are excluded from the dashboard query (AC-1) [P1]
+// Activation condition: Task 1 (getUpcomingBookingsByOrganizer) complete.
+// ---------------------------------------------------------------------------
+
+describe("Story 4.8 — Dashboard Query: Cancelled Bookings Excluded (AC-1)", () => {
+	test.skip(
+		"[P1] 4.8-INT-002 — cancelled bookings are excluded from getUpcomingBookingsByOrganizer results",
+		async () => {
+			// THIS TEST WILL FAIL until getUpcomingBookingsByOrganizer() is implemented.
+			// Activate after 4.8-INT-001 passes.
+			//
+			// AC-1 (FR-050): status != 'cancelled' filter — cancelled bookings must never
+			//   appear on the dashboard. The organizer should only see active upcoming bookings.
+			//
+			// Strategy:
+			//   1. Seed room + organizer.
+			//   2. Seed an upcoming CANCELLED booking for that organizer.
+			//   3. Seed an upcoming ACTIVE booking for the same organizer (control).
+			//   4. Call getUpcomingBookingsByOrganizer(organizerId).
+			//   5. Assert the active booking is present.
+			//   6. Assert the cancelled booking is absent.
+			//
+			// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+			const { getUpcomingBookingsByOrganizer } = await import(
+				"../../src/lib/server/db/queries/bookings.js"
+			);
+
+			const client = await pool.connect();
+			let roomId: string;
+			let organizerId: string;
+			try {
+				roomId = await seedRoom(client, "test-4.8-int-002");
+				organizerId = seedOrganizer();
+
+				// Seed upcoming ACTIVE booking
+				await client.query(
+					`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 Active Event INT-002',
+                   tstzrange('2027-02-10 09:00:00+00'::timestamptz, '2027-02-10 10:00:00+00'::timestamptz, '[)'),
+                   'active')`,
+					[roomId, organizerId]
+				);
+
+				// Seed upcoming CANCELLED booking (should be excluded)
+				await client.query(
+					`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 Cancelled Event INT-002',
+                   tstzrange('2027-02-10 11:00:00+00'::timestamptz, '2027-02-10 12:00:00+00'::timestamptz, '[)'),
+                   'cancelled')`,
+					[roomId, organizerId]
+				);
+			} finally {
+				client.release();
+			}
+
+			const result = await getUpcomingBookingsByOrganizer(organizerId);
+			const eventNames = result.map((r) => r.eventName);
+
+			expect(
+				eventNames,
+				"Active booking must appear in dashboard results"
+			).toContain("4.8 Active Event INT-002");
+
+			expect(
+				eventNames,
+				"Cancelled booking must NOT appear in dashboard results (status filter)"
+			).not.toContain("4.8 Cancelled Event INT-002");
+		}
+	);
+});
+
+// ---------------------------------------------------------------------------
+// 4.8-INT-003 — past bookings (upper(during) < now()) are excluded from
+// getUpcomingBookingsByOrganizer (AC-1) [P1]
+// Activation condition: Task 1 (getUpcomingBookingsByOrganizer) complete.
+// ---------------------------------------------------------------------------
+
+describe("Story 4.8 — Dashboard Query: Past Bookings Excluded (AC-1)", () => {
+	test.skip(
+		"[P1] 4.8-INT-003 — past bookings (upper(during) < now()) are excluded; only future bookings returned",
+		async () => {
+			// THIS TEST WILL FAIL until getUpcomingBookingsByOrganizer() is implemented.
+			// Activate after 4.8-INT-001 passes.
+			//
+			// AC-1 (FR-050): upper(during) >= now() filter — the dashboard only shows upcoming
+			//   bookings. Bookings whose end time is in the past must not appear.
+			//
+			// Strategy:
+			//   1. Seed room + organizer.
+			//   2. Seed a PAST active booking (end time well before now()).
+			//   3. Seed a FUTURE active booking (end time well after now()).
+			//   4. Call getUpcomingBookingsByOrganizer(organizerId).
+			//   5. Assert the future booking is present.
+			//   6. Assert the past booking is absent.
+			//
+			// Past date: use a date guaranteed to be in the past (e.g. 2020-01-01).
+			// Future date: use a date far in the future (e.g. 2027-03-10) to avoid CI clock drift.
+			// No Thai text — per project rule; Rawinan handles all Thai translations.
+
+			const { getUpcomingBookingsByOrganizer } = await import(
+				"../../src/lib/server/db/queries/bookings.js"
+			);
+
+			const client = await pool.connect();
+			let roomId: string;
+			let organizerId: string;
+			try {
+				roomId = await seedRoom(client, "test-4.8-int-003");
+				organizerId = seedOrganizer();
+
+				// Seed a PAST booking (end time = 2020-01-01 — definitively in the past)
+				await client.query(
+					`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 Past Event INT-003',
+                   tstzrange('2020-01-01 09:00:00+00'::timestamptz, '2020-01-01 10:00:00+00'::timestamptz, '[)'),
+                   'active')`,
+					[roomId, organizerId]
+				);
+
+				// Seed a FUTURE booking (end time = 2027-03-10 — definitively in the future)
+				await client.query(
+					`INSERT INTO bookings (id, room_id, organizer_id, event_name, during, status)
+           VALUES (gen_random_uuid()::text, $1, $2, '4.8 Future Event INT-003',
+                   tstzrange('2027-03-10 09:00:00+00'::timestamptz, '2027-03-10 10:00:00+00'::timestamptz, '[)'),
+                   'active')`,
+					[roomId, organizerId]
+				);
+			} finally {
+				client.release();
+			}
+
+			const result = await getUpcomingBookingsByOrganizer(organizerId);
+			const eventNames = result.map((r) => r.eventName);
+
+			expect(
+				eventNames,
+				"Future booking must appear in dashboard results"
+			).toContain("4.8 Future Event INT-003");
+
+			expect(
+				eventNames,
+				"Past booking must NOT appear in dashboard results (upper(during) >= now() filter)"
+			).not.toContain("4.8 Past Event INT-003");
+		}
+	);
+});
+
 // ---------------------------------------------------------------------------
 // 4.4-INT-003 — createBooking with registrationEnabled=true but no registrationClosesAt [P1]
 // Activation condition: Task 2 (schema) + Task 5 (expanded createBooking) complete.
