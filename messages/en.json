@@ -135,5 +135,12 @@
 	"booking_qr_heading": "QR Code",
 	"booking_qr_hint": "Download and print this QR code for event materials.",
 	"booking_qr_alt": "QR code for event registration",
-	"booking_qr_download_button": "Download QR"
+	"booking_qr_download_button": "Download QR",
+
+	"booking_confirmation_email_subject": "Booking Confirmed: {eventName}",
+	"booking_confirmation_email_greeting": "Dear {name},",
+	"booking_confirmation_email_event_label": "Event:",
+	"booking_confirmation_email_room_label": "Room:",
+	"booking_confirmation_email_time_label": "Time:",
+	"booking_confirmation_email_footer": "This email was sent automatically. Please do not reply."
 }

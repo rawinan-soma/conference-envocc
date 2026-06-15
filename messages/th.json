@@ -135,5 +135,12 @@
 	"booking_qr_heading": "",
 	"booking_qr_hint": "",
 	"booking_qr_alt": "",
-	"booking_qr_download_button": ""
+	"booking_qr_download_button": "",
+
+	"booking_confirmation_email_subject": "",
+	"booking_confirmation_email_greeting": "",
+	"booking_confirmation_email_event_label": "",
+	"booking_confirmation_email_room_label": "",
+	"booking_confirmation_email_time_label": "",
+	"booking_confirmation_email_footer": ""
 }
