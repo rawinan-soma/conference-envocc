@@ -169,5 +169,14 @@
 	"dashboard_copy_link_success": "",
 	"dashboard_booking_card_room_label": "",
 	"dashboard_booking_card_time_label": "",
-	"dashboard_load_error": ""
+	"dashboard_load_error": "",
+
+	"reg_page_title": "",
+	"reg_page_date_label": "",
+	"reg_page_room_label": "",
+	"reg_page_agenda_label": "",
+	"reg_page_contact_label": "",
+	"reg_page_closed_title": "",
+	"reg_page_closed_message": "",
+	"reg_page_registration_section_title": ""
 }

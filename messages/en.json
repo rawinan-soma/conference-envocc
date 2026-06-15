@@ -169,5 +169,14 @@
 	"dashboard_copy_link_success": "Link copied",
 	"dashboard_booking_card_room_label": "Room",
 	"dashboard_booking_card_time_label": "Time",
-	"dashboard_load_error": "We couldn't load your bookings. Please refresh to try again."
+	"dashboard_load_error": "We couldn't load your bookings. Please refresh to try again.",
+
+	"reg_page_title": "Event Registration",
+	"reg_page_date_label": "Date & Time",
+	"reg_page_room_label": "Room",
+	"reg_page_agenda_label": "Agenda",
+	"reg_page_contact_label": "Contact",
+	"reg_page_closed_title": "Registration Closed",
+	"reg_page_closed_message": "Registration for this event is no longer available.",
+	"reg_page_registration_section_title": "Register to Attend"
 }
