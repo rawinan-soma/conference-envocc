@@ -4,7 +4,7 @@ baseline_commit: 157943a59d467107455cc7b901d7fe3d176dfbee
 
 # Story 5.2: Submit a Registration
 
-**Status:** `review`
+**Status:** `done`
 **Epic:** 5 — External Registration & Headcount
 **GH Issue:** #30
 **Previous Story:** 5.1 — Branded Public Registration Page
@@ -791,8 +791,25 @@ claude-sonnet-4-6
 - `tests/support/fixtures/pg-factory.ts` — add `'registrations'` to TRUNCATABLE_TABLES (before bookings)
 - `tests/integration/db-schema.test.ts` — append 5.2-SCHEMA-001 registrations table assertion
 
+### Review Findings
+
+Adversarial code review (2026-06-15) — Blind Hunter + Edge Case Hunter + Acceptance Auditor. Acceptance Auditor confirmed all 7 ACs faithful to spec. No `patch` findings: every code finding either matched the spec's own Dev Notes code blocks verbatim (design follow-up → deferred) or was a verified false positive (dismissed). 6 deferred, 5 dismissed.
+
+- [x] [Review][Defer] `cateringEnabled` not re-validated against booking DB record in service [src/lib/server/services/registration-service.ts:51] — deferred, spec self-contradiction. Security Notes (story line 726) say the DB `cateringEnabled` takes precedence for meal validation, but the spec's own Service Spec code block (story lines 327–376) re-reads only `registrationEnabled`. Implementation followed the code block. Auditor rated low / defence-in-depth, not an AC failure. Meal-precedence coverage lives in skipped P1 test `5.2-INT-003`. A future story should pass `cateringEnabled` into `createRegistration` and re-validate meal against the DB value.
+- [x] [Review][Defer] `TITLE_OPTIONS` / `MEAL_OPTIONS` exported but unused; schema accepts arbitrary title/mealType strings [src/lib/schemas/registration.ts:4-5,9,21] — deferred, matches spec verbatim. Spec Schema Spec (story lines 216, 228) also uses `minLength`/`union` and exports the constants without `v.picklist`. Tightening to `v.picklist(TITLE_OPTIONS)` / `v.picklist(MEAL_OPTIONS)` is a design follow-up, not a deviation.
+- [x] [Review][Defer] Stale `titleOtherText` / `mealTypeOtherText` persisted when discriminant is not 'Other' [src/lib/server/services/registration-service.ts:64,70] — deferred, matches spec verbatim. Service Spec (story line 347) is `input.titleOtherText ?? null`. Nulling the free-text when title/meal ≠ 'Other' is a design refinement.
+- [x] [Review][Defer] `mealType` stored even when `cateringEnabled=false` [src/lib/server/services/registration-service.ts:69] — deferred, same root as the catering DB-precedence item; spec does not gate meal storage on catering state.
+- [x] [Review][Defer] TOCTOU re-read uses plain SELECT (no `FOR UPDATE` / elevated isolation) despite "TOCTOU-safe" comment [src/lib/server/services/registration-service.ts:49-55] — deferred, matches spec; window is tiny, consequence is one extra registration after a concurrent close toggle. Low severity.
+- [x] [Review][Defer] No client feedback on `fail(400)` closed/failure result; success state not reset on client-side nav to another `/r/[token]` [src/routes/r/[token]/+page.svelte:38-44] — deferred, the success pattern (`onResult` + `$state`) is the spec-endorsed approach (story lines 521–532); failure-result UX is a minor enhancement, not specced.
+- [Review][Dismiss] `cateringEnabled` hidden string `'false'`→`v.boolean()` makes form permanently unsubmittable — dismissed, verified false. superforms `formData.js:308` coerces `'false'`→boolean `false` (`Boolean(value == 'false' ? '' : value)`). Catering-disabled bookings submit correctly.
+- [Review][Dismiss] Native `required` attributes make valibot "X is required" messages unreachable in-browser — dismissed, intended progressive enhancement; server-side valibot validation still fires for JS-disabled clients and direct POSTs. Spec page markup also uses `required`.
+- [Review][Dismiss] Success message "A confirmation email will be sent shortly" promises an email Story 5.2 does not send — dismissed, the English string is mandated verbatim by the spec i18n keys (story line 560); email delivery is documented Story 5.3 scope.
+- [Review][Dismiss] `registrationClosesAt` (time-based close) not evaluated — dismissed, explicitly out of scope (Story 5.6) per spec Scope Boundaries.
+- [Review][Dismiss] Audit log `diff` omits PII (email/name) — dismissed, Auditor confirmed AC-3 met (`entity`/`action`/`actorId=null` present); no spec requirement to log PII.
+
 ### Change Log
 
 - 2026-06-15: Story 5.2 created — submit a registration (form fields, server action, registrations table, cancel token hash, audit log)
 - 2026-06-15: Story 5.2 validated — 4 findings fixed: (1) migration changed from hand-write to drizzle-kit generate; (2) cancelTokenHash made nullable for Story 5.4 single-use enforcement; (3) R-005 guard moved to service layer (RegistrationClosedError) so INT-CLOSED-001 can test it without HTTP; (4) duplicate contradictory action blocks collapsed to single correct pattern
 - 2026-06-15: Story 5.2 implemented — all 8 tasks complete; 22 i18n keys; registrations schema+migration; service with TOCTOU-safe R-005 guard; superform registration form; success state via onResult/$state
+- 2026-06-15: Story 5.2 code review — adversarial 3-layer review (Blind/Edge/Auditor). Auditor confirmed all 7 ACs faithful to spec. 0 patch findings (all code findings matched spec Dev Notes verbatim → deferred as design follow-ups, or were verified false positives → dismissed). 6 deferred, 5 dismissed. Status → done.
