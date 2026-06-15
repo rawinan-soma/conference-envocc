@@ -64,6 +64,13 @@
       "when": 1781373578897,
       "tag": "0008_bookings_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781459978897,
+      "tag": "0009_booking_registration_token",
+      "breakpoints": true
     }
   ]
 }
