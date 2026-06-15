@@ -4,7 +4,7 @@ baseline_commit: fad9f2f28ab4a4ab246c0ab85908ba1c78e65ba0
 
 # Story 4.8: Organizer Dashboard
 
-**Status:** `ready-for-dev`
+**Status:** `review`
 **Epic:** 4 — Room Booking & Organizer Workspace
 **GH Issue:** #28
 **Previous Story:** 4.7 — Edit, Cancel, and Duplicate a Booking
@@ -42,23 +42,24 @@ so that I can manage them at a glance.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add `getUpcomingBookingsByOrganizer` query to `src/lib/server/db/queries/bookings.ts` (AC: 1, 6)
-  - [ ] 1.1: Export `getUpcomingBookingsByOrganizer(organizerId: string): Promise<UpcomingBookingRow[]>` — see query spec in Dev Notes
-  - [ ] 1.2: The return type `UpcomingBookingRow` extends `Booking` with `roomName: string` (joined from `rooms` table) — avoids N+1 fetches for room names
-  - [ ] 1.3: Add a dev-note comment that an index on `bookings(organizer_id)` may be needed if NFR-003 (<3s) is at risk; do NOT add a migration unless measurably needed
+- [x] Task 1: Add `getUpcomingBookingsByOrganizer` query to `src/lib/server/db/queries/bookings.ts` (AC: 1, 6)
+  - [x] 1.1: Export `getUpcomingBookingsByOrganizer(organizerId: string): Promise<UpcomingBookingRow[]>` — see query spec in Dev Notes
+  - [x] 1.2: The return type `UpcomingBookingRow` extends `Booking` with `roomName: string` (joined from `rooms` table) — avoids N+1 fetches for room names
+  - [x] 1.3: Add a dev-note comment that an index on `bookings(organizer_id)` may be needed if NFR-003 (<3s) is at risk; do NOT add a migration unless measurably needed
 
-- [ ] Task 2: Create `/dashboard` route (AC: 1, 2, 3, 4, 5, 7)
-  - [ ] 2.1: `src/routes/(app)/dashboard/+page.server.ts` — `requireUser` + call `getUpcomingBookingsByOrganizer(user.id)`; build `registrationUrl` per booking using `event.url.origin + '/r/' + booking.registrationToken`
-  - [ ] 2.2: `src/routes/(app)/dashboard/+page.svelte` — render booking cards; copy-link button per registration-enabled booking; empty state; skeleton loading
+- [x] Task 2: Create `/dashboard` route (AC: 1, 2, 3, 4, 5, 7)
+  - [x] 2.1: `src/routes/(app)/dashboard/+page.server.ts` — `requireUser` + call `getUpcomingBookingsByOrganizer(user.id)`; build `registrationUrl` per booking using `event.url.origin + '/r/' + booking.registrationToken`
+  - [x] 2.2: `src/routes/(app)/dashboard/+page.svelte` — render booking cards; copy-link button per registration-enabled booking; empty state; skeleton loading (streaming via unawaited promise + `{#await}` with 3 shimmer cards)
 
-- [ ] Task 3: `BookingCard` component (AC: 2, 3)
-  - [ ] 3.1: New `src/lib/components/booking/BookingCard.svelte` — `card` surface, `shadow-2`, `radius-md` (DESIGN.md spec); props: booking row data + optional registrationUrl + optional onCopy callback
-  - [ ] 3.2: Reuse the inline copy-link button pattern from `/bookings/[id]/+page.svelte` (do NOT create a new shared sub-component for just one use-case — inline is fine)
+- [x] Task 3: `BookingCard` component (AC: 2, 3)
+  - [x] 3.1: New `src/lib/components/booking/BookingCard.svelte` — `card` surface, `shadow-2`, `radius-md` (DESIGN.md spec); props: booking row data + optional registrationUrl + optional onCopy callback
+  - [x] 3.2: Reuse the inline copy-link button pattern from `/bookings/[id]/+page.svelte` (do NOT create a new shared sub-component for just one use-case — inline is fine)
 
-- [ ] Task 4: Add Paraglide message keys (AC: 7)
-  - [ ] 4.1: Add all new keys to `messages/en.json` with English values
-  - [ ] 4.2: Add all new keys to `messages/th.json` with empty string `""`
-  - [ ] New keys needed:
+- [x] Task 4: Add Paraglide message keys (AC: 7)
+  - [x] 4.1: Add all new keys to `messages/en.json` with English values
+  - [x] 4.2: Add all new keys to `messages/th.json` with empty string `""`
+  - [x] New keys needed:
+    - `dashboard_manage_button` — "Manage"
     - `dashboard_title` — "My Bookings"
     - `dashboard_empty_title` — "No upcoming bookings"
     - `dashboard_empty_cta` — "Book a room"
@@ -68,19 +69,18 @@ so that I can manage them at a glance.
     - `dashboard_booking_card_room_label` — "Room"
     - `dashboard_booking_card_time_label` — "Time"
 
-- [ ] Task 5: ATDD — add integration test stubs (AC: 1)
-  - [ ] 5.1: In `tests/integration/bookings.test.ts`, add stubs:
-    - `4.8-INT-001`: `getUpcomingBookingsByOrganizer` returns only the requesting organizer's upcoming active bookings (not another organizer's, not cancelled, not past) [P0]
-    - `4.8-INT-002`: cancelled bookings are excluded from the dashboard query [P1]
-    - `4.8-INT-003`: past bookings (`upper(during) < now()`) are excluded [P1]
-    - Leave all as `test.skip(` until implementation; remove `.skip` during green phase
+- [x] Task 5: ATDD — add integration test stubs (AC: 1)
+  - [x] 5.1: In `tests/integration/bookings.test.ts`, add stubs:
+    - `4.8-INT-001`: `getUpcomingBookingsByOrganizer` returns only the requesting organizer's upcoming active bookings (not another organizer's, not cancelled, not past) [P0] — ACTIVATED and PASSING
+    - `4.8-INT-002`: cancelled bookings are excluded from the dashboard query [P1] — ACTIVATED and PASSING
+    - `4.8-INT-003`: past bookings (`upper(during) < now()`) are excluded [P1] — ACTIVATED and PASSING
 
-- [ ] Task 6: ATDD — add E2E test stubs (AC: 2, 3, 4)
-  - [ ] 6.1: In `tests/e2e/bookings.spec.ts`, add stubs:
+- [x] Task 6: ATDD — add E2E test stubs (AC: 2, 3, 4)
+  - [x] 6.1: In `tests/e2e/bookings.spec.ts`, add stubs:
     - `4.8-E2E-001`: dashboard shows event name, room, date/time for an active booking [P1]
     - `4.8-E2E-002`: empty state renders when no upcoming bookings exist [P1]
     - `4.8-A11Y-001`: heading hierarchy and interactive elements pass basic a11y check [P2]
-    - Leave all as `test.skip(` (matches repo convention; E2E requires seed wiring not done in CI)
+    - All remain as `test.skip(` (matches repo convention; E2E requires seed wiring not done in CI)
 
 ## Dev Notes
 
@@ -289,10 +289,37 @@ bunx prettier --write . && bun run lint
 
 ### Agent Model Used
 
-_to be filled by dev agent_
+claude-sonnet-4-6
 
 ### Debug Log References
 
+- Pre-existing `qrcode` type declaration error in `src/lib/server/qr/qr.ts` — not introduced by Story 4.8 (confirmed via stash comparison).
+- Pre-existing unit test failures (design-system, i18n, quality-gates) not caused by this story — confirmed via stash comparison.
+- Pre-existing integration test failures (auth-bypass, profile, session-timeout) require running dev server on port 3000 — not 4.8-related.
+- Fixed pre-existing lint error in `tests/e2e/bookings.spec.ts` line 949: unused variable `datePattern` in ATDD scaffold — removed variable, kept fallback assertion.
+
 ### Completion Notes List
 
+- Task 1: `getUpcomingBookingsByOrganizer` implemented in `src/lib/server/db/queries/bookings.ts` using `getTableColumns` for safe JOIN, `sql` template for tstzrange operators. IDOR boundary enforced at DB level. Dev-note added for potential `organizer_id` index.
+- Task 2: Dashboard route created: `+page.server.ts` returns bookings promise unawaited (SvelteKit streaming). `+page.svelte` uses `{#await}` with 3 shimmer skeleton cards while data is pending, then renders booking cards or empty state.
+- Task 3: `BookingCard.svelte` created with card styling (`bg-card border rounded-md shadow-sm`), event name, room, date/time (Bangkok timezone via `parseTstzrange` + `formatDateBangkok`), registrant count placeholder (`—`), and inline copy-link button (reuses `navigator.clipboard?.writeText()` guard pattern).
+- Task 4: 9 Paraglide keys added to `messages/en.json` (with English values) and `messages/th.json` (with empty strings). Paraglide recompiled successfully.
+- Task 5: Integration tests 4.8-INT-001/002/003 activated (`.skip` removed) and all pass green.
+- Task 6: E2E stubs remain as `test.skip` per story spec (no seed wiring in CI).
+- AC-11: `/dashboard` route now exists — profile-complete → `/dashboard` redirect from Story 2.3 no longer 404s.
+
 ### File List
+
+- `src/lib/server/db/queries/bookings.ts` — added `UpcomingBookingRow` type + `getUpcomingBookingsByOrganizer` query
+- `src/routes/(app)/dashboard/+page.server.ts` — NEW: dashboard server load (streaming unawaited promise)
+- `src/routes/(app)/dashboard/+page.svelte` — NEW: dashboard page with skeleton loading, booking cards, empty state, toast
+- `src/lib/components/booking/BookingCard.svelte` — NEW: booking card component
+- `messages/en.json` — 9 new `dashboard_*` keys added
+- `messages/th.json` — 9 new `dashboard_*` keys (empty strings)
+- `src/lib/paraglide/messages/` — regenerated (paraglide compile)
+- `tests/integration/bookings.test.ts` — activated 4.8-INT-001/002/003 (removed `.skip`)
+- `tests/e2e/bookings.spec.ts` — fixed pre-existing lint error (unused `datePattern` variable)
+
+### Change Log
+
+- 2026-06-15: Story 4.8 implementation complete — `getUpcomingBookingsByOrganizer` query, `/dashboard` route, `BookingCard` component, 9 i18n keys, skeleton loading via SvelteKit streaming, integration tests green (3/3 passing).

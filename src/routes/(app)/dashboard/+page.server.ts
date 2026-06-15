@@ -23,17 +23,18 @@ import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async (event) => {
 	const user = requireUser(event);
+	const origin = event.url.origin;
 
-	const rows = await getUpcomingBookingsByOrganizer(user.id);
-
-	// Build absolute registrationUrl for each booking that has a token (AC-3).
-	// Same pattern as /bookings/[id]/+page.server.ts.
-	const bookings = rows.map((booking) => ({
-		...booking,
-		registrationUrl: booking.registrationToken
-			? `${event.url.origin}/r/${booking.registrationToken}`
-			: null
-	}));
+	// Return the promise unawaited so SvelteKit streams it to the client.
+	// +page.svelte renders skeleton cards via {#await} while data is pending (AC-5).
+	const bookings = getUpcomingBookingsByOrganizer(user.id).then((rows) =>
+		rows.map((booking) => ({
+			...booking,
+			// Build absolute registrationUrl for each booking that has a token (AC-3).
+			// Same pattern as /bookings/[id]/+page.server.ts.
+			registrationUrl: booking.registrationToken ? `${origin}/r/${booking.registrationToken}` : null
+		}))
+	);
 
 	return { bookings };
 };

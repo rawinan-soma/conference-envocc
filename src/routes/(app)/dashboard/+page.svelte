@@ -59,25 +59,45 @@
 		{m.dashboard_title()}
 	</h1>
 
-	{#if data.bookings.length === 0}
-		<!-- Empty state (AC-4, UXD-020) -->
-		<div class="py-12 text-center">
-			<p class="mb-4 text-muted-foreground">{m.dashboard_empty_title()}</p>
-			<a
-				href={calendarHref}
-				class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-			>
-				{m.dashboard_empty_cta()}
-			</a>
-		</div>
-	{:else}
-		<!-- Booking cards list (AC-2, AC-3) -->
-		<ul class="flex flex-col gap-4" aria-label={m.dashboard_title()}>
-			{#each data.bookings as booking (booking.id)}
-				<li>
-					<BookingCard {booking} registrationUrl={booking.registrationUrl} onCopy={showCopyToast} />
+	{#await data.bookings}
+		<!-- Skeleton loading (AC-5, UXD-020): 3 shimmer cards shown while data streams in -->
+		<ul class="flex flex-col gap-4" aria-busy="true" aria-label={m.dashboard_title()}>
+			{#each [0, 1, 2] as skeletonIndex (skeletonIndex)}
+				<li
+					class="animate-pulse rounded-md border border-border bg-card p-5 shadow-sm"
+					aria-hidden="true"
+				>
+					<div class="mb-3 h-5 w-2/3 rounded bg-muted"></div>
+					<div class="mb-2 h-4 w-1/3 rounded bg-muted"></div>
+					<div class="h-4 w-1/2 rounded bg-muted"></div>
 				</li>
 			{/each}
 		</ul>
-	{/if}
+	{:then bookings}
+		{#if bookings.length === 0}
+			<!-- Empty state (AC-4, UXD-020) -->
+			<div class="py-12 text-center">
+				<p class="mb-4 text-muted-foreground">{m.dashboard_empty_title()}</p>
+				<a
+					href={calendarHref}
+					class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					{m.dashboard_empty_cta()}
+				</a>
+			</div>
+		{:else}
+			<!-- Booking cards list (AC-2, AC-3) -->
+			<ul class="flex flex-col gap-4" aria-label={m.dashboard_title()}>
+				{#each bookings as booking (booking.id)}
+					<li>
+						<BookingCard
+							{booking}
+							registrationUrl={booking.registrationUrl}
+							onCopy={showCopyToast}
+						/>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	{/await}
 </main>
