@@ -457,6 +457,8 @@ test.describe('Story 4.7 — Duplicate Booking: Pre-Fill Form (AC-3)', () => {
 		await loginViaDevBypass(page);
 
 		const SEED_BOOKING_ID = 'REPLACE_WITH_SEEDED_BOOKING_ID';
+		// NOTE: EXPECTED_EVENT_NAME must match the actual eventName of the seeded booking
+		// identified by SEED_BOOKING_ID above. Update both values together during activation.
 		const EXPECTED_EVENT_NAME = 'Source Event Name for Duplicate Test';
 
 		await page.goto(`/bookings/${SEED_BOOKING_ID}`, { waitUntil: 'networkidle' });

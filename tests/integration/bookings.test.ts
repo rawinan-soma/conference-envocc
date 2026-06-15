@@ -1,10 +1,12 @@
 /**
- * ATDD Red-Phase Scaffolds — Story 4.1: Conflict Translation & EXCLUDE Predicate
- * Integration Tests: booking-service.ts createBooking, ConflictError, 23P01 mapping
+ * ATDD Integration Tests — Stories 4.1, 4.2, 4.4, 4.7
+ * Integration Tests: booking-service.ts (createBooking, updateBooking, cancelBooking,
+ * getBookingById, ConflictError) + room calendar read model (getWeekCalendar)
  *
- * STATUS: All Story 4.1 scenarios are ACTIVE. They were scaffolded as test.skip()
- * during the ATDD red phase, then activated task-by-task as booking-service.ts was
- * implemented and verified green.
+ * STATUS: Story 4.1, 4.2, 4.4 scenarios are ACTIVE (green). Story 4.7 scenarios are
+ * ACTIVE (green) — updateBooking, cancelBooking, getBookingById are implemented.
+ * All 4.7 tests were scaffolded as test.skip() during the ATDD red phase, then
+ * activated task-by-task as booking-service.ts was implemented and verified green.
  *
  * These tests run in the Vitest `integration` project which requires a real
  * PostgreSQL instance. The global setup (tests/support/integration-setup.ts)
@@ -961,7 +963,8 @@ describe('Story 4.4 — createBooking Registration Columns (AC-4)', () => {
 
 // ===========================================================================
 // STORY 4.7 — Edit, Cancel, and Duplicate a Booking
-// RED PHASE: All tests are test.skip() — activate task-by-task during implementation.
+// GREEN PHASE: All tests are active test() calls — updateBooking, cancelBooking,
+// and getBookingById are implemented in booking-service.ts.
 // ---------------------------------------------------------------------------
 // AC-1: Edit re-checks conflicts via EXCLUDE constraint; non-owner → 403
 // AC-2: Cancel sets status='cancelled'; EXCLUDE predicate frees the slot automatically
