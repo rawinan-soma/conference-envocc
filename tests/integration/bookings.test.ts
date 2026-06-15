@@ -1003,6 +1003,11 @@ describe('Story 4.6 — Booking Confirmation Email', () => {
 	}, 60_000); // boss.start() may be slow on first run (creates pgboss schema)
 
 	afterAll(async () => {
+		// Clean up pgboss.job rows inserted by INT-002 and INT-003 to keep the DB
+		// tidy for subsequent test runs (prevents stale singleton_key conflicts).
+		await pool.query(
+			`DELETE FROM pgboss.job WHERE name = 'send-email' AND singleton_key LIKE 'booking-confirm-%'`
+		);
 		const { boss } = await import('../../src/lib/server/jobs/index.js');
 		await boss.stop({ graceful: false });
 	}, 30_000);
