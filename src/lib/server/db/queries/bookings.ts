@@ -25,6 +25,16 @@ export type WeekCalendarRow = {
 };
 
 /**
+ * Load a single booking by primary key.
+ * Returns null if not found.
+ * Used by /bookings/[id] (Story 4.5) and future detail pages.
+ */
+export async function getBookingById(id: string): Promise<Booking | null> {
+	const [row] = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
+	return row ?? null;
+}
+
+/**
  * Returns per-room bookings for a 7-day window starting at weekStart.
  * - Only active rooms (is_active = true) are included.
  * - Only active/non-cancelled bookings overlapping the week window are returned.

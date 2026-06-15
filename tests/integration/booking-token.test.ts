@@ -105,7 +105,7 @@ function seedOrganizer(): string {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.5 — Token Generation (AC-1)', () => {
-	test.skip('[P1] IT-001 — token generated and persisted when registrationEnabled = true', async () => {
+	test('[P1] IT-001 — token generated and persisted when registrationEnabled = true', async () => {
 		// THIS TEST WILL FAIL until:
 		//   Task 1 (0009_booking_registration_token.sql migration), Task 2 (schema column),
 		//   and Task 5 (generateRegistrationToken + createBooking update) are complete.
@@ -149,10 +149,7 @@ describe('Story 4.5 — Token Generation (AC-1)', () => {
 		).not.toBeNull();
 
 		// AC-1: token must be a 64-char lowercase hex string (32 bytes = 256 bits entropy)
-		expect(booking.registrationToken).toMatch(
-			/^[0-9a-f]{64}$/,
-			'Token must be a 64-char lowercase hex string'
-		);
+		expect(booking.registrationToken).toMatch(/^[0-9a-f]{64}$/);
 
 		// AC-1: verify the token is persisted in the database
 		const dbResult = await pool.query<{ registration_token: string | null }>(
@@ -170,7 +167,7 @@ describe('Story 4.5 — Token Generation (AC-1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.5 — Token Null When Registration Disabled (AC-1)', () => {
-	test.skip('[P1] IT-002 — registrationToken is null when registrationEnabled = false', async () => {
+	test('[P1] IT-002 — registrationToken is null when registrationEnabled = false', async () => {
 		// THIS TEST WILL FAIL until Tasks 1, 2, 5 are complete.
 		//
 		// AC-1: When registrationEnabled = false, registration_token must be null.
@@ -225,7 +222,7 @@ describe('Story 4.5 — Token Null When Registration Disabled (AC-1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.5 — Token Uniqueness (AC-1)', () => {
-	test.skip('[P1] IT-003 — registration tokens are unique across multiple bookings', async () => {
+	test('[P1] IT-003 — registration tokens are unique across multiple bookings', async () => {
 		// THIS TEST WILL FAIL until Tasks 1, 2, 5 are complete.
 		//
 		// AC-1: Token is unique per booking (UNIQUE constraint enforces at DB level).
@@ -286,7 +283,7 @@ describe('Story 4.5 — Token Uniqueness (AC-1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('Story 4.5 — getBookingById Query (Task 6)', () => {
-	test.skip('[P1] IT-004 — getBookingById returns the correct booking row by id', async () => {
+	test('[P1] IT-004 — getBookingById returns the correct booking row by id', async () => {
 		// THIS TEST WILL FAIL until Task 6 (getBookingById in bookings.ts queries) is complete.
 		//
 		// Strategy:
@@ -334,7 +331,7 @@ describe('Story 4.5 — getBookingById Query (Task 6)', () => {
 	// IT-005 — getBookingById returns null for unknown id [P1]
 	// -------------------------------------------------------------------------
 
-	test.skip('[P1] IT-005 — getBookingById returns null for an unknown id', async () => {
+	test('[P1] IT-005 — getBookingById returns null for an unknown id', async () => {
 		// THIS TEST WILL FAIL until Task 6 (getBookingById query) is complete.
 		//
 		// Strategy:

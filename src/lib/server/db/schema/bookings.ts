@@ -23,6 +23,7 @@ export const bookings = pgTable('bookings', {
 	cateringEnabled: boolean('catering_enabled').notNull().default(false),
 	registrationEnabled: boolean('registration_enabled').notNull().default(false),
 	registrationClosesAt: timestamp('registration_closes_at', { withTimezone: true }),
+	registrationToken: text('registration_token').unique(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
