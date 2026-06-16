@@ -208,5 +208,16 @@
 	"catering_summary_normal_label": "Normal",
 	"catering_summary_vegetarian_label": "Vegetarian",
 	"catering_summary_muslim_label": "Muslim",
-	"catering_summary_other_label": "Other"
+	"catering_summary_other_label": "Other",
+
+	"registrant_list_title": "Registrants",
+	"registrant_list_column_name": "Name",
+	"registrant_list_column_org": "Organization",
+	"registrant_list_column_email": "Email",
+	"registrant_list_column_status": "Status",
+	"registrant_list_status_registered": "Registered",
+	"registrant_list_status_cancelled": "Cancelled",
+	"registrant_list_empty_state": "No registrants yet.",
+	"registrant_list_view_link": "View Registrants",
+	"registrant_list_back_link": "Back to Booking"
 }

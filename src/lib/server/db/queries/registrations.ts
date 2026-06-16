@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, eq, asc } from 'drizzle-orm';
 import { db } from '../index.js';
 import type { DrizzleTransaction } from '../index.js';
 import { registrations } from '../schema/registrations.js';
@@ -140,4 +140,25 @@ function rowsToCounts(rows: Array<{ mealType: string | null; count: number }>): 
 		mergeMealRow(counts, row.mealType, row.count);
 	}
 	return counts;
+}
+
+// ---------------------------------------------------------------------------
+// Registrant List — Story 5.8 (AC-1, FR-048)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns all registrations for a given booking, ordered by createdAt ASC.
+ * Includes both 'registered' and 'cancelled' statuses (all rows).
+ *
+ * Story 5.8 AC-1: Used by the registrant list route (/bookings/[id]/registrants).
+ * No transaction needed — read-only query using db directly.
+ *
+ * @param bookingId - The booking's primary key
+ */
+export async function getRegistrantsByBookingId(bookingId: string): Promise<Registration[]> {
+	return db
+		.select()
+		.from(registrations)
+		.where(eq(registrations.bookingId, bookingId))
+		.orderBy(asc(registrations.createdAt));
 }

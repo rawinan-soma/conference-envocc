@@ -1,5 +1,10 @@
 # Deferred Work
 
+## Deferred from: code review of 5-8-registrant-list-dashboard-headcount (2026-06-16)
+
+- **E2E placeholder assertion is brittle.** `tests/e2e/registrations.spec.ts` (5.8-E2E-002, currently `test.skip`) uses `expect(page.getByText('—')).not.toBeVisible()`. This assumes the placeholder glyph is exactly an em-dash and unique on the page; if `—` appears elsewhere (dates, other cards), Playwright strict mode multi-matches once activated. Test-only and skipped today. Harden with a scoped locator / role-based query when the green phase activates this E2E.
+- **Registrant list route not gated by `registrationEnabled`.** The "View Registrants" link on `/bookings/[id]` is wrapped in `{#if data.booking.registrationEnabled}` (Task 4.3), but `/bookings/[id]/registrants/+page.server.ts` has no equivalent check, so an owner/admin can reach the list via direct URL even when registration is disabled. Judged by-design: an organizer should still review who registered after closing registration; the route remains owner-or-admin guarded (AC-3), so it is not a security hole. Revisit only if product decides the list must disappear once registration is disabled.
+
 ## Deferred from: code review of 4-5-booking-confirmation-link-token-qr (2026-06-15)
 
 - **4.5-E2E-004 does not exercise the cross-organizer 403 path it names.** The skipped red-phase stub (`tests/e2e/bookings.spec.ts`) clears the session cookie and asserts only `status !== 200`, which tests the unauthenticated redirect, not the wrong-owner `assertOwner` 403. The stub's own comment acknowledges this ("A 403 test strictly requires a different authenticated user"). Building a true second-authenticated-user assertion needs multi-`BrowserContext` / second dev-bypass session setup — that belongs to the dev story that activates these E2E stubs, not a review step. Production code is correct (`assertOwner` is called in `[id]/+page.server.ts` and `qr/+server.ts`); IT-level ownership coverage exists. Revisit when 4.5 E2E tests are activated (green phase).

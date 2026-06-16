@@ -99,12 +99,10 @@
 		</span>
 	</div>
 
-	<!-- Registrant count placeholder (real count deferred to Story 5.8) -->
+	<!-- Registrant count (Story 5.8 AC-5 / FR-052) -->
 	<div class="flex flex-col gap-0.5">
 		<span class="text-xs text-muted-foreground">{m.dashboard_registrant_count_label()}</span>
-		<span class="text-sm font-medium text-muted-foreground"
-			>{m.dashboard_registrant_count_placeholder()}</span
-		>
+		<span class="text-sm font-medium text-foreground">{booking.registrantCount}</span>
 	</div>
 
 	<!-- Catering summary (Story 5.7 AC-1 — only when cateringCounts is non-null / cateringEnabled) -->

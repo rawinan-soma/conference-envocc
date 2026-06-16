@@ -45,6 +45,8 @@
 	// Derive resolved hrefs for navigation — required by svelte/no-navigation-without-resolve rule.
 	const calendarHref = $derived(resolve('/calendar' as Pathname));
 	const qrDownloadHref = $derived(resolve(`/bookings/${data.booking.id}/qr` as Pathname));
+	// Story 5.8: link to registrant list — only shown when registrationEnabled
+	const registrantsHref = $derived(resolve(`/bookings/${data.booking.id}/registrants` as Pathname));
 
 	// Copy the registration link to the clipboard.
 	// `navigator.clipboard` is undefined on insecure (non-HTTPS) origins and
@@ -258,6 +260,16 @@
 			>
 				{m.booking_close_registration_button()}
 			</button>
+		{/if}
+
+		<!-- Story 5.8 AC-1: View Registrants link — only when registrationEnabled -->
+		{#if data.booking.registrationEnabled}
+			<a
+				href={registrantsHref}
+				class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			>
+				{m.registrant_list_view_link()}
+			</a>
 		{/if}
 
 		{#if data.booking.status === 'active'}
