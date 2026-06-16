@@ -29,6 +29,7 @@ import { generateQrDataUrl } from '$lib/server/qr/qr.js';
 import { parseTstzrange } from '$lib/utils/tstzrange.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
 import { getCateringCountsByBookingId } from '$lib/server/db/queries/registrations.js';
+import type { CateringCounts } from '$lib/server/db/queries/registrations.js';
 
 import type { Actions, PageServerLoad } from './$types.js';
 
@@ -68,9 +69,17 @@ export const load: PageServerLoad = async (event) => {
 
 	// Catering aggregation — Story 5.7 (AC-2, AC-3, AC-4, AC-5, AC-6)
 	// Only query when cateringEnabled=true; null signals "don't render the section".
-	const cateringCounts = booking.cateringEnabled
-		? await getCateringCountsByBookingId(booking.id)
-		: null;
+	// Guarded with try/catch: a catering DB failure must not cause a 500 on the
+	// booking detail page — the booking itself loaded successfully.
+	let cateringCounts: CateringCounts | null = null;
+	if (booking.cateringEnabled) {
+		try {
+			cateringCounts = await getCateringCountsByBookingId(booking.id);
+		} catch {
+			// Catering query failed — render the section as absent rather than 500.
+			cateringCounts = null;
+		}
+	}
 
 	return {
 		booking,

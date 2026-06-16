@@ -108,7 +108,7 @@
 	</div>
 
 	<!-- Catering summary (Story 5.7 AC-1 — only when cateringCounts is non-null / cateringEnabled) -->
-	{#if cateringCounts !== null}
+	{#if cateringCounts}
 		<div class="flex flex-col gap-1">
 			<span class="text-xs text-muted-foreground">{m.catering_summary_heading()}</span>
 			<div class="flex flex-col gap-0.5">

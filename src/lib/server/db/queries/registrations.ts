@@ -3,6 +3,7 @@ import { db } from '../index.js';
 import type { DrizzleTransaction } from '../index.js';
 import { registrations } from '../schema/registrations.js';
 import type { RegistrationInsert, Registration } from '../schema/registrations.js';
+import { MEAL_OPTIONS } from '$lib/schemas/registration.js';
 
 /**
  * Inserts a registration record inside a transaction.
@@ -113,13 +114,24 @@ export async function getCateringCountsByBookingIds(
 	return result;
 }
 
+/**
+ * Maps each MEAL_OPTIONS value to its CateringCounts key.
+ * Derived from MEAL_OPTIONS so a future addition to MEAL_OPTIONS causes a TS error here
+ * rather than silently producing zero counts.
+ */
+const MEAL_TYPE_KEY_MAP: Record<(typeof MEAL_OPTIONS)[number], keyof CateringCounts> = {
+	Normal: 'normal',
+	Vegetarian: 'vegetarian',
+	Muslim: 'muslim',
+	Other: 'other'
+};
+
 /** Accumulates a single GROUP BY row into a CateringCounts struct. */
 function mergeMealRow(counts: CateringCounts, mealType: string | null, count: number): void {
-	if (mealType === 'Normal') counts.normal += count;
-	else if (mealType === 'Vegetarian') counts.vegetarian += count;
-	else if (mealType === 'Muslim') counts.muslim += count;
-	else if (mealType === 'Other') counts.other += count;
-	// unknown / null values are ignored (AC-5)
+	if (mealType === null) return; // null values are ignored (AC-5)
+	const key = MEAL_TYPE_KEY_MAP[mealType as (typeof MEAL_OPTIONS)[number]];
+	if (key !== undefined) counts[key] += count;
+	// unknown meal type values are ignored (AC-5)
 }
 
 function rowsToCounts(rows: Array<{ mealType: string | null; count: number }>): CateringCounts {

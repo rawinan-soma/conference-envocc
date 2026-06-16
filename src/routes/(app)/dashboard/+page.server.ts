@@ -39,7 +39,14 @@ export const load: PageServerLoad = async (event) => {
 		const cateringBookingIds = rows.filter((b) => b.cateringEnabled).map((b) => b.id);
 
 		// Single DB round-trip for all catering-enabled bookings (avoids N+1 — Story 5.7 Task 1.3).
-		const cateringMap = await getCateringCountsByBookingIds(cateringBookingIds);
+		// Guarded with try/catch: a catering DB failure must not hide all booking cards.
+		// On error, fall back to empty map so all bookings render with cateringCounts=null.
+		let cateringMap: Map<string, CateringCounts>;
+		try {
+			cateringMap = await getCateringCountsByBookingIds(cateringBookingIds);
+		} catch {
+			cateringMap = new Map();
+		}
 
 		return rows.map(
 			(
