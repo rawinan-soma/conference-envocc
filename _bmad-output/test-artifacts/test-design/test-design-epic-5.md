@@ -9,15 +9,17 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-15'
-version: v2
+lastSaved: '2026-06-16'
+version: v3
 changeLog:
   - 'v1 (2026-06-15): initial epic-level test design — all 5.1–5.8 stories backlog'
   - 'v2 (2026-06-15): status update — 5.1 done (PR #128), 5.2 atdd-done; implementation status table added; foundation from 5.1 documented'
+  - 'v3 (2026-06-16): status update — 5.2 done (PR #129 merged); R-005 MITIGATED; implementation details documented; P1 stubs status updated'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/implementation-artifacts/sprint-status.yaml
+  - _bmad-output/implementation-artifacts/5-2-submit-a-registration.md
   - _bmad-output/implementation-artifacts/adr-4-5-registration-token-storage.md
   - _bmad/tea/config.yaml
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/risk-governance.md
@@ -28,6 +30,8 @@ inputDocuments:
   - tests/support/helpers/dev-bypass.ts
   - tests/support/fixtures/pg-factory.ts
   - tests/integration/booking-token.test.ts
+  - tests/integration/registrations.test.ts
+  - tests/e2e/registrations.spec.ts
   - _bmad-output/test-artifacts/atdd-checklist-5-1-branded-public-registration-page.md
   - _bmad-output/test-artifacts/atdd-checklist-5-2-submit-a-registration.md
 ---
@@ -36,7 +40,7 @@ inputDocuments:
 
 **Date:** 2026-06-15
 **Author:** Rawinan
-**Status:** Living Document (v2 — updated 2026-06-15)
+**Status:** Living Document (v3 — updated 2026-06-16)
 **Mode:** Epic-Level Test Design
 
 ---
@@ -57,12 +61,12 @@ Epic 5 carries five distinct failure vectors that each block the shippable headl
 4. **Auto-close job idempotency** — the pg-boss registration-close sweeper must not double-close, must self-heal after worker restarts, and must tolerate already-closed bookings without error.
 5. **Mobile responsiveness** — NFR-004 mandates full-responsive external registration (mobile + desktop, equal). This is the only NFR with an explicit "equal" parity requirement rather than "usable."
 
-**Implementation Status (2026-06-15 — v2):**
+**Implementation Status (2026-06-16 — v3):**
 
 | Story | Status | Notes |
 |-------|--------|-------|
-| 5.1 Branded Public Registration Page | **done** | PR #128 merged 2026-06-15; `getBookingByRegistrationToken` implemented; `/r/[token]` route live; R-001 IDOR test (`5.1-INT-IDOR-001`) in CI gate |
-| 5.2 Submit a Registration | **atdd-done** | ATDD red-phase scaffolds committed in worktree; `registrations` schema + `createRegistration` service pending implementation |
+| 5.1 Branded Public Registration Page | **done** | PR #128 merged 2026-06-15; `getBookingByRegistrationToken` implemented; `/r/[token]` route live; R-001 IDOR test (`5.1-INT-IDOR-001`) green in CI gate |
+| 5.2 Submit a Registration | **done** | PR #129 merged 2026-06-16; `registrations` schema + migration (`0010_registrations.sql`); `createRegistration` service + `RegistrationClosedError`; superform action; 22 i18n keys; `5.2-INT-001` + `5.2-INT-CLOSED-001` green (R-005 MITIGATED) |
 | 5.3–5.8 | backlog | Not yet started |
 
 Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registration_token` column and token generation (`createBooking`), `getBookingById`, the `r/[token]` route stub (token generation confirmed; page content is E5's job), pg-boss + nodemailer wired, IDOR template, dev bypass seam, Testcontainers fixture, CI pipeline.
@@ -73,21 +77,35 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 - `tests/integration/registrations.test.ts` — file created; 5.1-INT-001, 5.1-INT-IDOR-001, 5.1-INT-002 are green (P0 active)
 - `tests/e2e/registrations.spec.ts` — file created; 5.1 E2E scaffolds are `test.skip` pending seed wiring
 
+**Foundation deployed by 5.2 (now live in `main`):**
+- `src/lib/server/db/schema/registrations.ts` — Drizzle schema for `registrations` table; `RegistrationClosedError` exported from `registration-service.ts`
+- `drizzle/0010_registrations.sql` — migration with FK cascade (`REFERENCES bookings(id) ON DELETE CASCADE`), `cancel_token_hash` column (sha256 hex), `status` column, both indexes
+- `src/lib/server/db/queries/registrations.ts` — `createRegistrant(tx, data)` insert query
+- `src/lib/server/services/registration-service.ts` — `createRegistration(bookingId, input)` wraps in `db.transaction()`: re-queries booking, checks `registrationEnabled`, generates 32-byte CSPRNG cancel token (plaintext returned for email; sha256 hash stored), calls `createRegistrant`, calls `writeAuditLog` (actorId=null), returns `{ registrationId, cancelToken }`
+- `src/lib/schemas/registration.ts` — Valibot `RegistrationSchema` with conditional `mealType` (required only when `cateringEnabled=true`) and conditional `titleOtherText` (required only when `title='Other'`)
+- `src/routes/r/[token]/+page.server.ts` — `register` form action (superform + `RegistrationSchema`); catches `RegistrationClosedError` → `fail(400)`; also initializes superform in `load` and returns `cateringEnabled`
+- `src/routes/r/[token]/+page.svelte` — full registration form (salutation, first/last name, org, email, conditional meal type); success confirmation on `data.success===true`
+- `messages/en.json` + `messages/th.json` — 22 new `reg_form_*` i18n keys added; Thai values set to `""` per project rule
+- `tests/support/fixtures/pg-factory.ts` — `'registrations'` added to `TRUNCATABLE_TABLES` (before `'bookings'`)
+- `tests/integration/db-schema.test.ts` — schema assertion for `registrations` table columns added
+- `tests/integration/registrations.test.ts` — `seedRegistrant` helper added; `5.2-INT-001` (P0 ACTIVE) and `5.2-INT-CLOSED-001` (P0 ACTIVE) green; `5.2-INT-002/003/004/005` (P1 `test.skip`)
+- `tests/e2e/registrations.spec.ts` — `5.2-E2E-001/MOBILE-001/MOBILE-002` (P1 `test.skip`), `5.2-E2E-003/004` (P2 `test.skip`), `5.2-E2E-005` (P3 `test.skip`) appended
+
 **Foundation Available from E1–E4:**
 
 - `tests/support/helpers/idor-template.ts` — `testOwnershipEnforcement()` for owner-scoped proofs
 - `tests/support/helpers/dev-bypass.ts` — authenticated organizer sessions in integration tests
-- `tests/support/fixtures/pg-factory.ts` — real-Postgres via Testcontainers
+- `tests/support/fixtures/pg-factory.ts` — real-Postgres via Testcontainers; `registrations` now included in truncation order
 - `tests/integration/booking-token.test.ts` — token generation assertions (IT-001–005); establishes the `registration_token` column shape this epic's tests consume
 - `hooks.server.ts` `routeGuards` registry — `/r/[token]` already explicitly allow-listed as public
 - `src/lib/server/services/audit.ts` — `writeAuditLog()` for registration mutations
 
-**Risk Summary (v2 — 2026-06-15):**
+**Risk Summary (v3 — 2026-06-16):**
 
 - Total risks identified: 13
 - High-priority risks (score ≥ 6): 7
 - Score = 9 (BLOCK): 1 (R-001 — IDOR on public token route) → **CLOSED** by 5.1 (PR #128)
-- Score = 6 (MITIGATE): 6 → 5 open (R-002 through R-007 excluding R-001), R-005 partially addressed (5.2 atdd-done)
+- Score = 6 (MITIGATE): 6 → R-001 CLOSED, R-005 **MITIGATED** by 5.2 (PR #129), 4 open (R-002, R-003, R-004, R-006, R-007 — 5 remaining but R-005 now closed means 4 open mitigate risks excluding closed R-001)
 
 ---
 
@@ -117,17 +135,17 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 | R-002 | SEC | Single-use cancel token is hashed but collision or replay enables double-cancel or impersonation | 2 | 3 | **6** | OPEN |
 | R-003 | SEC | Resend-link endpoint discloses whether an email is registered (enumeration) | 3 | 2 | **6** | OPEN |
 | R-004 | BUS | Auto-close pg-boss job double-fires after worker restart, closing already-open registrations | 2 | 3 | **6** | OPEN |
-| R-005 | BUS | Closed-state page still accepts form submissions via direct POST (bypass of closed-state UI) | 3 | 2 | **6** | OPEN |
+| R-005 | BUS | Closed-state page still accepts form submissions via direct POST (bypass of closed-state UI) | 3 | 2 | **6** | **MITIGATED** (5.2 done; `5.2-INT-CLOSED-001` green; service-layer guard in `createRegistration`) |
 | R-006 | DATA | Catering aggregation counts diverge from actual registration records on concurrent submit + cancel | 2 | 3 | **6** | OPEN |
 | R-007 | BUS | Registrant list ownership: organizer A can query registrants for organizer B's event | 2 | 3 | **6** | OPEN |
-| R-008 | PERF | NFR-004 mobile responsiveness — registration form unusable on small viewports (< 375px) | 2 | 2 | **4** | OPEN |
+| R-008 | PERF | NFR-004 mobile responsiveness — registration form unusable on small viewports (< 375px) | 2 | 2 | **4** | OPEN — `5.2-E2E-MOBILE-001/002` scaffolded (`test.skip`; activate in Story 5.2 E2E activation) |
 | R-009 | BUS | Confirmation email not sent (job dropped, DLQ silent) — registrant has no cancel link | 2 | 2 | **4** | OPEN |
-| R-010 | DATA | Meal type "Other→text" field value stored/displayed as generic "Other" with no text | 2 | 2 | **4** | OPEN |
+| R-010 | DATA | Meal type "Other→text" field value stored/displayed as generic "Other" with no text | 2 | 2 | **4** | OPEN — `5.2-INT-002/004` scaffolded (`test.skip`; activate during E2E pass) |
 | R-011 | TECH | Auto-close job handler imports `$app/*` or `$env/dynamic` violating lint boundary (AR-06) | 1 | 3 | **3** | OPEN |
-| R-012 | BUS | No-capacity rule (FR-032) is accidentally broken by a guard that caps registrations | 1 | 3 | **3** | OPEN |
+| R-012 | BUS | No-capacity rule (FR-032) is accidentally broken by a guard that caps registrations | 1 | 3 | **3** | OPEN — `5.2-INT-005` scaffolded (`test.skip`; activate during E2E pass) |
 | R-013 | OPS | Cancel token single-use state lost on DB failover / migration rollback | 1 | 2 | **2** | OPEN |
 
-**Total: 13 risks (1 BLOCK score=9 → CLOSED by 5.1, 6 MITIGATE score=6 → 5 OPEN / 0 CLOSED, 3 MONITOR score=4, 3 DOCUMENT score ≤3)**
+**Total: 13 risks (1 BLOCK score=9 → CLOSED by 5.1, 6 MITIGATE score=6 → 4 OPEN / 2 CLOSED [R-001 + R-005], 3 MONITOR score=4, 3 DOCUMENT score ≤3)**
 
 ---
 
@@ -157,11 +175,12 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 - **Timeline:** Story 5.6
 - **Verification:** `5.6-INT-002` (idempotency) and `5.6-INT-003` (restart recovery) pass
 
-**R-005 — Closed-state POST bypass (score=6)**
+**R-005 — Closed-state POST bypass (score=6) — MITIGATED ✅**
 - **Strategy:** (1) Server action checks `registration_enabled` before processing any form submission; returns `400` or redirects to closed-state page if closed. (2) Integration test: close registration, then send a raw POST to the registration action endpoint, assert 400/redirect. (3) UI-layer closed check is defence-in-depth only.
-- **Owner:** Story 5.6 / Story 5.2 implementer
-- **Timeline:** Story 5.2 (server-side guard); Story 5.6 (closed-state verification)
-- **Verification:** `5.2-INT-CLOSED-001` passes
+- **Owner:** Story 5.2 implementer ✅ done
+- **Timeline:** Story 5.2 ✅ done (PR #129 merged 2026-06-16)
+- **Implementation:** `RegistrationClosedError` thrown from `createRegistration(bookingId, input)` service when `registrationEnabled=false`; caught in form action → `fail(400)`. Guard lives in the service layer (not UI), so direct POST bypass is also blocked.
+- **Verification:** `5.2-INT-CLOSED-001` green in CI gate; `createRegistration` throws `RegistrationClosedError` + no DB row inserted when `registrationEnabled=false`
 
 **R-006 — Catering aggregation concurrency (score=6)**
 - **Strategy:** (1) Aggregation query reads from `registrations` table directly; no cached counter. (2) Integration test: insert 5 registrations concurrently (Promise.all), assert aggregate count = 5. (3) Cancel 2 registrations, assert count = 3. (4) If a cached counter column is used, it must be updated atomically with the registration mutation.
@@ -203,8 +222,8 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 | 5.1-INT-001 | 5.1 | Valid token resolves event data (org logo, event name, date, time, room, agenda, contact) | Integration | R-001 | Real DB; seed booking with token |
 | 5.1-INT-IDOR-001 | 5.1 | Forged / mismatched token returns 404 with no event fields | Integration | R-001 (BLOCK) | Seed two bookings; cross-lookup asserted |
 | 5.1-INT-002 | 5.1 | Closed registration token shows closed-state response, not form | Integration | R-001, R-005 | `registration_enabled=false` fixture |
-| 5.2-INT-001 | 5.2 | Valid form submission (all fields) creates a registrant record | Integration | R-005 | Seed open booking; assert DB row |
-| 5.2-INT-CLOSED-001 | 5.2 | Direct POST to registration action when closed returns 400/redirect | Integration | R-005 (MITIGATE) | Bypasses UI; raw fetch to server action |
+| 5.2-INT-001 | 5.2 | Valid form submission (all fields) creates a registrant record | Integration | R-005 | **GREEN** — `createRegistration` service active; asserts all DB columns + audit log row |
+| 5.2-INT-CLOSED-001 | 5.2 | Direct POST to registration action when closed returns 400/redirect | Integration | R-005 (MITIGATE) | **GREEN** — `RegistrationClosedError` thrown; no row inserted asserted |
 | 5.3-INT-001 | 5.3 | Confirmation email enqueued (not synchronous); Mailpit receives Thai email | Integration | R-009 | pg-boss job asserted; Mailpit API checked |
 | 5.3-INT-002 | 5.3 | Confirmation email body contains a unique single-use cancel link | Integration | R-002 | Mailpit body parsed; link URL extracted |
 | 5.4-INT-001 | 5.4 | Self-cancel link cancels registration in one step; second use returns error | Integration | R-002 (MITIGATE) | Single-use assertion mandatory |
@@ -396,12 +415,12 @@ Estimates include test setup, fixture seeding, pg-boss job harness wiring, Mailp
 | R-002 | 6 | OPEN | `5.4-INT-001` |
 | R-003 | 6 | OPEN | `5.5-INT-001` |
 | R-004 | 6 | OPEN | `5.6-INT-002` |
-| R-005 | 6 | OPEN — 5.2 atdd-done; `5.2-INT-CLOSED-001` scaffolded (red) | `5.2-INT-CLOSED-001` |
+| R-005 | 6 | **MITIGATED** ✅ — 5.2 done (PR #129); `5.2-INT-CLOSED-001` green in CI; service-layer `RegistrationClosedError` guard active | `5.2-INT-CLOSED-001` |
 | R-006 | 6 | OPEN | `5.7-INT-001` |
 | R-007 | 6 | OPEN | `5.8-INT-IDOR-001` |
-| R-008 | 4 | OPEN | `5.2-E2E-MOBILE-001/002` |
+| R-008 | 4 | OPEN — `5.2-E2E-MOBILE-001/002` scaffolded (`test.skip`; activate during E2E pass) | `5.2-E2E-MOBILE-001/002` |
 | R-009 | 4 | OPEN | `5.3-INT-001`, `5.3-INT-004/005` |
-| R-010 | 4 | OPEN — 5.2 atdd-done; `5.2-INT-002/004` scaffolded (skip) | `5.2-INT-002`, `5.2-INT-004` |
+| R-010 | 4 | OPEN — `5.2-INT-002/004` scaffolded (`test.skip`; activate during E2E pass) | `5.2-INT-002`, `5.2-INT-004` |
 | R-011 | 3 | OPEN | `5.6-INT-005` (lint) |
-| R-012 | 3 | OPEN — 5.2 atdd-done; `5.2-INT-005` scaffolded (skip) | `5.2-INT-005` |
+| R-012 | 3 | OPEN — `5.2-INT-005` scaffolded (`test.skip`; activate during E2E pass) | `5.2-INT-005` |
 | R-013 | 2 | OPEN | Accepted; documented only |

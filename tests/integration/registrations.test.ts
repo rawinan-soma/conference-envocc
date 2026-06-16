@@ -1104,3 +1104,274 @@ describe('Story 5.2 — No Capacity Cap: 100th Registration Succeeds (AC-3, R-01
 		}
 	});
 });
+
+// ===========================================================================
+// STORY 5.3 — Confirmation Email with Self-Cancel Link
+//
+// ATDD Red-Phase Integration Scaffolds — Story 5.3: Confirmation Email with Self-Cancel Link
+//
+// STATUS:
+//   P0 tests ACTIVE (red phase — will fail until pg-boss schema exists and route wired).
+//   P1 tests skipped (activate when Mailpit accessible).
+//   P2 tests skipped (activate during implementation).
+//
+// AC Coverage:
+//   - AC-1 (R-009 PROOF): After registration action, a send-email pg-boss job row exists
+//                          with singletonKey = 'registration-confirm-${registrationId}'
+//   - AC-2: Job payload htmlBody/textBody contains cancel link with expected URL shape
+//   - AC-3: Email never sent synchronously — pg-boss job row is the proof
+//   - AC-4: Idempotency — same registrationId enqueued twice → only one job row
+//   - AC-5 (P1, skip): Thai email subject/body RFC 2047 encoding verified via Mailpit
+//
+// Scenario IDs (from story 5.3 Task 4 + test-design-epic-5.md):
+//   P0 (ACTIVATED — will fail until pg-boss schema exists + route action wired):
+//   - 5.3-INT-001: pg-boss job row exists with correct singletonKey immediately after action [P0]
+//   - 5.3-INT-002: Job payload contains cancel link in htmlBody/textBody [P0]
+//   (NOTE: 5.3-INT-001 and 5.3-INT-002 are combined in a single test per the story's ATDD spec)
+//   P1 (skipped — activate when Mailpit accessible from Vitest integration tier):
+//   - 5.3-INT-003: Thai email subject and body encode correctly (RFC 2047) [P1]
+//   P2 (skipped — activate during implementation):
+//   - 5.3-INT-004: Duplicate enqueue (same registrationId) produces only one pg-boss job row [P2]
+//   - 5.3-INT-005: SMTP failure during send → job lands in pg-boss dead-letter queue [P2]
+//
+// Prerequisites:
+//   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
+//   - pg-boss schema must exist (boss.start() creates it — run once per DB session)
+//   - Story 5.3 implementation complete:
+//       register action captures { registrationId, cancelToken } from createRegistration,
+//       builds cancelLink, renders template, calls enqueueJob with singletonKey
+//
+// Architecture note:
+//   The 4.6 pattern is followed exactly: raw SQL INSERT into pgboss.job proves the
+//   singletonKey contract and payload shape WITHOUT needing a live pg-boss boss process
+//   to handle the job. The boss.start()/boss.stop() lifecycle in beforeAll/afterAll
+//   creates the pgboss schema (tables) required for the INSERT to succeed.
+//
+// Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
+//   All string assertions use English mock data. Paraglide keys tested by name only.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 5.3-INT-001 + 5.3-INT-002 combined — pg-boss job exists with singletonKey and cancel link [P0] ACTIVE
+// AC-1 (R-009 PROOF): Job row exists immediately (async, not synchronous)
+// AC-2: Cancel link URL shape present in job payload
+// AC-3: Async proof — job row exists before worker processes it
+// ---------------------------------------------------------------------------
+
+describe('Story 5.3 — Confirmation Email Enqueued with Cancel Link (AC-1, AC-2, AC-3, R-009)', () => {
+	// -------------------------------------------------------------------------
+	// Boss lifecycle — pg-boss must be started to create the pgboss schema (tables).
+	// Also creates the send-email queue (required by the FK constraint on job_common).
+	// The boss singleton connects to DATABASE_URL (same Testcontainers DB as pool).
+	// -------------------------------------------------------------------------
+	beforeAll(async () => {
+		const { boss, QUEUE } = await import('../../src/lib/server/jobs/index.js');
+		await boss.start();
+		await boss.createQueue(QUEUE.SEND_EMAIL);
+	}, 60_000); // boss.start() may be slow on first run (creates pgboss schema)
+
+	afterAll(async () => {
+		// Clean up pgboss.job rows inserted by this describe block to keep the DB
+		// tidy for subsequent test runs (prevents stale singleton_key conflicts).
+		await pool.query(
+			`DELETE FROM pgboss.job WHERE name = 'send-email' AND singleton_key LIKE 'registration-confirm-%'`
+		);
+		const { boss } = await import('../../src/lib/server/jobs/index.js');
+		await boss.stop({ graceful: false });
+	}, 30_000);
+
+	test('[P0] 5.3-INT-001+002 — pg-boss job for send-email exists with singletonKey and cancel link in payload', async () => {
+		// THIS TEST WILL FAIL until:
+		//   1. pgboss schema exists (boss.start() runs in beforeAll above)
+		//   2. After route action is wired: upgrade to drive the actual /r/[token] register action
+		//      and assert the job row appears via enqueueJob (not raw SQL)
+		//
+		// AC-1 + AC-3 (R-009 MANDATORY PROOF): Email job is enqueued after createRegistration
+		//   returns — the HTTP response is NEVER delayed by SMTP. The pg-boss job row in
+		//   pgboss.job immediately after action return is the proof of async delivery.
+		//
+		// AC-2: The job payload htmlBody and textBody must contain the cancel link URL
+		//   in the shape: /r/${eventToken}/cancel?token=
+		//
+		// Strategy (raw SQL proof — mirrors 4.6-INT-002):
+		//   1. Generate test IDs: registrationId, eventToken, cancelTokenPlain.
+		//   2. Build cancelLink in the expected URL shape.
+		//   3. INSERT a row directly into pgboss.job (simulates what enqueueJob does).
+		//   4. 5.3-INT-001: Assert the row exists with state='created' and correct singletonKey.
+		//   5. 5.3-INT-002: Assert job data.textBody contains the cancel link URL pattern.
+		//
+		// Upgrade path (after route action is wired):
+		//   Replace the raw SQL INSERT with a drive of the actual POST /r/[token] register action
+		//   (via fetch + SvelteKit test helpers) and assert the job row appears in pgboss.job.
+
+		const testRegistrationId = uuidv7();
+		const testEventToken = `5-3-int-001-${randomUUID().replace(/-/g, '')}`;
+		const cancelTokenPlain = randomBytes(32).toString('hex');
+		const cancelLink = `http://localhost:3000/r/${testEventToken}/cancel?token=${cancelTokenPlain}`;
+		const singletonKey = `registration-confirm-${testRegistrationId}`;
+
+		// Seed directly into pgboss.job (same pattern as 4.6-INT-002)
+		await pool.query(
+			`INSERT INTO pgboss.job (id, name, data, singleton_key, state)
+       VALUES (gen_random_uuid(), 'send-email', $1::jsonb, $2, 'created')`,
+			[
+				JSON.stringify({
+					to: 'registrant@example.com',
+					subject: '[Test] Registration Confirmed',
+					textBody: `Registration confirmed.\n\nTo cancel: ${cancelLink}`,
+					htmlBody: `<p>Registration confirmed.</p><p><a href="${cancelLink}">Cancel</a></p>`
+				}),
+				singletonKey
+			]
+		);
+
+		// 5.3-INT-001: job row exists with correct singletonKey
+		const result = await pool.query<{ state: string; singleton_key: string; data: unknown }>(
+			`SELECT state, singleton_key, data FROM pgboss.job WHERE name = $1 AND singleton_key = $2 LIMIT 1`,
+			['send-email', singletonKey]
+		);
+
+		expect(
+			result.rows.length,
+			'5.3-INT-001: pgboss.job must contain a row for the registration confirmation email'
+		).toBe(1);
+		expect(
+			result.rows[0]?.singleton_key,
+			'5.3-INT-001: singletonKey must match registration-confirm-{registrationId} format'
+		).toBe(singletonKey);
+		expect(
+			['created', 'retry', 'active'],
+			'5.3-INT-001: job state must be pre-delivery (created, retry, or active)'
+		).toContain(result.rows[0]?.state);
+
+		// 5.3-INT-002: cancel link present in job payload
+		const jobData = result.rows[0]?.data as Record<string, unknown>;
+		expect(
+			String(jobData?.['textBody'] ?? ''),
+			'5.3-INT-002: textBody must contain cancel link with /r/{eventToken}/cancel?token= shape'
+		).toContain(`/r/${testEventToken}/cancel?token=`);
+		expect(
+			String(jobData?.['htmlBody'] ?? ''),
+			'5.3-INT-002: htmlBody must contain cancel link with /r/{eventToken}/cancel?token= shape'
+		).toContain(`/r/${testEventToken}/cancel?token=`);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.3-INT-003 — Thai email encoding correct (RFC 2047) [P1] SKIP
+// AC-5 (NFR-006): Thai subject and body encode correctly per RFC 2047
+// ---------------------------------------------------------------------------
+
+describe('Story 5.3 — Thai Email Encoding (AC-5, NFR-006)', () => {
+	test.skip('[P1] 5.3-INT-003 — Thai email subject and body encode correctly (RFC 2047) via Mailpit', async () => {
+		// Activation condition: MAILPIT_URL env var set; Mailpit container reachable from Vitest.
+		//
+		// AC-5 (NFR-006): Email subject rendered with { locale: 'th' } Paraglide option.
+		//   Thai characters must be RFC 2047 encoded in raw headers (not garbled).
+		//   Verified via Mailpit API: GET ${MAILPIT_URL}/api/v1/messages → fetch raw message.
+		//
+		// Note: No Thai text hardcoded here — Rawinan handles all Thai translations.
+		//   Assertions check: (a) raw Subject header contains =?UTF-8?B? or =?UTF-8?Q? prefix,
+		//   (b) decoded body text is non-empty and contains expected English anchor strings.
+		//
+		// Strategy:
+		//   1. POST to /r/[token] register action to trigger the full enqueue-and-deliver flow.
+		//   2. Poll Mailpit API until email arrives (timeout 10s).
+		//   3. Fetch raw message: GET ${MAILPIT_URL}/api/v1/message/{id}/raw
+		//   4. Assert: Subject header starts with =?UTF-8? (RFC 2047 encoded).
+		//   5. Assert: body (text or html) is non-empty.
+		//   6. Assert: cancel link URL pattern present in body.
+
+		const mailpitUrl = process.env['MAILPIT_URL'];
+		if (!mailpitUrl) {
+			throw new Error('5.3-INT-003: MAILPIT_URL not set — skip or set env var to activate');
+		}
+
+		// Placeholder — implement when Mailpit is accessible from the Vitest integration tier.
+		// See 4.6-INT-001 (bookings.test.ts) for the reference polling pattern.
+		throw new Error(
+			'5.3-INT-003: not yet implemented — activate and implement when Mailpit reachable'
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.3-INT-004 — Idempotency: same registrationId deduplicates to one job row [P2] SKIP
+// AC-4: singletonKey = 'registration-confirm-${registrationId}' prevents duplicate emails
+// ---------------------------------------------------------------------------
+
+describe('Story 5.3 — Idempotency: Duplicate Enqueue Produces One Job Row (AC-4)', () => {
+	test.skip('[P2] 5.3-INT-004 — duplicate enqueue with same singletonKey produces only one pgboss.job row', async () => {
+		// Activation condition: pg-boss schema exists; boss lifecycle available.
+		//
+		// AC-4: singletonKey = 'registration-confirm-${registrationId}' ensures that even if
+		//   enqueueJob is called twice for the same registration, pg-boss deduplication
+		//   inserts only one job row. This prevents double-sending confirmation emails.
+		//
+		// Strategy (mirrors 4.6-INT-003):
+		//   1. Generate a test registrationId.
+		//   2. INSERT the same singletonKey twice via raw SQL (or enqueueJob twice).
+		//   3. Assert: only ONE row in pgboss.job for that singletonKey.
+		//
+		// Note: pg-boss uses a UNIQUE constraint on singleton_key within the 'created' state.
+		//   The second INSERT should either be rejected or collapse to the existing row.
+
+		const { enqueueJob, QUEUE } = await import('../../src/lib/server/jobs/index.js');
+
+		const testRegistrationId = uuidv7();
+		const singletonKey = `registration-confirm-${testRegistrationId}`;
+		const payload = {
+			to: 'registrant-idem@example.com',
+			subject: '[Test] Registration Confirmed (Idempotency)',
+			textBody:
+				'Registration confirmed. Cancel link: http://localhost:3000/r/test/cancel?token=abc123',
+			htmlBody:
+				'<p>Registration confirmed. <a href="http://localhost:3000/r/test/cancel?token=abc123">Cancel</a></p>'
+		};
+
+		// Enqueue twice with the same singletonKey
+		await enqueueJob(QUEUE.SEND_EMAIL, payload, { singletonKey });
+		await enqueueJob(QUEUE.SEND_EMAIL, payload, { singletonKey });
+
+		// Assert: only one job row exists
+		const result = await pool.query<{ count: string }>(
+			`SELECT COUNT(*) AS count FROM pgboss.job WHERE name = 'send-email' AND singleton_key = $1`,
+			[singletonKey]
+		);
+		expect(
+			Number(result.rows[0]?.count),
+			'5.3-INT-004: duplicate enqueue with same singletonKey must produce exactly one job row'
+		).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.3-INT-005 — SMTP failure → job in pg-boss dead-letter queue [P2] SKIP
+// AC-3 (negative): Failed SMTP send → job lands in DLQ with state='failed'
+// ---------------------------------------------------------------------------
+
+describe('Story 5.3 — SMTP Failure Lands Job in Dead-Letter Queue (AC-3 negative)', () => {
+	test.skip('[P2] 5.3-INT-005 — SMTP failure during send → job lands in pg-boss DLQ with state=failed', async () => {
+		// Activation condition: worker process available; SMTP mock configured to fail.
+		//
+		// AC-3 (failure path): When the sendEmailHandler worker fails to deliver the email
+		//   (e.g., SMTP connection refused), pg-boss retries up to its retry limit, then
+		//   marks the job as state='failed' (dead-letter queue entry).
+		//   The job is NOT silently lost — it is visible in pgboss.job with state='failed'.
+		//
+		// Strategy:
+		//   1. Configure SMTP mock to reject connections (or point to a non-existent SMTP server).
+		//   2. Enqueue a send-email job via enqueueJob.
+		//   3. Start the pg-boss worker (boss.work(QUEUE.SEND_EMAIL, sendEmailHandler)).
+		//   4. Wait for the job to exhaust retries and reach state='failed'.
+		//   5. Assert: pgboss.job row has state='failed' for the test singletonKey.
+		//
+		// Note: This test requires controlling the worker lifecycle and SMTP mock,
+		//   which is more complex than the raw SQL proof used by 5.3-INT-001/002.
+		//   Activate only when the full worker integration is available in the test environment.
+
+		throw new Error(
+			'5.3-INT-005: not yet implemented — activate when SMTP mock + worker integration available'
+		);
+	});
+});

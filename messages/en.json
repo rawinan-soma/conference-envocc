@@ -201,5 +201,12 @@
 	"reg_form_submit_button": "Register",
 	"reg_form_submitting_button": "Registering...",
 	"reg_form_success_title": "Registration Complete",
-	"reg_form_success_message": "You have been registered for this event. A confirmation email will be sent shortly."
+	"reg_form_success_message": "You have been registered for this event. A confirmation email will be sent shortly.",
+
+	"reg_email_subject": "Registration Confirmed: {eventName}",
+	"reg_email_greeting": "Dear {firstName} {lastName},",
+	"reg_email_event_label": "Event:",
+	"reg_email_cancel_link_label": "To cancel your registration, click:",
+	"reg_email_cancel_link_text": "Cancel Registration",
+	"reg_email_footer": "This email was sent automatically. Do not reply."
 }
