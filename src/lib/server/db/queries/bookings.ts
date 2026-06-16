@@ -16,6 +16,7 @@ import { userProfiles } from '../schema/profiles.js';
 import { db } from '../index.js';
 import { bookings } from '../schema/bookings.js';
 import { rooms } from '../schema/rooms.js';
+import { registrations } from '../schema/registrations.js';
 import type { Room } from '../schema/rooms.js';
 import type { Booking } from '../../services/booking-service.js';
 import { addDays } from '$lib/utils/date.js';
@@ -90,13 +91,14 @@ export async function getWeekCalendar(weekStart: Date): Promise<WeekCalendarRow[
 // ---------------------------------------------------------------------------
 
 /**
- * Extended booking row that includes the joined room name.
+ * Extended booking row that includes the joined room name and registrant count.
  * Avoids N+1 fetches for room names on the dashboard.
  *
  * Story 4.8 AC-1 (FR-050): Only the requesting organizer's upcoming non-cancelled
  * bookings are returned. IDOR boundary is enforced here in the DB query itself.
+ * Story 5.8 AC-5 (FR-052): registrantCount = count of status='registered' rows only.
  */
-export type UpcomingBookingRow = Booking & { roomName: string };
+export type UpcomingBookingRow = Booking & { roomName: string; registrantCount: number };
 
 /**
  * Returns all upcoming, non-cancelled bookings for a specific organizer, ordered
@@ -109,6 +111,9 @@ export type UpcomingBookingRow = Booking & { roomName: string };
  *
  * JOIN: bookings INNER JOIN rooms ON roomId = rooms.id  (provides roomName — AC-2)
  *
+ * Story 5.8 AC-5 (FR-052): registrantCount subquery counts status='registered' rows only
+ *   (excludes cancelled per AC-6). Cast to ::int ensures pg driver returns JS number.
+ *
  * NOTE: An index on bookings(organizer_id) may be needed if NFR-003 (<3s load)
  * is at risk under production load. Do NOT add a migration without measuring.
  *
@@ -120,7 +125,15 @@ export async function getUpcomingBookingsByOrganizer(
 	const rows = await db
 		.select({
 			...getTableColumns(bookings), // all booking columns (avoids column ambiguity in JOIN)
-			roomName: rooms.name // extra field from rooms table
+			roomName: rooms.name, // extra field from rooms table
+			// Story 5.8 AC-5 (FR-052): count only status='registered' rows (excludes cancelled — AC-6)
+			// Cast COUNT(*) to ::int so pg driver returns a JS number, not a bigint string.
+			registrantCount: sql<number>`(
+				SELECT COUNT(*)::int
+				FROM ${registrations} r
+				WHERE r.booking_id = ${bookings.id}
+				  AND r.status = 'registered'
+			)`.as('registrant_count')
 		})
 		.from(bookings)
 		.innerJoin(rooms, eq(bookings.roomId, rooms.id))
@@ -131,7 +144,11 @@ export async function getUpcomingBookingsByOrganizer(
 		)
 		.orderBy(sql`lower(${bookings.during}) asc`);
 
-	return rows;
+	// Coerce registrantCount to number in case pg driver returns string despite ::int cast.
+	return rows.map((row) => ({
+		...row,
+		registrantCount: Number(row.registrantCount)
+	}));
 }
 
 // ---------------------------------------------------------------------------
