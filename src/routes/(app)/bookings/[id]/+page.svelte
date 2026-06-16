@@ -133,6 +133,33 @@
 			>
 		</div>
 
+		<!-- Catering counts — Story 5.7 (AC-2, AC-4: only when cateringCounts is non-null) -->
+		{#if data.cateringCounts !== null}
+			<div class="flex flex-col gap-1">
+				<span class="text-xs text-muted-foreground">{m.catering_summary_heading()}</span>
+				<div class="flex flex-col gap-0.5">
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-muted-foreground">{m.catering_summary_normal_label()}</span>
+						<span class="text-sm font-medium">{data.cateringCounts.normal}</span>
+					</div>
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-muted-foreground"
+							>{m.catering_summary_vegetarian_label()}</span
+						>
+						<span class="text-sm font-medium">{data.cateringCounts.vegetarian}</span>
+					</div>
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-muted-foreground">{m.catering_summary_muslim_label()}</span>
+						<span class="text-sm font-medium">{data.cateringCounts.muslim}</span>
+					</div>
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-muted-foreground">{m.catering_summary_other_label()}</span>
+						<span class="text-sm font-medium">{data.cateringCounts.other}</span>
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Registration -->
 		<div class="flex flex-col gap-0.5">
 			<span class="text-xs text-muted-foreground">{m.booking_registration_label()}</span>

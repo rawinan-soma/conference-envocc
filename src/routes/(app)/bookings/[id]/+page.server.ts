@@ -1,9 +1,10 @@
 /**
- * Booking detail/management page — Story 4.5 + Story 4.7 + Story 5.6
+ * Booking detail/management page — Story 4.5 + Story 4.7 + Story 5.7
  *
- * load:             Requires authenticated user. Fetches booking by [id].
- *                   Asserts ownership (assertOwner). Returns booking data for display,
- *                   including QR / registration URL (Story 4.5) and room/time info (Story 4.7).
+ * load:   Requires authenticated user. Fetches booking by [id].
+ *         Asserts ownership (assertOwner). Returns booking data for display,
+ *         including QR / registration URL (Story 4.5) and room/time info (Story 4.7).
+ *         Story 5.7: Adds cateringCounts when cateringEnabled=true.
  *
  * cancel:           Calls cancelBooking(). Redirects back to /bookings/[id] on success.
  *                   Non-owner → 403 (assertOwner guard).
@@ -27,6 +28,8 @@ import { getRoomById } from '$lib/server/services/room-service.js';
 import { generateQrDataUrl } from '$lib/server/qr/qr.js';
 import { parseTstzrange } from '$lib/utils/tstzrange.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
+import { getCateringCountsByBookingId } from '$lib/server/db/queries/registrations.js';
+import type { CateringCounts } from '$lib/server/db/queries/registrations.js';
 
 import type { Actions, PageServerLoad } from './$types.js';
 
@@ -64,13 +67,32 @@ export const load: PageServerLoad = async (event) => {
 	// Generate QR data URL server-side (Story 4.5)
 	const qrDataUrl = registrationUrl ? await generateQrDataUrl(registrationUrl) : null;
 
+	// Catering aggregation — Story 5.7 (AC-2, AC-3, AC-4, AC-5, AC-6)
+	// Only query when cateringEnabled=true; null signals "don't render the section".
+	// Guarded with try/catch: a catering DB failure must not cause a 500 on the
+	// booking detail page — the booking itself loaded successfully.
+	let cateringCounts: CateringCounts | null = null;
+	if (booking.cateringEnabled) {
+		try {
+			cateringCounts = await getCateringCountsByBookingId(booking.id);
+		} catch (err) {
+			// Catering query failed — render the section as absent rather than 500.
+			console.error(
+				'[bookings/detail] catering aggregation query failed — hiding catering section',
+				err
+			);
+			cateringCounts = null;
+		}
+	}
+
 	return {
 		booking,
 		room,
 		startAt,
 		endAt,
 		registrationUrl,
-		qrDataUrl
+		qrDataUrl,
+		cateringCounts
 	};
 };
 

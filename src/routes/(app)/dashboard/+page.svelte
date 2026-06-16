@@ -99,6 +99,7 @@
 						<BookingCard
 							{booking}
 							registrationUrl={booking.registrationUrl}
+							cateringCounts={booking.cateringCounts}
 							onCopy={showCopyToast}
 						/>
 					</li>
