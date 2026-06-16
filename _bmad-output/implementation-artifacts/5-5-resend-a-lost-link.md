@@ -4,7 +4,7 @@ baseline_commit: 84a9085
 
 # Story 5.5: Resend a Lost Link
 
-**Status:** `review`
+**Status:** `done`
 **Epic:** 5 — External Registration & Headcount
 **GH Issue:** #33
 **Previous Story:** 5.3 — Confirmation Email with Self-Cancel Link (5.4 still in backlog)
@@ -333,6 +333,25 @@ bun run test:integration      # 5.5-INT-001 (P0 active) must pass
 - [Source: `src/lib/server/jobs/index.ts`] — `enqueueJob` export
 - [Source: `src/hooks.server.ts`] — `/r` public route allow-list
 - [Source: `_bmad-output/implementation-artifacts/5-3-confirmation-email-with-self-cancel-link.md`] — 5.3 story for email pattern
+
+### Review Findings
+
+Code review (2026-06-16) ran three adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor). The Acceptance Auditor found **zero AC violations**; implementation is faithful to the spec. Outcome: 0 decision-needed, 0 patch, 3 deferred, 4 dismissed. No code changes required — every actionable item either contradicts an explicit spec decision, is explicitly out of scope, or is a pre-existing project-wide pattern.
+
+Deferred (real, but not actionable in this story):
+
+- [x] [Review][Defer] Token rotation commits before email enqueue — enqueue failure (worker down) invalidates the old cancel link without delivering the new one [src/lib/server/services/resend-registration-service.ts; src/routes/r/[token]/resend/+page.server.ts:91-110] — deferred. The fire-and-forget enqueue-after-commit pattern is prescribed by Dev Notes §Enqueue Pattern (lines 149-165) and mirrors Story 5.3. Recovery exists: the registration stays `status='registered'`, so a repeat resend rotates again and retries delivery. Changing it would contradict an explicit spec decision.
+- [x] [Review][Defer] Email lookup is case/whitespace-sensitive — a registrant who types a different case/whitespace than at registration gets a silent no-op [src/lib/server/db/queries/registrations.ts (getActiveRegistrationByEmail); src/lib/schemas/resend.ts] — deferred, pre-existing project-wide pattern. The register side (RegistrationSchema + insert) is equally non-normalizing and unchanged by this story; insert/lookup are symmetric. AC-6 explicitly permits a silent no-op on non-match. Candidate for a future cross-cutting email-normalization story.
+- [x] [Review][Defer] Resend bypasses the registration-open/closed gate that the register action enforces [src/routes/r/[token]/resend/+page.server.ts] — deferred (deliberate). Judged correct: resend is a recovery mechanism for existing registrants, not a new registration, so it should work even after registration closes. Noted as a deliberate asymmetry rather than a defect; revisit if product decides resend must also be gated.
+
+Dismissed (noise / false positive / handled by spec):
+
+- [Review][Dismiss] "Invalid JSON / duplicate key in messages/en.json" (Blind Hunter, flagged Critical) — FALSE POSITIVE. Verified empirically: both `messages/en.json` and `messages/th.json` parse as valid JSON and `registrant_list_back_link` appears exactly once. The diff merely showed the prior last entry (no trailing comma) adjacent to its replacement (comma added) — a display artifact, not a real change.
+- [Review][Dismiss] Timing side-channel on the not-found path — accepted by spec Dev Notes §Neutral Disclosure (line 121) as a known MVP risk mitigated by body/status neutrality. Code matches the documented decision.
+- [Review][Dismiss] No rate limiting on the resend endpoint — explicitly out of scope per Scope Boundary (line 301).
+- [Review][Dismiss] Audit log lacks request context/IP — AC-8 specifies exactly `diff: { registrationId }`, `actorId=null`; implementation matches the AC precisely.
+
+Cross-story note (not a finding): the resent cancel link targets `/r/[token]/cancel`, which is Story 5.4 (backlog), so the link 404s until 5.4 ships. This is explicitly sanctioned by the Scope Boundary section and is correct as-is.
 
 ## Dev Agent Record
 
