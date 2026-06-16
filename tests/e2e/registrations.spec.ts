@@ -843,3 +843,37 @@ test.describe('Story 5.8 — Dashboard Live Headcount (AC-5, FR-052)', () => {
 		expect(initialCount, '5.8-E2E-002: headcount must be >= 0').toBeGreaterThanOrEqual(0);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Story 5.4 — Self-Cancel a Registration (E2E)
+// ---------------------------------------------------------------------------
+
+test.describe('Story 5.4 — Self-Cancel Registration via Browser (AC-1, FR-044)', () => {
+	test.skip('[P1] 5.4-E2E-001 — visiting cancel link shows confirm page; clicking confirm cancels and shows success', async ({
+		page
+	}) => {
+		// Activation condition: Tasks 1–4 complete (route + service + i18n all done).
+		//
+		// AC-1 (FR-044): External registrant visits the cancel link from their email.
+		//   They see a confirmation prompt (not an immediate cancel on GET).
+		//   Clicking "Yes, cancel my registration" POSTs and shows a success message.
+		//   No login required.
+		//
+		// Strategy:
+		//   1. Seed a booking + registration with a known cancelTokenPlain via SQL
+		//   2. Navigate to /r/{eventToken}/cancel?token={cancelTokenPlain}
+		//   3. Assert: confirm prompt is visible (NOT already-cancelled message)
+		//   4. Click the "Yes, cancel my registration" submit button
+		//   5. Assert: success message visible (reg_cancel_success_title)
+		//   6. Assert: no redirect to /login (unauthenticated flow)
+		//
+		// Note: Use the page's PUBLIC cancel route — no authentication needed.
+		// Seed data: Insert directly via pg client or use a test fixture.
+
+		// Placeholder — implement when Tasks 1–4 are complete.
+		// Navigate to cancel page once seeded (replace placeholders with real values):
+		// await page.goto(`/r/${eventToken}/cancel?token=${cancelTokenPlain}`);
+		void page; // referenced above — remove this line when activating
+		throw new Error('5.4-E2E-001: not yet implemented — activate after Tasks 1–4 complete');
+	});
+});
