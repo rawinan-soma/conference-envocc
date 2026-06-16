@@ -9,11 +9,11 @@ stepsCompleted:
   - step-05-generate-output
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-06-15'
+lastSaved: '2026-06-16'
 epicTwoRevision: v3
 epicThreeRevision: v1
 epicFourRevision: v1
-epicFiveRevision: v2
+epicFiveRevision: v3
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -319,3 +319,58 @@ Non-negotiable: `5.1-INT-IDOR-001` (BLOCK, score=9 automatic gate fail) in every
 Reuses `idor-template.ts` (Story 2.7) for `5.1-INT-IDOR-001` and `5.8-INT-IDOR-001`.
 Planned test files: `registrations.test.ts` (new), `registrations.spec.ts` (new), `db-schema.test.ts` (append), `k6/registration-load.js` (new, on-demand).
 ADR 4.5 scope: event token plaintext (confirmed by E4 tests); self-cancel token hashed (new in E5).
+
+---
+
+# Epic 5 Test Design Run (v3 Update) — 2026-06-16
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Epic-Level (argument "epic-5" + sprint-status.yaml present)
+- **Epic**: Epic 5 — External Registration & Headcount (8 stories; 5.1–5.2 done; 5.3–5.8 backlog)
+- **Prerequisites confirmed**: Story 5.2 implementation doc loaded; actual test files inspected; sprint-status confirms PR #129 merged
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Drizzle + PostgreSQL + pg-boss + nodemailer + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **New since v2**: Story 5.2 done (PR #129 merged 2026-06-16T02:44:27Z)
+  - `registrations` schema + migration `0010_registrations.sql` live
+  - `createRegistration` service + `RegistrationClosedError` implemented
+  - `RegistrationSchema` (Valibot) with conditional `mealType` and `titleOtherText`
+  - `register` form action wired to superform + service
+  - 22 `reg_form_*` i18n keys added; Thai values set to `""`
+  - `TRUNCATABLE_TABLES` updated; `db-schema.test.ts` assertion added
+  - `5.2-INT-001` (P0 ACTIVE) and `5.2-INT-CLOSED-001` (P0 ACTIVE) green in CI
+  - `5.2-INT-002/003/004/005` (P1 `test.skip`); all E2E stubs appended as `test.skip`
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+- R-001 (token IDOR BLOCK): **CLOSED** ✅ — unchanged from v2
+- R-002 (cancel token replay): **OPEN** — awaiting Story 5.4
+- R-003 (resend enumeration): **OPEN** — awaiting Story 5.5
+- R-004 (auto-close double-fire): **OPEN** — awaiting Story 5.6
+- R-005 (closed-state POST bypass): **MITIGATED** ✅ — `5.2-INT-CLOSED-001` green; `RegistrationClosedError` service-layer guard active; no row inserted when `registrationEnabled=false`
+- R-006 (catering concurrency): **OPEN** — awaiting Story 5.7
+- R-007 (registrant list IDOR): **OPEN** — awaiting Story 5.8
+- R-008 (mobile responsiveness): **OPEN** — `5.2-E2E-MOBILE-001/002` scaffolded as `test.skip`
+- R-010 ("Other→text" lost): **OPEN** — `5.2-INT-002/004` scaffolded as `test.skip`
+- R-012 (no-capacity cap): **OPEN** — `5.2-INT-005` scaffolded as `test.skip`
+
+## Step 4: Coverage Plan
+
+- P0: 15 of 17 active (5.1: 3 active; 5.2: 2 active); 2 planned for Stories 5.3–5.8
+- P1: 2 of 19 active (5.1: 0 active, all skip; 5.2: 0 active, all skip); remaining 19 planned/skip
+- P2: 0 of 11 active; all skip
+- P3: 0 of 4 active; all skip
+- Remaining effort for 5.3–5.8: ~55–85h (~7–10 days)
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-5.md`
+Revision: v3 (2026-06-16) — updated post Story 5.2 completion (PR #129).
+R-001 CLOSED (v1), R-005 MITIGATED ✅ (v3). R-002, R-003, R-004, R-006, R-007 open.
+`5.2-INT-001` + `5.2-INT-CLOSED-001` green in CI gate.
+P1 stubs for 5.2 remain `test.skip`; E2E activation pending for Stories 5.3–5.8 progression.
+5.3–5.8 remain backlog; all their P0 scenarios planned but not yet implemented.
