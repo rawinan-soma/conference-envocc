@@ -87,6 +87,29 @@ export type CreateBookingInput = {
 export type Booking = typeof bookings.$inferSelect;
 
 // ---------------------------------------------------------------------------
+// scheduleCloseRegistration — private helper (Story 5.6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Schedule (or re-schedule) the auto-close pg-boss job for a booking.
+ * Called AFTER the DB transaction commits — enqueueJob uses its own pg connection.
+ *
+ * No-op if booking.registrationClosesAt is null.
+ */
+async function scheduleCloseRegistration(booking: Booking): Promise<void> {
+	if (booking.registrationClosesAt) {
+		await enqueueJob(
+			QUEUE.CLOSE_REGISTRATION,
+			{ bookingId: booking.id } satisfies CloseRegistrationPayload,
+			{
+				startAfter: booking.registrationClosesAt, // Date object from Drizzle
+				singletonKey: `close-registration:${booking.id}`
+			}
+		);
+	}
+}
+
+// ---------------------------------------------------------------------------
 // createBooking
 // ---------------------------------------------------------------------------
 
@@ -189,16 +212,7 @@ export async function createBooking(
 	// enqueueJob is outside the DB transaction: pg-boss.send() uses its own connection.
 	// registrationClosesAt is persisted only when registrationEnabled=true, so this guard
 	// naturally skips disabled-registration bookings (no unnecessary jobs).
-	if (booking.registrationClosesAt) {
-		await enqueueJob(
-			QUEUE.CLOSE_REGISTRATION,
-			{ bookingId: booking.id } satisfies CloseRegistrationPayload,
-			{
-				startAfter: booking.registrationClosesAt, // Date object from Drizzle
-				singletonKey: `close-registration:${booking.id}`
-			}
-		);
-	}
+	await scheduleCloseRegistration(booking);
 
 	return booking;
 }
@@ -328,18 +342,85 @@ export async function updateBooking(
 	//   (b) time guard — if closesAt is null or future, no-op (stale-job safe)
 	// If registrationClosesAt was removed (now null): do NOT enqueue. Any pending jobs
 	// will fire but the time guard will no-op safely (!registrationClosesAt → return).
-	if (booking.registrationClosesAt) {
-		await enqueueJob(
-			QUEUE.CLOSE_REGISTRATION,
-			{ bookingId: booking.id } satisfies CloseRegistrationPayload,
-			{
-				startAfter: booking.registrationClosesAt, // Date object from Drizzle
-				singletonKey: `close-registration:${booking.id}`
-			}
-		);
-	}
+	await scheduleCloseRegistration(booking);
 
 	return booking;
+}
+
+// ---------------------------------------------------------------------------
+// closeRegistrationManual — Story 5.6, AC-2
+// ---------------------------------------------------------------------------
+
+/**
+ * Close registration on a booking immediately (manual action by organizer).
+ *
+ * Runs inside a transaction with a SELECT … FOR UPDATE row lock so that
+ * concurrent double-submits are safe — only one write wins:
+ *   1. Ownership check — throws 403 if actorId !== booking.organizerId.
+ *   2. Status guard — throws 422 if booking is not 'active' (prevents closing
+ *      a cancelled booking's registration via direct POST).
+ *   3. Idempotent — no-op (returns false) if registrationEnabled is already false.
+ *   4. UPDATE bookings SET registrationEnabled=false + write audit_log.
+ *
+ * Returns `true` when registration was closed, `false` when it was already closed
+ * (caller can redirect without taking action either way).
+ *
+ * @param actorId   - User ID performing the action
+ * @param bookingId - Booking whose registration to close
+ * @throws 404 HttpError if booking is not found
+ * @throws 403 HttpError if actorId does not own the booking
+ * @throws 422 HttpError if booking status is not 'active'
+ */
+export async function closeRegistrationManual(
+	actorId: string,
+	bookingId: string
+): Promise<boolean> {
+	return db.transaction(async (tx) => {
+		// SELECT … FOR UPDATE — prevents concurrent double-submits from both
+		// passing the idempotency guard and writing duplicate audit rows.
+		const [booking] = await tx
+			.select()
+			.from(bookings)
+			.where(eq(bookings.id, bookingId))
+			.for('update');
+
+		if (!booking) {
+			const { error } = await import('@sveltejs/kit');
+			error(404, 'Booking not found');
+		}
+
+		// Ownership check (service-level IDOR guard)
+		if (booking.organizerId !== actorId) {
+			const { error } = await import('@sveltejs/kit');
+			error(403, 'Forbidden: you do not own this resource');
+		}
+
+		// Status guard — only active bookings can have registration closed
+		// (defence-in-depth matching the UI button gate: status='active' && registrationEnabled)
+		if (booking.status !== 'active') {
+			const { error } = await import('@sveltejs/kit');
+			error(422, 'Cannot close registration on a non-active booking');
+		}
+
+		// Idempotent: already closed → no-op
+		if (!booking.registrationEnabled) {
+			return false;
+		}
+
+		await tx
+			.update(bookings)
+			.set({ registrationEnabled: false, updatedAt: sql`now()` })
+			.where(eq(bookings.id, bookingId));
+
+		await writeAuditLog(tx, {
+			actorId,
+			entity: 'booking',
+			action: 'close-registration',
+			diff: { bookingId }
+		});
+
+		return true;
+	});
 }
 
 // ---------------------------------------------------------------------------

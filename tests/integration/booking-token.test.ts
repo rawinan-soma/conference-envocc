@@ -65,7 +65,7 @@ beforeAll(async () => {
 	const { boss, QUEUE } = await import('../../src/lib/server/jobs/index.js');
 	await boss.start();
 	await boss.createQueue(QUEUE.CLOSE_REGISTRATION);
-});
+}, 60_000); // pg-boss.start() can take >5s on a cold Testcontainers container
 
 afterAll(async () => {
 	// Stop pg-boss before closing the pool — graceful=false avoids waiting for

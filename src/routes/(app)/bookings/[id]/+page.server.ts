@@ -16,17 +16,17 @@
  *         assertOwner (throws error 403 if wrong organizer)
  */
 import { error, redirect } from '@sveltejs/kit';
-import { eq, sql } from 'drizzle-orm';
 
 import { requireUser, assertOwner } from '$lib/server/auth/guards.js';
-import { getBookingById, cancelBooking } from '$lib/server/services/booking-service.js';
+import {
+	getBookingById,
+	cancelBooking,
+	closeRegistrationManual
+} from '$lib/server/services/booking-service.js';
 import { getRoomById } from '$lib/server/services/room-service.js';
 import { generateQrDataUrl } from '$lib/server/qr/qr.js';
 import { parseTstzrange } from '$lib/utils/tstzrange.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
-import { db } from '$lib/server/db/index.js';
-import { bookings } from '$lib/server/db/schema/bookings.js';
-import { writeAuditLog } from '$lib/server/services/audit.js';
 
 import type { Actions, PageServerLoad } from './$types.js';
 
@@ -96,31 +96,10 @@ export const actions: Actions = {
 		const user = requireUser(event);
 		const { id } = event.params;
 
-		const booking = await getBookingById(id);
-		if (!booking) {
-			error(404, 'Booking not found');
-		}
-
-		assertOwner(event, booking.organizerId);
-
-		// Idempotent: no-op if already closed (AC-2, makes action double-submit safe)
-		if (!booking.registrationEnabled) {
-			redirect(303, `/bookings/${id}`);
-		}
-
-		await db.transaction(async (tx) => {
-			await tx
-				.update(bookings)
-				.set({ registrationEnabled: false, updatedAt: sql`now()` })
-				.where(eq(bookings.id, id));
-
-			await writeAuditLog(tx, {
-				actorId: user.id,
-				entity: 'booking',
-				action: 'close-registration',
-				diff: { bookingId: id }
-			});
-		});
+		// Delegates to service: ownership check, status guard, TOCTOU-safe FOR UPDATE lock,
+		// idempotency guard, UPDATE + audit log — all inside one transaction.
+		// Throws 404/403/422 if preconditions fail; returns false if already closed (no-op).
+		await closeRegistrationManual(user.id, id);
 
 		redirect(303, `/bookings/${id}`);
 	}
