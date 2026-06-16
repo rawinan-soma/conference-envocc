@@ -18,9 +18,12 @@
 	 * Svelte 5 — uses $props() rune only (no Svelte 4 reactivity).
 	 */
 	import * as m from '$lib/paraglide/messages.js';
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types.js';
 
 	const { data, form }: { data: PageData; form: ActionData } = $props();
+
+	let submitting = $state(false);
 </script>
 
 <svelte:head>
@@ -66,13 +69,24 @@
 							{m.reg_cancel_confirm_body()}
 						</p>
 
-						<!-- Plain SvelteKit form action — no superForm needed (story spec) -->
-						<form method="POST">
+						<!-- use:enhance prevents double-submit (disabled while in-flight) and avoids
+						     the browser re-POST on Back/Forward navigation (C8, C9). -->
+						<form
+							method="POST"
+							use:enhance={() => {
+								submitting = true;
+								return async ({ update }) => {
+									await update();
+									submitting = false;
+								};
+							}}
+						>
 							<!-- Hidden input carries the cancel token to the POST action (AC-3) -->
 							<input type="hidden" name="token" value={data.cancelTokenPlain} />
 							<button
 								type="submit"
-								class="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center justify-center rounded-md px-6 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+								disabled={submitting}
+								class="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 inline-flex items-center justify-center rounded-md px-6 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 							>
 								{m.reg_cancel_confirm_button()}
 							</button>

@@ -73,7 +73,9 @@ export async function cancelRegistrantByCancelToken(
 	}
 
 	if (row.status === 'cancelled') {
-		// Already cancelled — idempotency guard (AC-2)
+		// Defence-in-depth guard (AC-2): normally unreachable because a successful cancel NULLs
+		// the hash, making the SELECT above return nothing on second use. This branch fires only
+		// if a future admin/bulk-cancel path sets status='cancelled' without NULLing the hash.
 		return { cancelled: false };
 	}
 
@@ -83,7 +85,7 @@ export async function cancelRegistrantByCancelToken(
 		.set({
 			status: 'cancelled',
 			cancelTokenHash: null,
-			updatedAt: new Date()
+			updatedAt: sql`now()`
 		})
 		.where(eq(registrations.id, row.id));
 

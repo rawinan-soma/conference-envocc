@@ -96,17 +96,6 @@ export async function createRegistration(
 }
 
 /**
- * Exported for optional use by the route layer.
- * The service itself returns { cancelled: false } without throwing — route decides presentation.
- */
-export class RegistrationAlreadyCancelledError extends Error {
-	constructor() {
-		super('Registration is already cancelled or token is invalid.');
-		this.name = 'RegistrationAlreadyCancelledError';
-	}
-}
-
-/**
  * Cancels a registration by the plaintext cancel token from the cancel link.
  *
  * AC-2 (R-002 MITIGATE): Single-use token — after first success, cancel_token_hash is NULL.

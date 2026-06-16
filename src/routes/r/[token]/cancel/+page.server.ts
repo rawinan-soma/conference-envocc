@@ -44,13 +44,13 @@ export const actions: Actions = {
 		const cancelTokenPlain = formData.get('token');
 
 		if (!cancelTokenPlain || typeof cancelTokenPlain !== 'string') {
-			return { success: false, alreadyCancelled: false };
+			return { success: false };
 		}
 
 		// cancelRegistration handles hash lookup, FOR UPDATE lock, audit log
 		// Returns { cancelled: true } on first use; { cancelled: false } if invalid/already used
 		const result = await cancelRegistration(cancelTokenPlain);
 
-		return { success: result.cancelled, alreadyCancelled: !result.cancelled };
+		return { success: result.cancelled };
 	}
 };
