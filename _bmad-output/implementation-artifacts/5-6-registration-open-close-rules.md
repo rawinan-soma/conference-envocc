@@ -4,7 +4,7 @@ baseline_commit: 362d34e
 
 # Story 5.6: Registration Open/Close Rules
 
-**Status:** `ready-for-dev`
+**Status:** `review`
 **Epic:** 5 — External Registration & Headcount
 **GH Issue:** #34
 **Previous Story:** 5.2 — Submit a Registration (5.3–5.5 are independent; this builds on 5.2 + 4.4)
@@ -34,75 +34,75 @@ So that it opens and closes correctly.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add `CLOSE_REGISTRATION` queue constant and Valibot payload schema (AC: 1, 5)
-  - [ ] 1.1: In `src/lib/server/jobs/queues.ts`, add `CLOSE_REGISTRATION: 'close-registration'` to the `QUEUE` object
-  - [ ] 1.2: Add Valibot schema: `export const CloseRegistrationPayload = v.object({ bookingId: v.pipe(v.string(), v.minLength(1)) });`
-  - [ ] 1.3: Add type alias: `export type CloseRegistrationPayload = v.InferOutput<typeof CloseRegistrationPayload>;`
+- [x] Task 1: Add `CLOSE_REGISTRATION` queue constant and Valibot payload schema (AC: 1, 5)
+  - [x] 1.1: In `src/lib/server/jobs/queues.ts`, add `CLOSE_REGISTRATION: 'close-registration'` to the `QUEUE` object
+  - [x] 1.2: Add Valibot schema: `export const CloseRegistrationPayload = v.object({ bookingId: v.pipe(v.string(), v.minLength(1)) });`
+  - [x] 1.3: Add type alias: `export type CloseRegistrationPayload = v.InferOutput<typeof CloseRegistrationPayload>;`
 
-- [ ] Task 2: Create the `close-registration` job handler (AC: 1, 5, 6)
-  - [ ] 2.1: Create `src/lib/server/jobs/handlers/close-registration.ts` — follow `send-email.ts` pattern exactly (see Handler Spec in Dev Notes)
-  - [ ] 2.2: Use the `JobLike` interface (same as `send-email.ts`): `interface JobLike { id: string; name: string; data: unknown; }`
-  - [ ] 2.3: Validate payload with `v.safeParse(CloseRegistrationPayload, job.data)` — throw on parse failure
-  - [ ] 2.4: Inside the handler, use relative imports only: import `db` from `'../../db/index.js'` and `bookings` schema from `'../../db/schema/bookings.js'` — NO `$lib` alias, NO `$app/*`, NO `$env/dynamic`
-  - [ ] 2.5: Idempotency guard: select `booking.registrationEnabled` AND `booking.registrationClosesAt` inside the transaction. Apply two guards in order: (a) If `registrationEnabled` is already `false`, return without error (double-fire safe, satisfies R-004 MITIGATE and `5.6-INT-002`). (b) If `registrationClosesAt` is null OR is in the future (`!registrationClosesAt || registrationClosesAt > new Date()`), return without error — null means the close date was removed (don't close), future means the date was extended (a later job will close at the right time).
-  - [ ] 2.6: If `registration_enabled = true`, run `UPDATE bookings SET registration_enabled = false, updated_at = now() WHERE id = bookingId` inside `db` (or a direct pg query)
-  - [ ] 2.7: Write audit log via relative import of `writeAuditLog` from `'../../services/audit.js'` — use `actorId: null` (system action); `entity: 'booking'`; `action: 'close-registration'`; `diff: { bookingId }`
+- [x] Task 2: Create the `close-registration` job handler (AC: 1, 5, 6)
+  - [x] 2.1: Create `src/lib/server/jobs/handlers/close-registration.ts` — follow `send-email.ts` pattern exactly (see Handler Spec in Dev Notes)
+  - [x] 2.2: Use the `JobLike` interface (same as `send-email.ts`): `interface JobLike { id: string; name: string; data: unknown; }`
+  - [x] 2.3: Validate payload with `v.safeParse(CloseRegistrationPayload, job.data)` — throw on parse failure
+  - [x] 2.4: Inside the handler, use relative imports only: import `db` from `'../../db/index.js'` and `bookings` schema from `'../../db/schema/bookings.js'` — NO `$lib` alias, NO `$app/*`, NO `$env/dynamic`
+  - [x] 2.5: Idempotency guard: select `booking.registrationEnabled` AND `booking.registrationClosesAt` inside the transaction. Apply two guards in order: (a) If `registrationEnabled` is already `false`, return without error (double-fire safe, satisfies R-004 MITIGATE and `5.6-INT-002`). (b) If `registrationClosesAt` is null OR is in the future (`!registrationClosesAt || registrationClosesAt > new Date()`), return without error — null means the close date was removed (don't close), future means the date was extended (a later job will close at the right time).
+  - [x] 2.6: If `registration_enabled = true`, run `UPDATE bookings SET registration_enabled = false, updated_at = now() WHERE id = bookingId` inside `db` (or a direct pg query)
+  - [x] 2.7: Write audit log via relative import of `writeAuditLog` from `'../../services/audit.js'` — use `actorId: null` (system action); `entity: 'booking'`; `action: 'close-registration'`; `diff: { bookingId }`
 
-- [ ] Task 3: Register the handler in `src/worker.ts` (AC: 1, 6)
-  - [ ] 3.1: Import `closeRegistrationHandler` from `'./lib/server/jobs/handlers/close-registration.js'`
-  - [ ] 3.2: After `boss.createQueue(QUEUE.SEND_EMAIL)`, add `await boss.createQueue(QUEUE.CLOSE_REGISTRATION);` — use the default `standard` policy (no options), consistent with SMOKE_EMAIL and SEND_EMAIL queues.
-  - [ ] 3.3: After `boss.work(QUEUE.SEND_EMAIL, ...)`, add `await boss.work(QUEUE.CLOSE_REGISTRATION, closeRegistrationHandler as any);`
+- [x] Task 3: Register the handler in `src/worker.ts` (AC: 1, 6)
+  - [x] 3.1: Import `closeRegistrationHandler` from `'./lib/server/jobs/handlers/close-registration.js'`
+  - [x] 3.2: After `boss.createQueue(QUEUE.SEND_EMAIL)`, add `await boss.createQueue(QUEUE.CLOSE_REGISTRATION);` — use the default `standard` policy (no options), consistent with SMOKE_EMAIL and SEND_EMAIL queues.
+  - [x] 3.3: After `boss.work(QUEUE.SEND_EMAIL, ...)`, add `await boss.work(QUEUE.CLOSE_REGISTRATION, closeRegistrationHandler as any);`
 
-- [ ] Task 4: Schedule auto-close job at booking creation (AC: 1, 5)
-  - [ ] 4.1: In `src/lib/server/services/booking-service.ts`, after the existing `writeAuditLog` call in `createBooking()`, add scheduling logic:
+- [x] Task 4: Schedule auto-close job at booking creation (AC: 1, 5)
+  - [x] 4.1: In `src/lib/server/services/booking-service.ts`, after the existing `writeAuditLog` call in `createBooking()`, add scheduling logic:
     - If `booking.registrationClosesAt != null`, call `enqueueJob(QUEUE.CLOSE_REGISTRATION, payload, { startAfter: booking.registrationClosesAt, singletonKey: 'close-registration:' + booking.id })`
     - `enqueueJob` is in `src/lib/server/jobs/index.ts` (already used in the codebase — import via `'../jobs/index.js'`)
-  - [ ] 4.2: `startAfter` accepts a `Date` object — use `booking.registrationClosesAt` directly (it is a `Date | null` from Drizzle's `timestamp({ withTimezone: true })`)
-  - [ ] 4.3: Do NOT call `enqueueJob` inside the transaction callback — pg-boss `send()` is outside the DB transaction; call it after `db.transaction()` resolves
+  - [x] 4.2: `startAfter` accepts a `Date` object — use `booking.registrationClosesAt` directly (it is a `Date | null` from Drizzle's `timestamp({ withTimezone: true })`)
+  - [x] 4.3: Do NOT call `enqueueJob` inside the transaction callback — pg-boss `send()` is outside the DB transaction; call it after `db.transaction()` resolves
 
-- [ ] Task 5: Re-schedule auto-close job at booking update (AC: 1, 5)
-  - [ ] 5.1: In `updateBooking()` in `booking-service.ts`, after the existing `writeAuditLog` call, add the same scheduling logic as Task 4
-  - [ ] 5.2: If `booking.registrationClosesAt` is not null: call `enqueueJob` with the same `singletonKey` (metadata only — default `standard` policy does NOT deduplicate on `singletonKey` alone). Multiple jobs may exist per booking; each converges correctly via the handler's two guards. When the closing date moves earlier on edit, the new earlier-firing job is inserted successfully; it fires first, and the handler closes at the new time. When the closing date moves later, the earlier job fires but the time guard no-ops (date is now in the future); the later job fires and closes correctly.
-  - [ ] 5.3: If `registrationClosesAt` was removed (is null on the updated booking): do NOT call `enqueueJob`. Any previously-enqueued job will fire eventually; the handler's time guard (`!booking.registrationClosesAt → return`) will no-op safely.
-  - [ ] 5.4: Import needed: `import { enqueueJob, QUEUE } from '../jobs/index.js';` — add at top of `booking-service.ts` if not already present
+- [x] Task 5: Re-schedule auto-close job at booking update (AC: 1, 5)
+  - [x] 5.1: In `updateBooking()` in `booking-service.ts`, after the existing `writeAuditLog` call, add the same scheduling logic as Task 4
+  - [x] 5.2: If `booking.registrationClosesAt` is not null: call `enqueueJob` with the same `singletonKey` (metadata only — default `standard` policy does NOT deduplicate on `singletonKey` alone). Multiple jobs may exist per booking; each converges correctly via the handler's two guards. When the closing date moves earlier on edit, the new earlier-firing job is inserted successfully; it fires first, and the handler closes at the new time. When the closing date moves later, the earlier job fires but the time guard no-ops (date is now in the future); the later job fires and closes correctly.
+  - [x] 5.3: If `registrationClosesAt` was removed (is null on the updated booking): do NOT call `enqueueJob`. Any previously-enqueued job will fire eventually; the handler's time guard (`!booking.registrationClosesAt → return`) will no-op safely.
+  - [x] 5.4: Import needed: `import { enqueueJob, QUEUE } from '../jobs/index.js';` — add at top of `booking-service.ts` if not already present
 
-- [ ] Task 6: Add `closeRegistration` form action to `/bookings/[id]/+page.server.ts` (AC: 2)
-  - [ ] 6.1: Add a `closeRegistration` action to the existing `actions` export
-  - [ ] 6.2: Call `requireUser(event)` and `assertOwner(event, booking.organizerId)` — same guard pattern as the `cancel` action
-  - [ ] 6.3: Fetch the booking by id (same `getBookingById(id)` call as in `cancel`)
-  - [ ] 6.4: Return early (no-op) if booking is already `registration_enabled = false` — makes the action idempotent
-  - [ ] 6.5: Run `db.transaction(async (tx) => { UPDATE bookings SET registration_enabled = false, updated_at = now() WHERE id; writeAuditLog(tx, { actorId: user.id, entity: 'booking', action: 'close-registration', diff: { bookingId: id } }); })` — keep it in one transaction
-  - [ ] 6.6: After transaction commits, redirect 303 to `/bookings/${id}` (same pattern as `cancel`)
-  - [ ] 6.7: Add `import { db } from '$lib/server/db/index.js';` and `import { bookings } from '$lib/server/db/schema/bookings.js';` if not already imported; also `import { eq, sql } from 'drizzle-orm';`
+- [x] Task 6: Add `closeRegistration` form action to `/bookings/[id]/+page.server.ts` (AC: 2)
+  - [x] 6.1: Add a `closeRegistration` action to the existing `actions` export
+  - [x] 6.2: Call `requireUser(event)` and `assertOwner(event, booking.organizerId)` — same guard pattern as the `cancel` action
+  - [x] 6.3: Fetch the booking by id (same `getBookingById(id)` call as in `cancel`)
+  - [x] 6.4: Return early (no-op) if booking is already `registration_enabled = false` — makes the action idempotent
+  - [x] 6.5: Run `db.transaction(async (tx) => { UPDATE bookings SET registration_enabled = false, updated_at = now() WHERE id; writeAuditLog(tx, { actorId: user.id, entity: 'booking', action: 'close-registration', diff: { bookingId: id } }); })` — keep it in one transaction
+  - [x] 6.6: After transaction commits, redirect 303 to `/bookings/${id}` (same pattern as `cancel`)
+  - [x] 6.7: Add `import { db } from '$lib/server/db/index.js';` and `import { bookings } from '$lib/server/db/schema/bookings.js';` if not already imported; also `import { eq, sql } from 'drizzle-orm';`
 
-- [ ] Task 7: Update `/bookings/[id]/+page.svelte` — add "Close registration" button (AC: 2, 7)
-  - [ ] 7.1: Add `let showCloseRegistrationModal = $state(false);` alongside the existing `showCancelModal` state
-  - [ ] 7.2: Inside the actions `<div class="mt-6 flex flex-wrap gap-3">`, after the Duplicate button and before/after the Cancel button, add a "Close registration" button — only visible when `data.booking.registrationEnabled === true` AND `data.booking.status === 'active'`
-  - [ ] 7.3: Button style: use destructive-adjacent styling (amber/warning tone is acceptable, or use the same destructive style as Cancel — match the existing design system; use `border-destructive` class if no dedicated amber exists)
-  - [ ] 7.4: On click: set `showCloseRegistrationModal = true`
-  - [ ] 7.5: Add a confirmation modal (same pattern as the cancel modal `dialog` at bottom of file) with:
+- [x] Task 7: Update `/bookings/[id]/+page.svelte` — add "Close registration" button (AC: 2, 7)
+  - [x] 7.1: Add `let showCloseRegistrationModal = $state(false);` alongside the existing `showCancelModal` state
+  - [x] 7.2: Inside the actions `<div class="mt-6 flex flex-wrap gap-3">`, after the Duplicate button and before/after the Cancel button, add a "Close registration" button — only visible when `data.booking.registrationEnabled === true` AND `data.booking.status === 'active'`
+  - [x] 7.3: Button style: use destructive-adjacent styling (amber/warning tone is acceptable, or use the same destructive style as Cancel — match the existing design system; use `border-destructive` class if no dedicated amber exists)
+  - [x] 7.4: On click: set `showCloseRegistrationModal = true`
+  - [x] 7.5: Add a confirmation modal (same pattern as the cancel modal `dialog` at bottom of file) with:
     - `aria-labelledby="close-reg-dialog-title"`
     - Title: `{m.booking_close_registration_confirm_title()}`
     - Body: `{m.booking_close_registration_confirm_body()}`
     - Dismiss button: `onclick={() => (showCloseRegistrationModal = false)}` using `{m.room_cancel_button()}` (same cross-namespace reuse as cancel modal)
     - Confirm `<form method="POST" action="?/closeRegistration">` with submit button using `{m.booking_close_registration_confirm_action()}`
-  - [ ] 7.6: Svelte 5 runes only — `$state`, `$derived`, `$props()`; no Svelte 4 reactive declarations
+  - [x] 7.6: Svelte 5 runes only — `$state`, `$derived`, `$props()`; no Svelte 4 reactive declarations
 
-- [ ] Task 8: Add Paraglide i18n keys (AC: 7)
-  - [ ] 8.1: Add to `messages/en.json` (see i18n Keys in Dev Notes for English values)
-  - [ ] 8.2: Add same keys to `messages/th.json` with empty string `""` — Rawinan handles Thai translation
+- [x] Task 8: Add Paraglide i18n keys (AC: 7)
+  - [x] 8.1: Add to `messages/en.json` (see i18n Keys in Dev Notes for English values)
+  - [x] 8.2: Add same keys to `messages/th.json` with empty string `""` — Rawinan handles Thai translation
 
-- [ ] Task 9: ATDD — activate and add integration test stubs (AC: 1, 2, 4, 5, 6)
-  - [ ] 9.1: Append to `tests/integration/registrations.test.ts` (DO NOT create a new file — append only)
-  - [ ] 9.2: P0 tests (ACTIVATE — no `.skip`):
+- [x] Task 9: ATDD — activate and add integration test stubs (AC: 1, 2, 4, 5, 6)
+  - [x] 9.1: Append to `tests/integration/registrations.test.ts` (DO NOT create a new file — append only)
+  - [x] 9.2: P0 tests (ACTIVATE — no `.skip`):
     - `5.6-INT-001`: Auto-close handler sets `registration_enabled = false` when `registrationClosesAt` is in the past
     - `5.6-INT-002`: Auto-close handler is idempotent — re-run on already-closed booking → no error, no change (MANDATORY PR gate per test-design)
-  - [ ] 9.3: P1 tests (`test.skip`):
+  - [x] 9.3: P1 tests (`test.skip`):
     - `5.6-INT-003`: Worker restart does not re-close already-closed registration
     - `5.6-INT-004`: Manual close action (`closeRegistration`) sets `registration_enabled = false` immediately
-  - [ ] 9.4: P2 tests (`test.skip`):
+  - [x] 9.4: P2 tests (`test.skip`):
     - `5.6-INT-005`: Auto-close handler file has no `$app/*` or `$env/dynamic` imports (lint/AST scan)
-  - [ ] 9.5: Use the auto-close time-travel pattern: update `registration_closes_at = NOW() - interval '1 second'` via raw SQL in the fixture, then invoke the handler directly with a stub job — do NOT sleep
+  - [x] 9.5: Use the auto-close time-travel pattern: update `registration_closes_at = NOW() - interval '1 second'` via raw SQL in the fixture, then invoke the handler directly with a stub job — do NOT sleep
 
 ## Dev Notes
 
@@ -407,4 +407,32 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
+- All 9 tasks and subtasks implemented and verified. P0 tests 5.6-INT-001 and 5.6-INT-002 PASS.
+- `close-registration.ts` handler uses relative imports only (R-011 DOCUMENT: no `$lib`, `$app/*`, `$env/dynamic`).
+- Two idempotency guards in handler: (a) `registrationEnabled=false` → no-op (R-004 MITIGATE); (b) `registrationClosesAt` null or future → no-op (stale-job safe). Both guards tested by 5.6-INT-001/002.
+- `enqueueJob` is called AFTER `db.transaction()` resolves in both `createBooking` and `updateBooking` — NOT inside the transaction callback (pg-boss uses its own connection).
+- `singletonKey` under `standard` policy is metadata only; correctness comes from the two handler guards, not dedup. Multiple jobs per booking can coexist safely.
+- Regression fix: bookings.test.ts and booking-token.test.ts file-level `beforeAll` now start pg-boss and create the CLOSE_REGISTRATION queue. This is needed because IT-001/003/004 and 4.4-INT-002 call `createBooking` with `registrationClosesAt` set, which triggers `enqueueJob`. Without pg-boss started, `enqueueJob` fails.
+- `+page.svelte` was fully rewritten after a git stash conflict (story-5.8 stash) corrupted the file. All functionality preserved and verified clean.
+- Paraglide messages compiled after adding 4 new keys: `npx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide`. TypeScript check: 0 errors, 0 warnings.
+- Thai values intentionally left as `""` in `messages/th.json` — Rawinan handles all Thai translation.
+
 ### File List
+
+- `src/lib/server/jobs/queues.ts` (modified)
+- `src/lib/server/jobs/handlers/close-registration.ts` (new)
+- `src/worker.ts` (modified)
+- `src/lib/server/services/booking-service.ts` (modified)
+- `src/routes/(app)/bookings/[id]/+page.server.ts` (modified)
+- `src/routes/(app)/bookings/[id]/+page.svelte` (modified)
+- `messages/en.json` (modified)
+- `messages/th.json` (modified)
+- `tests/integration/registrations.test.ts` (pre-committed as ATDD scaffolds at 016011f)
+- `tests/integration/bookings.test.ts` (modified — regression fix: pg-boss lifecycle)
+- `tests/integration/booking-token.test.ts` (modified — regression fix: pg-boss lifecycle)
+
+## Change Log
+
+| Date | Version | Description | Author |
+|------|---------|-------------|--------|
+| 2026-06-16 | 1.0 | Initial implementation: all 9 tasks complete; P0 tests pass; regressions fixed | claude-sonnet-4-6 |
