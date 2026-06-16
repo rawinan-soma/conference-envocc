@@ -49,8 +49,13 @@ export const actions: Actions = {
 
 		// cancelRegistration handles hash lookup, FOR UPDATE lock, audit log
 		// Returns { cancelled: true } on first use; { cancelled: false } if invalid/already used
-		const result = await cancelRegistration(cancelTokenPlain);
-
-		return { success: result.cancelled };
+		// try/catch: any unexpected DB error (connection drop, deadlock) returns the error
+		// state instead of surfacing a 500 — keeps the page usable and avoids stuck button.
+		try {
+			const result = await cancelRegistration(cancelTokenPlain);
+			return { success: result.cancelled };
+		} catch {
+			return { success: false };
+		}
 	}
 };

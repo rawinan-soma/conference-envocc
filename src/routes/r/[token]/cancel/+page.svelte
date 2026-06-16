@@ -76,8 +76,11 @@
 							use:enhance={() => {
 								submitting = true;
 								return async ({ update }) => {
-									await update();
-									submitting = false;
+									try {
+										await update();
+									} finally {
+										submitting = false;
+									}
 								};
 							}}
 						>
