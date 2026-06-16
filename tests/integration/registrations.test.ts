@@ -2682,7 +2682,7 @@ describe('Story 5.5 — Resend Neutral Disclosure (R-003 MITIGATE)', () => {
 
 // ---------------------------------------------------------------------------
 // 5.5-INT-002 — Resend enqueues send-email pg-boss job (async) [P2] SKIP
-// AC-4: Job exists in pgboss.job with singletonKey = 'resend-link-${registrationId}'
+// AC-4: Job exists in pgboss.job with singletonKey = 'resend-link-${registrationId}-${tokenNonce}'
 // ---------------------------------------------------------------------------
 
 describe('Story 5.5 — Resend Enqueues Email Job (AC-4, async proof)', () => {
@@ -2691,19 +2691,20 @@ describe('Story 5.5 — Resend Enqueues Email Job (AC-4, async proof)', () => {
 		//
 		// AC-4: When a status='registered' registration exists for the given email+booking,
 		//   the resend action enqueues a SEND_EMAIL pg-boss job with:
-		//   singletonKey = 'resend-link-${registrationId}'
-		//   singletonSeconds = 300 (5-minute dedup window)
+		//   singletonKey = 'resend-link-${registrationId}-${tokenNonce}'
+		//   where tokenNonce = first 12 hex chars of the new cancel token plaintext (unique per rotation).
+		//   No singletonSeconds — each rotation produces a unique key, so no dedup window is needed.
 		//
 		// Strategy:
 		//   1. Seed booking + registrant (known registrationId + email).
 		//   2. POST to /r/[token]/resend?/resend with the registrant email.
 		//   3. Assert pgboss.job row exists with name='send-email' and
-		//      singleton_key = 'resend-link-${registrationId}'.
+		//      singleton_key LIKE 'resend-link-${registrationId}-%' (suffix varies per rotation).
 		//   Pattern: mirrors 5.3-INT-001+002 raw SQL proof (see Story 5.3 section).
 		//
-		// Note: singletonKey differs from Story 5.3:
-		//   5.3 uses 'registration-confirm-${registrationId}'
-		//   5.5 uses 'resend-link-${registrationId}'
+		// Note: singletonKey format differs from Story 5.3:
+		//   5.3 uses 'registration-confirm-${registrationId}' (with singletonSeconds:86400)
+		//   5.5 uses 'resend-link-${registrationId}-${tokenNonce}' (no singletonSeconds)
 
 		throw new Error(
 			'5.5-INT-002: not yet implemented — activate after Task 4 (resend action) is wired'

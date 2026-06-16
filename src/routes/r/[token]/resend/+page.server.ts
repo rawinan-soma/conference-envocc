@@ -77,13 +77,30 @@ export const actions: Actions = {
 		// R-003 PARTIAL MITIGATE (body/status): always run; never short-circuit before
 		// the DB lookup. The service returns found: boolean internally — we DISCARD it
 		// from the response. Timing side-channel is an accepted MVP deferral (see service).
-		const result = await resendRegistrationLink(
-			booking.id,
-			event.params.token,
-			form.data.email,
-			event.url.origin,
-			booking.eventName
-		);
+		//
+		// The entire token rotation + audit log is inside a DB transaction. If the
+		// transaction throws (e.g. audit table unavailable), we catch it here and
+		// fall through to the acknowledged:true response — preserving AC-3 (neutral
+		// disclosure) and preventing a 500 that could leak information. Since the
+		// transaction rolled back atomically, the cancel token was NOT rotated and
+		// the user's existing link (if any) is still valid.
+		let result: Awaited<ReturnType<typeof resendRegistrationLink>>;
+		try {
+			result = await resendRegistrationLink(
+				booking.id,
+				event.params.token,
+				form.data.email,
+				event.url.origin,
+				booking.eventName
+			);
+		} catch (svcErr: unknown) {
+			console.error(
+				'[r/[token]/resend] resendRegistrationLink failed (transaction rolled back):',
+				svcErr
+			);
+			// AC-3: still return acknowledged:true — neutral disclosure even on service error.
+			return { form, acknowledged: true };
+		}
 
 		if (result.found) {
 			// Render email template (same as 5.3 register action — reuse getRegistrationConfirmationTemplate)
@@ -103,6 +120,11 @@ export const actions: Actions = {
 			//   but have the email job deduped — so the user's emailed link (token A)
 			//   would be stale. Fix: include a per-rotation nonce so every token rotation
 			//   enqueues a distinct job and the emailed link always matches the stored hash.
+			//
+			// Note: singletonKey without singletonSeconds on a standard-policy queue provides
+			// no epoch-aligned dedup window (per the note in /r/[token]/+page.server.ts:126-129),
+			// but that is intentional here — each nonce is unique per rotation, so dedup is
+			// not needed and would not help.
 			try {
 				await enqueueJob(
 					QUEUE.SEND_EMAIL,
