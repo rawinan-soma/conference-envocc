@@ -11,10 +11,11 @@ import { MEAL_OPTIONS } from '$lib/schemas/registration.js';
 
 /**
  * Minimal registration data needed by the resend service.
+ * cancelTokenHash is intentionally excluded — the resend service always generates
+ * a fresh CSPRNG token (AR-05 / password-reset semantics) and never reads the old hash.
  */
 export type ActiveRegistrationRow = {
 	id: string;
-	cancelTokenHash: string | null;
 	firstName: string;
 	lastName: string;
 };
@@ -40,7 +41,6 @@ export async function getActiveRegistrationByEmail(
 	const [row] = await tx
 		.select({
 			id: registrations.id,
-			cancelTokenHash: registrations.cancelTokenHash,
 			firstName: registrations.firstName,
 			lastName: registrations.lastName
 		})

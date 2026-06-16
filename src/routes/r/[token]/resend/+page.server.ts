@@ -7,11 +7,13 @@
  * already allow-listed in src/hooks.server.ts (routeGuards pattern).
  * DO NOT add requireUser() here.
  *
- * Neutral disclosure (R-003 MITIGATE — MANDATORY):
+ * Neutral disclosure (R-003 PARTIAL MITIGATE — body/status only):
  *   The `resend` action ALWAYS returns { form, acknowledged: true } —
  *   regardless of whether a registration exists for the email.
- *   This prevents email enumeration. The service returns found: boolean
- *   internally, but the action DISCARDS this from the response.
+ *   This prevents email enumeration via response body/status.
+ *   The service returns found: boolean internally, but the action DISCARDS this
+ *   from the response. Timing-channel neutrality is a consciously deferred MVP
+ *   risk (see resend-registration-service.ts §R-003 comment for details).
  *
  * Token replacement (AR-05):
  *   A resend generates a NEW cancel token (password-reset semantics).
@@ -66,9 +68,15 @@ export const actions: Actions = {
 			return fail(422, { form });
 		}
 
+		// Intentionally no registrationEnabled guard here.
+		// registrationEnabled=false blocks NEW registrations (Story 5.6), but existing
+		// registrants must still be able to recover their cancel link even after an event
+		// closes. The cancel route (/r/[token]/cancel) also has no such guard.
+
 		// Call the resend service.
-		// R-003 MITIGATE: always run; never short-circuit before the DB lookup.
-		// The service returns found: boolean internally — we DISCARD it from the response.
+		// R-003 PARTIAL MITIGATE (body/status): always run; never short-circuit before
+		// the DB lookup. The service returns found: boolean internally — we DISCARD it
+		// from the response. Timing side-channel is an accepted MVP deferral (see service).
 		const result = await resendRegistrationLink(
 			booking.id,
 			event.params.token,
@@ -87,7 +95,14 @@ export const actions: Actions = {
 			});
 
 			// Enqueue fire-and-forget. Failure must NOT prevent acknowledged: true response (AC-3).
-			// singletonKey differs from 5.3: 'resend-link-${registrationId}' with 5-min dedup window.
+			//
+			// IMPORTANT — per-rotation singletonKey (prevents stale-link bug):
+			//   Each call to resendRegistrationLink rotates the cancel token in the DB.
+			//   If we used 'resend-link-${registrationId}' with singletonSeconds:300, a
+			//   second resend within the 5-min window would rotate the DB token (hash B)
+			//   but have the email job deduped — so the user's emailed link (token A)
+			//   would be stale. Fix: include a per-rotation nonce so every token rotation
+			//   enqueues a distinct job and the emailed link always matches the stored hash.
 			try {
 				await enqueueJob(
 					QUEUE.SEND_EMAIL,
@@ -98,8 +113,7 @@ export const actions: Actions = {
 						htmlBody: template.html
 					},
 					{
-						singletonKey: `resend-link-${result.registrationId}`,
-						singletonSeconds: 300
+						singletonKey: `resend-link-${result.registrationId}-${result.tokenNonce}`
 					}
 				);
 			} catch (jobErr: unknown) {

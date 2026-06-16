@@ -10,10 +10,15 @@
  *     and the new cancel link is built from the new plaintext.
  *   - The old cancel link is invalidated as a consequence (password-reset semantics).
  *
- * Neutral disclosure (R-003 MITIGATE):
+ * Neutral disclosure (R-003 PARTIAL MITIGATE — body/status neutrality only):
  *   - The DB lookup always executes — no early short-circuit before the query.
  *   - Returns found: boolean internally; the ACTION is responsible for discarding
  *     this from the response so the client never sees a found/not-found distinction.
+ *   - Timing neutrality is consciously deferred (MVP): the found path runs
+ *     SELECT + UPDATE + audit log while the not-found path runs SELECT only,
+ *     creating a measurable latency difference. See story 5.5 §R-003 architecture
+ *     note — this is an accepted residual risk; a constant-time dummy path can be
+ *     added in a future story if the risk score is re-evaluated.
  *
  * Lint boundary (AR-06):
  *   - This service is under src/lib/server/services/ and is called only from
@@ -36,6 +41,12 @@ export type ResendRegistrationResult =
 			found: true;
 			cancelLink: string;
 			registrationId: string;
+			/** First 12 hex chars of the new cancel token plaintext (unique per rotation).
+			 *  Used by the action to build a per-rotation singletonKey so every
+			 *  token rotation enqueues a distinct email job (avoids stale-link bug
+			 *  when the user resends twice within the dedup window).
+			 */
+			tokenNonce: string;
 			firstName: string;
 			lastName: string;
 			eventName: string;
@@ -99,6 +110,9 @@ export async function resendRegistrationLink(
 			found: true,
 			cancelLink,
 			registrationId: registration.id,
+			// First 12 hex chars of the new plaintext — enough entropy to be
+			// unique per rotation without exposing the full token.
+			tokenNonce: newPlaintext.slice(0, 12),
 			firstName: registration.firstName,
 			lastName: registration.lastName,
 			eventName
