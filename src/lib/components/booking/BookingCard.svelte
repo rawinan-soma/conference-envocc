@@ -22,15 +22,10 @@
 	import { parseTstzrange } from '$lib/utils/tstzrange.js';
 	import { formatDateBangkok } from '$lib/utils/date.js';
 	import type { UpcomingBookingRow } from '$lib/server/db/queries/bookings.js';
-
-	// CateringCounts is defined inline here to avoid importing from $lib/server/* in a component.
-	// Keep this in sync with the canonical definition in $lib/server/db/queries/registrations.ts.
-	interface CateringCounts {
-		normal: number;
-		vegetarian: number;
-		muslim: number;
-		other: number;
-	}
+	// Type-only import is erased at build time, so it pulls no server runtime into the
+	// client bundle (same pattern as UpcomingBookingRow above). Using the canonical type
+	// directly prevents silent drift if the CateringCounts shape changes server-side.
+	import type { CateringCounts } from '$lib/server/db/queries/registrations.js';
 
 	const {
 		booking,

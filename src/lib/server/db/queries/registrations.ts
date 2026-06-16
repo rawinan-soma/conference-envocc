@@ -40,8 +40,15 @@ export type CateringCounts = {
 
 const ZERO_COUNTS: CateringCounts = { normal: 0, vegetarian: 0, muslim: 0, other: 0 };
 
-/** Re-exported so callers (dashboard) can use the zero struct without redefining it. */
-export const CATERING_ZERO_COUNTS: CateringCounts = ZERO_COUNTS;
+/**
+ * Re-exported so callers (dashboard) can use the zero struct without redefining it.
+ * Frozen because it is a shared singleton: the dashboard fallback
+ * (`cateringMap.get(id) ?? CATERING_ZERO_COUNTS`) hands the same reference to every
+ * zero-count booking. Freezing guarantees no caller can mutate it in place and
+ * corrupt the counts of unrelated bookings. Internal accumulation always spreads
+ * into a fresh copy (`{ ...ZERO_COUNTS }`), so this never blocks aggregation.
+ */
+export const CATERING_ZERO_COUNTS: CateringCounts = Object.freeze({ ...ZERO_COUNTS });
 
 /**
  * Aggregates per-meal-type counts for a single booking.
