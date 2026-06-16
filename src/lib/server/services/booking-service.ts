@@ -115,7 +115,7 @@ export async function createBooking(
 	const booking = await db.transaction(async (tx) => {
 		// --- INSERT into bookings ---
 		// bookings_no_overlap EXCLUDE constraint catches booking-vs-booking overlap (AC-2).
-		let inserted_booking: Booking;
+		let insertedBooking: Booking;
 		try {
 			const [inserted] = await tx
 				.insert(bookings)
@@ -146,7 +146,7 @@ export async function createBooking(
 			if (!inserted) {
 				throw new Error('Insert returned no rows — unexpected DB state');
 			}
-			inserted_booking = inserted;
+			insertedBooking = inserted;
 		} catch (err: unknown) {
 			// Catch Postgres 23P01 (exclusion_violation) from the EXCLUDE constraint (AC-3).
 			// Drizzle may wrap pg errors in DrizzleQueryError, so walk the cause chain to find
@@ -182,7 +182,7 @@ export async function createBooking(
 			}
 		});
 
-		return inserted_booking;
+		return insertedBooking;
 	});
 
 	// --- Schedule auto-close job AFTER transaction commits (AC-1, Story 5.6) ---
@@ -260,7 +260,7 @@ export async function updateBooking(
 		}
 
 		// --- UPDATE bookings ---
-		let updated_booking: Booking;
+		let updatedBooking: Booking;
 		try {
 			const [updated] = await tx
 				.update(bookings)
@@ -283,7 +283,7 @@ export async function updateBooking(
 			if (!updated) {
 				throw new Error('Update returned no rows — unexpected DB state');
 			}
-			updated_booking = updated;
+			updatedBooking = updated;
 		} catch (err: unknown) {
 			// Catch Postgres 23P01 (exclusion_violation) from the EXCLUDE constraint.
 			// Drizzle may wrap pg errors in DrizzleQueryError, so walk the cause chain to find
@@ -318,7 +318,7 @@ export async function updateBooking(
 			}
 		});
 
-		return updated_booking;
+		return updatedBooking;
 	});
 
 	// --- Re-schedule auto-close job AFTER transaction commits (AC-1, Story 5.6) ---

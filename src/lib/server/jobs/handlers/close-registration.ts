@@ -41,7 +41,10 @@ export async function closeRegistrationHandler(jobOrJobs: JobLike | JobLike[]): 
 				})
 				.from(bookings)
 				.where(eq(bookings.id, bookingId))
-				.limit(1);
+				.limit(1)
+				.for('update'); // Row lock: serialize concurrent deliveries of the same job
+			// so the enabled-check + UPDATE + audit-write are atomic (R-004 MITIGATE,
+			// concurrent double-fire safe — not just sequential re-runs).
 
 			if (!booking) {
 				// Booking deleted — silently skip
