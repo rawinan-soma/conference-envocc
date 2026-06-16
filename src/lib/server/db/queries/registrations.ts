@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { sql, eq, asc } from 'drizzle-orm';
 import { db } from '../index.js';
 import type { DrizzleTransaction } from '../index.js';
@@ -21,6 +22,72 @@ export async function createRegistrant(
 		throw new Error('Failed to insert registration row');
 	}
 	return row;
+}
+
+// ---------------------------------------------------------------------------
+// Self-Cancel a Registration — Story 5.4 (AC-2, AC-3, R-002 MITIGATE, AR-05)
+// ---------------------------------------------------------------------------
+
+/**
+ * Result type for cancelRegistrantByCancelToken.
+ */
+export type CancelRegistrantResult =
+	| { cancelled: false }
+	| { cancelled: true; registrationId: string; bookingId: string };
+
+/**
+ * Cancels a registration by matching cancel token hash.
+ * Must be called inside a db.transaction() for atomicity.
+ *
+ * Security:
+ *   - Token is never stored/compared in plaintext — only sha256 hash
+ *   - FOR UPDATE lock prevents concurrent double-cancel (AR-05)
+ *   - No client-supplied registrationId accepted (R-002 IDOR)
+ *
+ * @param tx - Drizzle transaction (from db.transaction())
+ * @param cancelTokenPlain - 64-char hex plaintext cancel token from the form
+ * @returns { cancelled: true, registrationId, bookingId } on success;
+ *          { cancelled: false } if token not found or already used
+ */
+export async function cancelRegistrantByCancelToken(
+	tx: DrizzleTransaction,
+	cancelTokenPlain: string
+): Promise<CancelRegistrantResult> {
+	const hash = createHash('sha256').update(cancelTokenPlain).digest('hex');
+
+	// FOR UPDATE serializes concurrent cancellation attempts (AR-05)
+	const [row] = await tx
+		.select({
+			id: registrations.id,
+			bookingId: registrations.bookingId,
+			status: registrations.status
+		})
+		.from(registrations)
+		.where(eq(registrations.cancelTokenHash, hash))
+		.limit(1)
+		.for('update');
+
+	if (!row) {
+		// Token invalid or already NULLed — idempotent: no crash
+		return { cancelled: false };
+	}
+
+	if (row.status === 'cancelled') {
+		// Already cancelled — idempotency guard (AC-2)
+		return { cancelled: false };
+	}
+
+	// Atomically cancel: set status, NULL out hash, update timestamp
+	await tx
+		.update(registrations)
+		.set({
+			status: 'cancelled',
+			cancelTokenHash: null,
+			updatedAt: new Date()
+		})
+		.where(eq(registrations.id, row.id));
+
+	return { cancelled: true, registrationId: row.id, bookingId: row.bookingId };
 }
 
 // ---------------------------------------------------------------------------
