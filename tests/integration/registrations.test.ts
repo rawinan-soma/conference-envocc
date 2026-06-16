@@ -1375,3 +1375,399 @@ describe('Story 5.3 — SMTP Failure Lands Job in Dead-Letter Queue (AC-3 negati
 		);
 	});
 });
+
+// ===========================================================================
+// STORY 5.6 — Registration Open/Close Rules
+//
+// ATDD Red-Phase Integration Scaffolds — Story 5.6: Registration Open/Close Rules
+//
+// STATUS:
+//   P0 tests ACTIVE (red phase — fail until implementation).
+//   P1/P2 tests skipped (activate during implementation).
+//
+// AC Coverage:
+//   - AC-1 (FR-033): Auto-close pg-boss handler sets registration_enabled=false when
+//                    registrationClosesAt is in the past
+//   - AC-5 (R-004 MITIGATE): Handler is idempotent — re-run on already-closed booking
+//                             returns no error and no change (double-fire safe)
+//   - AC-2 (FR-034b) (P1): Manual close action sets registration_enabled=false immediately
+//   - AC-6 (R-011 DOCUMENT) (P2): Handler file does not import $app/* or $env/dynamic
+//
+// Scenario IDs (from story 5.6 Task 9 + test-design-epic-5.md):
+//   P0 (ACTIVATED — will fail until implementation is complete):
+//   - 5.6-INT-001: Auto-close handler sets registration_enabled=false when closing date reached [P0]
+//   - 5.6-INT-002: Auto-close handler is idempotent — re-run on already-closed booking no-op, no error [P0] MANDATORY PR GATE
+//   P1 (skipped — activate during implementation):
+//   - 5.6-INT-003: Worker restart does not re-close already-closed registration [P1]
+//   - 5.6-INT-004: Manual close action (closeRegistration) sets registration_enabled=false immediately [P1]
+//   P2 (skipped — activate during implementation):
+//   - 5.6-INT-005: Auto-close handler file has no $app/* or $env/dynamic imports (lint/AST scan) [P2]
+//
+// Time-travel pattern (from test-design Appendix A):
+//   Rather than sleeping until registrationClosesAt passes, we update the DB fixture's
+//   registration_closes_at to NOW() - interval '1 second', then invoke the handler
+//   directly with a stub job. This avoids flaky timing-dependent tests.
+//
+// Prerequisites:
+//   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
+//   - closeRegistrationHandler implemented in
+//     src/lib/server/jobs/handlers/close-registration.ts
+//   - CLOSE_REGISTRATION queue constant and CloseRegistrationPayload schema added to
+//     src/lib/server/jobs/queues.ts
+//
+// Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
+//   All string assertions use English mock data. Paraglide keys tested by name only.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Seed helper — seedBookingWithRegistrationClosesAt (Story 5.6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Seeds a booking row for use with close-registration tests.
+ * Uses direct INSERT so tests control registration_enabled state.
+ */
+async function seedBookingForCloseTest(
+	client: pg.PoolClient,
+	opts: {
+		organizerId: string;
+		roomId: string;
+		eventName: string;
+		token: string;
+		registrationEnabled?: boolean;
+	}
+): Promise<string> {
+	const bookingId = randomUUID();
+	const registrationEnabled = opts.registrationEnabled ?? true;
+	const slotStart = '2026-10-01 09:00:00+00';
+	const slotEnd = '2026-10-01 10:00:00+00';
+
+	await client.query(
+		`INSERT INTO bookings (
+      id, room_id, organizer_id, event_name, agenda, during,
+      status, catering_enabled, registration_enabled, registration_token,
+      created_at, updated_at
+    )
+    VALUES (
+      $1, $2, $3, $4, NULL,
+      tstzrange($5::timestamptz, $6::timestamptz, '[)'),
+      'active', false, $7, $8,
+      NOW(), NOW()
+    )
+    ON CONFLICT (id) DO NOTHING`,
+		[
+			bookingId,
+			opts.roomId,
+			opts.organizerId,
+			opts.eventName,
+			slotStart,
+			slotEnd,
+			registrationEnabled,
+			opts.token
+		]
+	);
+	return bookingId;
+}
+
+// ---------------------------------------------------------------------------
+// 5.6-INT-001 — Auto-close handler sets registration_enabled=false [P0] ACTIVE
+// AC-1 (FR-033): Handler closes registration when registrationClosesAt is in the past
+// MANDATORY: Will fail (red) until close-registration.ts handler is implemented
+// ---------------------------------------------------------------------------
+
+describe('Story 5.6 — Auto-Close Handler Closes Registration When Date Reached (AC-1, FR-033)', () => {
+	test('[P0] 5.6-INT-001 — auto-close handler sets registration_enabled=false when registrationClosesAt is in the past', async () => {
+		// THIS TEST WILL FAIL until closeRegistrationHandler is implemented (Task 2).
+		//
+		// AC-1 (FR-033): When registrationClosesAt is in the past, the handler sets
+		//   registration_enabled = false on the booking.
+		//
+		// Strategy (time-travel pattern — no sleep):
+		//   1. Seed user + profile + room + booking with registration_enabled=true
+		//   2. Set registration_closes_at = NOW() - interval '1 second' via SQL (past timestamp)
+		//   3. Dynamic import closeRegistrationHandler
+		//   4. Invoke handler directly with a stub job containing { bookingId }
+		//   5. Assert: registration_enabled=false in DB
+		//   6. Assert: audit_log row exists with action='close-registration', actor_id=null
+
+		const { closeRegistrationHandler } =
+			await import('../../src/lib/server/jobs/handlers/close-registration.js');
+
+		const regToken = `5-6-int-001-${randomUUID().replace(/-/g, '')}`;
+		const eventName = 'ATDD Test Event 5.6-INT-001 (Auto-Close)';
+
+		const client = await pool.connect();
+		let bookingId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-6-001');
+			await seedUserProfile(client, organizerId, { firstName: 'AutoClose', lastName: 'Tester' });
+			const roomId = await seedRoom(client, 'int-5-6-001');
+			bookingId = await seedBookingForCloseTest(client, {
+				organizerId,
+				roomId,
+				eventName,
+				token: regToken,
+				registrationEnabled: true
+			});
+			// Time-travel: set registration_closes_at to 1 second in the past
+			// This avoids sleeping and makes the handler's time guard fire correctly
+			await client.query(
+				`UPDATE bookings SET registration_closes_at = NOW() - interval '1 second' WHERE id = $1`,
+				[bookingId]
+			);
+		} finally {
+			client.release();
+		}
+
+		// Invoke the handler directly with a stub job (no running pg-boss needed)
+		const stubJob = {
+			id: `test-job-5-6-int-001-${randomUUID()}`,
+			name: 'close-registration',
+			data: { bookingId }
+		};
+		await closeRegistrationHandler(stubJob);
+
+		// Assert: registration_enabled must be false after handler runs
+		const verifyClient = await pool.connect();
+		try {
+			const bookingResult = await verifyClient.query<{ registration_enabled: boolean }>(
+				`SELECT registration_enabled FROM bookings WHERE id = $1`,
+				[bookingId]
+			);
+
+			expect(
+				bookingResult.rows[0],
+				'5.6-INT-001: booking row must exist after handler runs'
+			).toBeDefined();
+			expect(
+				bookingResult.rows[0]?.registration_enabled,
+				'5.6-INT-001: registration_enabled must be false after auto-close'
+			).toBe(false);
+
+			// Assert: audit_log row created with action='close-registration', actor_id=null (system)
+			const auditResult = await verifyClient.query(
+				`SELECT entity, action, actor_id
+         FROM audit_log
+         WHERE diff->>'bookingId' = $1
+           AND action = 'close-registration'
+         ORDER BY created_at DESC
+         LIMIT 1`,
+				[bookingId]
+			);
+			expect(
+				auditResult.rows[0],
+				'5.6-INT-001: audit_log row must exist with action=close-registration'
+			).toBeDefined();
+			expect(auditResult.rows[0]?.['entity']).toBe('booking');
+			expect(auditResult.rows[0]?.['action']).toBe('close-registration');
+			expect(auditResult.rows[0]?.['actor_id']).toBeNull(); // system-triggered, no user
+		} finally {
+			verifyClient.release();
+		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.6-INT-002 — Auto-close handler is idempotent (R-004 MITIGATE) [P0] ACTIVE
+// AC-5 (R-004 MITIGATE): Re-trigger on already-closed booking no-op, no error
+// MANDATORY PR GATE — listed in test-design Mandatory in every PR gate
+// ---------------------------------------------------------------------------
+
+describe('Story 5.6 — Auto-Close Handler Idempotency: Already-Closed Booking (AC-5, R-004 MITIGATE)', () => {
+	test('[P0] 5.6-INT-002 — closeRegistrationHandler is idempotent: re-run on already-closed booking returns no error and no duplicate audit row', async () => {
+		// THIS TEST WILL FAIL until closeRegistrationHandler is implemented (Task 2).
+		//
+		// AC-5 (R-004 MITIGATE): The handler must be double-fire safe.
+		// If registration_enabled is already false, the handler must:
+		//   - Return without error (no throw)
+		//   - Not change the DB state
+		//   - Not insert a duplicate audit_log row
+		//
+		// This is the MANDATORY PR gate for R-004 (score=6) mitigation.
+		// 5.6-INT-002 is listed in test-design Mandatory in every PR gate.
+		//
+		// Strategy:
+		//   1. Seed booking with registration_enabled=false (already closed)
+		//   2. Dynamic import closeRegistrationHandler
+		//   3. Invoke handler with { bookingId } — must NOT throw
+		//   4. Assert: registration_enabled still false (no unintended change)
+		//   5. Assert: no NEW audit_log row inserted (count remains 0)
+
+		const { closeRegistrationHandler } =
+			await import('../../src/lib/server/jobs/handlers/close-registration.js');
+
+		const regToken = `5-6-int-002-${randomUUID().replace(/-/g, '')}`;
+		const eventName = 'ATDD Test Event 5.6-INT-002 (Already Closed, Idempotency)';
+
+		const client = await pool.connect();
+		let bookingId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-6-002');
+			await seedUserProfile(client, organizerId, { firstName: 'Idempotent', lastName: 'Tester' });
+			const roomId = await seedRoom(client, 'int-5-6-002');
+			// Seed with registration_enabled=false — booking is ALREADY closed
+			bookingId = await seedBookingForCloseTest(client, {
+				organizerId,
+				roomId,
+				eventName,
+				token: regToken,
+				registrationEnabled: false // <-- already closed
+			});
+			// Also set registration_closes_at in the past (stale job scenario)
+			await client.query(
+				`UPDATE bookings SET registration_closes_at = NOW() - interval '5 minutes' WHERE id = $1`,
+				[bookingId]
+			);
+		} finally {
+			client.release();
+		}
+
+		// Invoke the handler — must NOT throw even though registration is already closed
+		const stubJob = {
+			id: `test-job-5-6-int-002-${randomUUID()}`,
+			name: 'close-registration',
+			data: { bookingId }
+		};
+
+		// The R-004 MITIGATE guard (enabled-check inside transaction) must no-op here
+		await expect(
+			closeRegistrationHandler(stubJob),
+			'5.6-INT-002: handler must not throw when registration is already closed (double-fire safe)'
+		).resolves.toBeUndefined();
+
+		// Assert: state unchanged — registration_enabled still false
+		const verifyClient = await pool.connect();
+		try {
+			const bookingResult = await verifyClient.query<{ registration_enabled: boolean }>(
+				`SELECT registration_enabled FROM bookings WHERE id = $1`,
+				[bookingId]
+			);
+
+			expect(
+				bookingResult.rows[0]?.registration_enabled,
+				'5.6-INT-002: registration_enabled must remain false (no unintended change)'
+			).toBe(false);
+
+			// Assert: no audit_log row was inserted by the idempotent no-op invocation
+			const auditCountResult = await verifyClient.query<{ count: string }>(
+				`SELECT COUNT(*) AS count
+         FROM audit_log
+         WHERE diff->>'bookingId' = $1
+           AND action = 'close-registration'`,
+				[bookingId]
+			);
+			expect(
+				Number(auditCountResult.rows[0]?.count),
+				'5.6-INT-002: no audit_log row must be inserted on idempotent no-op re-run'
+			).toBe(0);
+		} finally {
+			verifyClient.release();
+		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.6-INT-003 — Worker restart does not re-close already-closed registration [P1] SKIP
+// AC-5 (R-004): Testcontainers worker restart idempotency scenario
+// ---------------------------------------------------------------------------
+
+describe('Story 5.6 — Worker Restart Does Not Re-Close Registration (AC-5, R-004)', () => {
+	test.skip('[P1] 5.6-INT-003 — worker restart does not re-close an already-closed registration', async () => {
+		// Activation condition: closeRegistrationHandler implemented (Task 2) + Testcontainers worker harness.
+		//
+		// AC-5 (R-004): After a worker process restarts, pg-boss may re-deliver pending jobs.
+		//   The handler's registrationEnabled guard (R-004 MITIGATE) must prevent re-closing.
+		//
+		// Strategy (complex — requires Testcontainers worker stop/start):
+		//   1. Seed booking with registration_enabled=true; set closes_at to past
+		//   2. Start worker process via Testcontainers (or child_process spawn)
+		//   3. Allow job to fire and close registration (registration_enabled=false)
+		//   4. Stop worker process (simulate crash/restart)
+		//   5. Restart worker process
+		//   6. Assert: registration_enabled remains false; no duplicate audit row
+		//
+		// Note: This test requires the worker harness to be running.
+		// The P0 equivalent (5.6-INT-002) validates the idempotency guard at the unit level.
+
+		// TODO: Implement Testcontainers worker harness when P1 activation is needed.
+		expect(true).toBe(true); // placeholder
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.6-INT-004 — Manual close action sets registration_enabled=false [P1] SKIP
+// AC-2 (FR-034b): closeRegistration server action closes immediately
+// ---------------------------------------------------------------------------
+
+describe('Story 5.6 — Manual Close Action Sets registration_enabled=false (AC-2, FR-034b)', () => {
+	test.skip('[P1] 5.6-INT-004 — closeRegistration action sets registration_enabled=false and writes audit log', async () => {
+		// Activation condition: closeRegistration action implemented in
+		//   src/routes/(app)/bookings/[id]/+page.server.ts (Task 6).
+		//
+		// AC-2 (FR-034b): The authenticated booking owner can close registration immediately.
+		//   The closeRegistration form action must:
+		//     - Set registration_enabled = false in the bookings table
+		//     - Write audit_log row: entity='booking', action='close-registration', actorId=user.id
+		//     - Redirect 303 to /bookings/[id]
+		//     - Be idempotent: second call (already closed) must not error
+		//
+		// Strategy:
+		//   1. Seed user + profile + room + booking with registration_enabled=true
+		//   2. Call the closeRegistration action directly (not via HTTP — direct function call)
+		//   3. Assert: registration_enabled=false in DB
+		//   4. Assert: audit_log row with entity='booking', action='close-registration', actorId=user.id
+		//   5. Call again (idempotent): must not throw; registration_enabled still false
+
+		// TODO: Implement when Task 6 (closeRegistration server action) is complete.
+		// The action requires a SvelteKit RequestEvent — use a mock event or Playwright HTTP call.
+		expect(true).toBe(true); // placeholder
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.6-INT-005 — Handler file has no forbidden imports (lint/AST scan) [P2] SKIP
+// AC-6 (R-011 DOCUMENT): No $app/* or $env/dynamic in close-registration.ts
+// ---------------------------------------------------------------------------
+
+describe('Story 5.6 — Close-Registration Handler Has No Forbidden SvelteKit Imports (AC-6, R-011)', () => {
+	test.skip('[P2] 5.6-INT-005 — close-registration.ts handler does not import $app/* or $env/dynamic', async () => {
+		// Activation condition: close-registration.ts handler implemented (Task 2).
+		//
+		// AC-6 (R-011 DOCUMENT): The worker is a standalone Bun process that cannot use
+		//   SvelteKit's compile-time aliases ($lib, $app/*, $env/dynamic).
+		//   Any such import causes MODULE_NOT_FOUND at runtime.
+		//
+		// Strategy (AST/text scan — no running server needed):
+		//   1. Read the source of src/lib/server/jobs/handlers/close-registration.ts as text
+		//   2. Assert: file content does NOT contain '$app/' or '$env/dynamic'
+		//   3. Assert: file content does NOT contain '$lib' (relative imports only)
+		//   4. Assert: file content DOES contain relative import patterns ('../../db/' etc.)
+
+		const { readFileSync } = await import('node:fs');
+		const { resolve } = await import('node:path');
+
+		const handlerPath = resolve('src/lib/server/jobs/handlers/close-registration.ts');
+		const handlerSource = readFileSync(handlerPath, 'utf-8');
+
+		// R-011: no $app/* imports (would fail at worker runtime)
+		expect(handlerSource, '5.6-INT-005: handler must not import from $app/*').not.toMatch(
+			/from ['"]?\$app\//
+		);
+
+		// R-011: no $env/dynamic (would fail at worker runtime)
+		expect(handlerSource, '5.6-INT-005: handler must not import from $env/dynamic').not.toMatch(
+			/from ['"]?\$env\/dynamic/
+		);
+
+		// R-011: no $lib alias (SvelteKit alias unavailable in standalone Bun worker)
+		expect(handlerSource, '5.6-INT-005: handler must not import via $lib alias').not.toMatch(
+			/from ['"]?\$lib\//
+		);
+
+		// Positive assertion: relative imports ARE used
+		expect(
+			handlerSource,
+			'5.6-INT-005: handler must use relative imports (../../ pattern)'
+		).toMatch(/from ['"]\.\.\//);
+	});
+});
