@@ -10,7 +10,7 @@
  *   AC-1: returns per-room bookings for the week; deactivated rooms absent
  *   AC-2: GiST index on bookings(during) is usable for range-overlap query (R-007)
  */
-import { asc, eq, getTableColumns, sql } from 'drizzle-orm';
+import { asc, count, and, eq, getTableColumns, sql } from 'drizzle-orm';
 import { userProfiles } from '../schema/profiles.js';
 
 import { db } from '../index.js';
@@ -127,13 +127,14 @@ export async function getUpcomingBookingsByOrganizer(
 			...getTableColumns(bookings), // all booking columns (avoids column ambiguity in JOIN)
 			roomName: rooms.name, // extra field from rooms table
 			// Story 5.8 AC-5 (FR-052): count only status='registered' rows (excludes cancelled — AC-6)
-			// Cast COUNT(*) to ::int so pg driver returns a JS number, not a bigint string.
-			registrantCount: sql<number>`(
-				SELECT COUNT(*)::int
-				FROM ${registrations} r
-				WHERE r.booking_id = ${bookings.id}
-				  AND r.status = 'registered'
-			)`.as('registrant_count')
+			// Built with Drizzle query builder to avoid raw SQL strings; wrapping in sql<number>`(...)`
+			// coerces the subquery's return type from {value: string} to a scalar number column.
+			registrantCount: sql<number>`(${db
+				.select({ value: count() })
+				.from(registrations)
+				.where(
+					and(eq(registrations.bookingId, bookings.id), eq(registrations.status, 'registered'))
+				)})`.as('registrant_count')
 		})
 		.from(bookings)
 		.innerJoin(rooms, eq(bookings.roomId, rooms.id))
