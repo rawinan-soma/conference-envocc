@@ -7,7 +7,7 @@ next_story: 5-5-resend-a-lost-link
 
 # Story 5.4: Self-Cancel a Registration
 
-Status: review
+Status: done
 
 ## Story
 
@@ -88,6 +88,15 @@ so that I can withdraw without needing an organizer account or login.
 - [x] **Task 6: ATDD — add E2E test stubs** (AC: 1)
   - [x] Append a new `test.describe` block for Story 5.4 to `tests/e2e/registrations.spec.ts`
   - [x] `5.4-E2E-001` [P1] `test.skip`: Browser visits cancel link → sees confirm page → clicks confirm → sees success message. See stub below.
+
+### Review Findings
+
+Code review (2026-06-16) — three adversarial layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor. Result: clean. 0 decision-needed, 0 patch, 0 deferred, 2 dismissed.
+
+- [x] [Review][Dismiss] Cancel token (bearer secret) transmitted in URL query string [src/routes/r/[token]/cancel/+page.server.ts:28] — dismissed, accepted by-design tradeoff (won't-fix, not future work). The `?token=<plaintext>` shape is the frozen URL contract from Story 5.3 (Dev Notes line 110). Secrets in GET URLs land in access logs/browser history, but the POST action moves the token to the form body and the only subresource is same-origin `/logo.svg` (no cross-origin Referer leak). Rate-limiting of this endpoint is explicitly out of scope (Dev Notes line 189). No in-scope fix exists.
+- [x] [Review][Dismiss] `params.token` (decorative eventToken) not passed to the page — dismissed, non-issue. Spec states eventToken is decorative and not used for security or display (Dev Notes line 111); page does not display it. Nothing broken.
+
+Acceptance Auditor verified all six ACs and Tasks 1–6 satisfied, cross-checked against schema, `writeAuditLog` signature, and the `/r/**` hooks exemption. Edge Case Hunter returned no unhandled edge cases (empty/missing/malformed token, concurrent double-POST, already-cancelled row, audit-write failure all handled).
 
 ## Dev Notes
 
