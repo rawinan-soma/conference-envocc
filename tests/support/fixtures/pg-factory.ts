@@ -62,6 +62,7 @@ const TRUNCATABLE_TABLES = [
 	// Application tables — child before parent (FK: user_profiles.userId → users.id)
 	'user_profiles',
 	'users',
+	'registrations', // NEW — child of bookings (FK: booking_id → bookings.id)
 	'bookings',
 	'audit_log'
 ] as const;

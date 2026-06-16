@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-15T23:30:00+07:00 (phase 0 reconcile: 5.2 sprint status synced from sprint-status.yaml → atdd-done; worktree story-5.2-submit-a-registration active; no open PRs)_
+_Last updated: 2026-06-16T10:00:00+07:00 (phase 0 reconcile: PR #129 (5.2) CONFIRMED MERGED — 5.2 → done; 5.3/5.6/5.7/5.8 now Ready to Work; worktree story-5.2-submit-a-registration removed and remote branch deleted)_
 
 ## Stories
 
@@ -34,13 +34,13 @@ _Last updated: 2026-06-15T23:30:00+07:00 (phase 0 reconcile: 5.2 sprint status s
 | 4.7 | 4 | Edit, cancel, and duplicate a booking | done | #27 | #125 | merged | 4.4 | ✅ Yes (done) |
 | 4.8 | 4 | Organizer dashboard | done | #28 | #126 | merged | 4.4, 4.5 | ✅ Yes (done) |
 | 5.1 | 5 | Branded public registration page | done | #29 | #128 | merged | epic 4 complete | ✅ Yes (done) |
-| 5.2 | 5 | Submit a registration | atdd-done | #30 | — | — | 5.1 | ✅ Yes |
-| 5.3 | 5 | Confirmation email with self-cancel link | backlog | #31 | — | — | 5.2 | ❌ No (5.2 not merged) |
-| 5.4 | 5 | Self-cancel a registration | backlog | #32 | — | — | 5.3 | ❌ No (5.2 not merged) |
-| 5.5 | 5 | Resend a lost link | backlog | #33 | — | — | 5.3 | ❌ No (5.2 not merged) |
-| 5.6 | 5 | Registration open/close rules | backlog | #34 | — | — | 5.2 | ❌ No (5.2 not merged) |
-| 5.7 | 5 | Catering aggregation | backlog | #35 | — | — | 5.2 | ❌ No (5.2 not merged) |
-| 5.8 | 5 | Registrant list & dashboard headcount | backlog | #36 | — | — | 5.2 | ❌ No (5.2 not merged) |
+| 5.2 | 5 | Submit a registration | done | #30 | #129 | merged | 5.1 | ✅ Yes (done) |
+| 5.3 | 5 | Confirmation email with self-cancel link | backlog | #31 | — | — | 5.2 | ✅ Yes |
+| 5.4 | 5 | Self-cancel a registration | backlog | #32 | — | — | 5.3 | ❌ No (5.3 not merged) |
+| 5.5 | 5 | Resend a lost link | backlog | #33 | — | — | 5.3 | ❌ No (5.3 not merged) |
+| 5.6 | 5 | Registration open/close rules | backlog | #34 | — | — | 5.2 | ✅ Yes |
+| 5.7 | 5 | Catering aggregation | backlog | #35 | — | — | 5.2 | ✅ Yes |
+| 5.8 | 5 | Registrant list & dashboard headcount | backlog | #36 | — | — | 5.2 | ✅ Yes |
 | 6.1 | 6 | Sign-in sheet PDF | backlog | #37 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
 | 6.2 | 6 | One-day reminder sweeper | backlog | #38 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
 | 6.3 | 6 | Cancellation notifies attendees | backlog | #39 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
@@ -93,7 +93,7 @@ _Last updated: 2026-06-15T23:30:00+07:00 (phase 0 reconcile: 5.2 sprint status s
 
 ### Epic 5 (requires epic 4 complete)
 - **5.1** depends on: epic 4 complete ✅ **DONE (PR #128 merged 2026-06-15T14:38:49Z)**
-- **5.2** depends on: 5.1
+- **5.2** depends on: 5.1 ✅ **DONE (PR #129 merged 2026-06-16T02:44:27Z)**
 - **5.3** depends on: 5.2
 - **5.4** depends on: 5.3
 - **5.5** depends on: 5.3
@@ -135,8 +135,8 @@ _Last updated: 2026-06-15T23:30:00+07:00 (phase 0 reconcile: 5.2 sprint status s
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 (done PR #116). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is now active — story 5.1 (Branded public registration page) is **DONE** (PR #128 merged 2026-06-15T14:38:49Z). Story 5.2 is in **atdd-done** status (ATDD red-phase scaffolds committed; worktree active at `.worktrees/story-5.2-submit-a-registration`). No open PRs.
+**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is active — stories 5.1 (PR #128) and 5.2 (PR #129) are **DONE**. Story 5.2 merged 2026-06-16T02:44:27Z; worktree removed and remote branch deleted. No open PRs.
 
-**Current bottleneck:** Story 5.2 is the gate for 5.3/5.6/5.7/5.8 in parallel. Stories 5.4 and 5.5 require 5.3.
+**Currently unblocked (Ready to Work):** Stories 5.3, 5.6, 5.7, and 5.8 are all unblocked and can be worked in parallel. Stories 5.4 and 5.5 require 5.3.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
