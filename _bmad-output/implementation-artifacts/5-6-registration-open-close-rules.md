@@ -4,7 +4,7 @@ baseline_commit: 362d34e
 
 # Story 5.6: Registration Open/Close Rules
 
-**Status:** `review`
+**Status:** `done`
 **Epic:** 5 — External Registration & Headcount
 **GH Issue:** #34
 **Previous Story:** 5.2 — Submit a Registration (5.3–5.5 are independent; this builds on 5.2 + 4.4)
@@ -103,6 +103,31 @@ So that it opens and closes correctly.
   - [x] 9.4: P2 tests (`test.skip`):
     - `5.6-INT-005`: Auto-close handler file has no `$app/*` or `$env/dynamic` imports (lint/AST scan)
   - [x] 9.5: Use the auto-close time-travel pattern: update `registration_closes_at = NOW() - interval '1 second'` via raw SQL in the fixture, then invoke the handler directly with a stub job — do NOT sleep
+
+### Review Findings
+
+Code review (Step 5, 2026-06-16) — 3 review layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor). Acceptance Auditor found no blocking AC violations; all 7 ACs satisfied. 2 patches applied, 5 deferred, 5 dismissed as spec-intentional/noise.
+
+Patches applied (fixed in commit eac2418):
+
+- [x] [Review][Patch] Idempotency guard not concurrency-safe — added `.for('update')` row lock to handler re-read [`src/lib/server/jobs/handlers/close-registration.ts`:43]
+- [x] [Review][Patch] snake_case transaction-result locals renamed to camelCase [`src/lib/server/services/booking-service.ts`:118,263]
+
+Deferred (real but out-of-scope or pre-existing pattern — see deferred-work.md):
+
+- [x] [Review][Defer] Post-commit `enqueueJob` failure has no compensation — committed booking left without auto-close job [`src/lib/server/services/booking-service.ts`:200,259] — deferred, architectural follow-up not addressed by spec
+- [x] [Review][Defer] Manual `closeRegistration` action re-reads outside its transaction and UPDATEs unconditionally (TOCTOU); also no `status` guard so a cancelled booking is closable via direct POST [`src/routes/(app)/bookings/[id]/+page.server.ts`:95] — deferred, action is verbatim spec code; status guard is a behavior deviation
+- [x] [Review][Defer] Handler batch loop has no per-job try/catch — one poison job fails the whole pg-boss batch [`src/lib/server/jobs/handlers/close-registration.ts`:61] — deferred, matches send-email.ts pattern
+- [x] [Review][Defer] Time guard uses worker process clock (`new Date()`) vs DB-persisted timestamp — clock-skew/early-delivery no-op may leave registration open [`src/lib/server/jobs/handlers/close-registration.ts`:43] — deferred, defensive only
+- [x] [Review][Defer] Confirm modal uses `<dialog open>` (no focus trap / Esc / inert backdrop) instead of `showModal()` [`src/routes/(app)/bookings/[id]/+page.svelte`:393] — deferred, matches existing cancel-modal pattern
+
+Dismissed (spec-intentional or project rule):
+
+- Stale auto-close jobs accumulate / `singletonKey` is metadata only — spec **requires** multiple jobs to coexist for date-moved-earlier convergence (R-004 strategy); changing queue policy would break documented logic.
+- Empty Thai strings render blank labels — project rule, Rawinan owns all Thai translation.
+- `updateBooking` re-open scenario — re-open is explicitly out of scope per spec.
+- Test files beyond spec's listed file set (bookings.test.ts, booking-token.test.ts) — disclosed/justified pg-boss lifecycle regression fix.
+- AC-4 has no dedicated 5.6 test — "do-not-add" criterion verifiable by the diff itself; covered by Story 5.2's existing test.
 
 ## Dev Notes
 
