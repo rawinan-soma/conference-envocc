@@ -50,7 +50,7 @@
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import pg from 'pg';
-import { randomUUID, createHash, randomBytes } from 'node:crypto';
+import { randomUUID, createHash, createHmac, randomBytes } from 'node:crypto';
 import { uuidv7 } from 'uuidv7';
 
 // ---------------------------------------------------------------------------
@@ -1996,5 +1996,518 @@ describe('Story 5.6 — Close-Registration Handler Has No Forbidden SvelteKit Im
 			handlerSource,
 			'5.6-INT-005: handler must use relative imports (../../ pattern)'
 		).toMatch(/from ['"]\.\.\//);
+	});
+});
+
+// ===========================================================================
+// STORY 5.8 — Registrant List & Dashboard Headcount
+//
+// ATDD Red-Phase Integration Scaffolds — Story 5.8: Registrant List & Dashboard Headcount
+//
+// STATUS:
+//   5.8-INT-IDOR-001: P0 ACTIVE — guarded by DEV_SERVER_URL env var (HTTP-level test)
+//   5.8-INT-001:      P0 ACTIVE — red phase (fail until getRegistrantsByBookingId implemented)
+//   5.8-INT-002:      P0 ACTIVE — red phase (fail until registrantCount added to getUpcomingBookingsByOrganizer)
+//   5.8-INT-003:      P2 test.skip — activate during implementation
+//
+// AC Coverage:
+//   - AC-1: getRegistrantsByBookingId returns all registrations for a booking ordered by createdAt
+//   - AC-3 (R-007 MITIGATE): IDOR guard — non-owner gets 403/404 on /bookings/[id]/registrants
+//   - AC-5 (FR-052): getUpcomingBookingsByOrganizer returns registrantCount = count of status='registered' rows
+//   - AC-6: Cancelled registrants are NOT counted in registrantCount (only status='registered' counted)
+//
+// Scenario IDs (from story 5.8 Task 6 + Task 7):
+//   P0 (ACTIVATED — will fail until implementation is complete):
+//   - 5.8-INT-IDOR-001: Registrant list IDOR — non-owner gets 403/404 (R-007 MITIGATE) [P0]
+//   - 5.8-INT-001:      Registrant list shows correct status: Registered / Cancelled [P0]
+//   - 5.8-INT-002:      Dashboard headcount = registered count only (excludes cancelled) [P0]
+//   P2 (skipped — activate during implementation):
+//   - 5.8-INT-003:      Admin sees registrant list for event they do not own [P2]
+//
+// PR Gate Tests (MUST pass before merge):
+//   - 5.8-INT-IDOR-001 — R-007 MITIGATE (mandatory, same tier as 5.1-INT-IDOR-001 and 5.2-INT-CLOSED-001)
+//   - 5.8-INT-001 — registrant list statuses correct
+//   - 5.8-INT-002 — headcount excludes cancelled
+//
+// Prerequisites:
+//   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
+//   - Story 5.8 Tasks 1–2 implemented:
+//     - getRegistrantsByBookingId() added to src/lib/server/db/queries/registrations.ts
+//     - getUpcomingBookingsByOrganizer() extended with registrantCount subquery in bookings.ts
+//   - For 5.8-INT-IDOR-001: DEV_SERVER_URL env var pointing to a running SvelteKit dev server
+//     with /bookings/[id]/registrants route + owner-or-admin guard implemented (Task 4)
+//
+// Architecture — IDOR guard (R-007 MITIGATE):
+//   The /bookings/[id]/registrants route checks user.id === booking.organizerId (or user.isAdmin).
+//   5.8-INT-IDOR-001 seeds two organizers + bookings, then asserts that organizer B
+//   is denied access to organizer A's registrant list.
+//   Organizer B's session is seeded directly in the DB (NOT via dev bypass) because
+//   dev bypass always creates the same fixed test user.
+//
+// Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
+//   All string assertions use English mock data. Paraglide keys tested by name only.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Seed helper — seedBooking (Story 5.8) — no registrationToken required
+// ---------------------------------------------------------------------------
+
+/**
+ * Seeds a booking row linked to organizerId and roomId.
+ * Does NOT require a registrationToken — used for organizer-scoped routes.
+ * Returns the bookingId.
+ */
+async function seedBooking(
+	client: pg.PoolClient,
+	opts: {
+		organizerId: string;
+		roomId: string;
+		eventName: string;
+		slotStart?: string;
+		slotEnd?: string;
+	}
+): Promise<string> {
+	const bookingId = randomUUID();
+	const slotStart = opts.slotStart ?? '2026-10-01 09:00:00+00';
+	const slotEnd = opts.slotEnd ?? '2026-10-01 10:00:00+00';
+	await client.query(
+		`INSERT INTO bookings (
+      id, room_id, organizer_id, event_name, agenda, during,
+      status, catering_enabled, registration_enabled, registration_token,
+      created_at, updated_at
+    )
+    VALUES (
+      $1, $2, $3, $4, NULL,
+      tstzrange($5::timestamptz, $6::timestamptz, '[)'),
+      'active', false, true, $7,
+      NOW(), NOW()
+    )
+    ON CONFLICT (id) DO NOTHING`,
+		[
+			bookingId,
+			opts.roomId,
+			opts.organizerId,
+			opts.eventName,
+			slotStart,
+			slotEnd,
+			`5-8-token-${bookingId}`
+		]
+	);
+	return bookingId;
+}
+
+// ---------------------------------------------------------------------------
+// Cookie signing helper — produces a Better Auth-compatible signed cookie value.
+//
+// Better Auth (via better-call) signs session cookies as:
+//   encodeURIComponent("{token}.{base64(HMAC-SHA256(token, AUTH_SECRET))}")
+//
+// Integration tests must send signed cookies because Better Auth's getSession()
+// calls getSignedCookie(), which rejects unsigned (or incorrectly signed) values.
+//
+// AUTH_SECRET must match the value used by the running dev server. It is injected
+// via the CI workflow's AUTH_SECRET env var for the integration test step.
+// ---------------------------------------------------------------------------
+
+/**
+ * Signs a session token value using the same HMAC-SHA256 algorithm that
+ * Better Auth (via better-call) uses for its signed session cookie.
+ *
+ * Returns the full cookie header string suitable for use in fetch() headers:
+ *   `better-auth.session_token=<signedValue>`
+ */
+function buildSignedSessionCookie(token: string): string {
+	const secret = process.env['AUTH_SECRET'];
+	if (!secret) {
+		throw new Error(
+			'AUTH_SECRET env var not set — integration tests require AUTH_SECRET to sign session cookies. ' +
+				'Ensure AUTH_SECRET is passed to the test process (CI workflow: add to Run integration tests env).'
+		);
+	}
+	// HMAC-SHA256 the token with the secret, encode as base64
+	const signature = createHmac('sha256', secret).update(token).digest('base64');
+	// Better Auth cookie format: "{value}.{signature}" → URL-encoded
+	const signedValue = encodeURIComponent(`${token}.${signature}`);
+	return `better-auth.session_token=${signedValue}`;
+}
+
+/**
+ * Seeds a user + profile + session row, and returns a signed session cookie
+ * compatible with Better Auth's getSignedCookie() validation.
+ *
+ * IMPORTANT: For IDOR proofs, seed sessions directly in DB — do NOT use dev bypass,
+ * which always creates the same fixed user.
+ *
+ * Better Auth's getSession() calls getSignedCookie(), which requires an
+ * HMAC-SHA256 signed cookie value. Unsigned raw tokens are rejected, resulting
+ * in a 302 redirect to /login before the route's ownership guard can run.
+ */
+async function seedUserWithSession(
+	client: pg.PoolClient,
+	prefix: string
+): Promise<{ userId: string; sessionCookie: string }> {
+	const userId = randomUUID();
+	const sessionToken = `test-session-${prefix}-${randomUUID()}`;
+	const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24h from now
+
+	await client.query(
+		`INSERT INTO users ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, false, NOW(), NOW())
+     ON CONFLICT ("id") DO NOTHING`,
+		[userId, `Test User ${prefix}`, `${prefix}-${userId}@example.com`]
+	);
+
+	await client.query(
+		`INSERT INTO user_profiles ("id", "userId", "email", "title", "firstName", "lastName", "phone", "organization", "createdAt", "updatedAt")
+     VALUES (gen_random_uuid(), $1, $2, 'Dr.', $3, 'Organizer', '0812345678', 'Test Org', NOW(), NOW())
+     ON CONFLICT ("userId") DO NOTHING`,
+		[userId, `profile-${userId}@example.com`, prefix]
+	);
+
+	await client.query(
+		`INSERT INTO sessions ("id", "expiresAt", "token", "createdAt", "updatedAt", "userId")
+     VALUES (gen_random_uuid(), $1::timestamptz, $2, NOW(), NOW(), $3)
+     ON CONFLICT ("token") DO NOTHING`,
+		[expiresAt, sessionToken, userId]
+	);
+
+	return {
+		userId,
+		sessionCookie: buildSignedSessionCookie(sessionToken)
+	};
+}
+
+// ---------------------------------------------------------------------------
+// 5.8-INT-IDOR-001 — Registrant list IDOR — non-owner gets 403/404 [P0] ACTIVE
+// AC-3 (R-007 MITIGATE): IDOR ownership guard on /bookings/[id]/registrants
+// ---------------------------------------------------------------------------
+
+describe('Story 5.8 — Registrant List IDOR Guard (AC-3, R-007 MITIGATE)', () => {
+	// This test requires a running dev server. Guard with skipIf so the full test
+	// suite can run without a server (CI integration-only mode).
+	test.skipIf(!process.env['DEV_SERVER_URL'])(
+		'[P0] 5.8-INT-IDOR-001 — non-owner organizer gets 403/404 on /bookings/[id]/registrants',
+		{ timeout: 15000 },
+		async () => {
+			// THIS TEST WILL FAIL until /bookings/[id]/registrants + owner-or-admin guard
+			// is implemented (Task 4 in story 5.8).
+			//
+			// AC-3 (R-007 MITIGATE): The /bookings/[id]/registrants page must only be
+			//   accessible by the booking's organizer (or an admin).
+			//   Non-owner organizer B attempting to view organizer A's registrant list
+			//   must receive 403 or 404.
+			//
+			// Strategy:
+			//   1. Seed organizer A (owner) with a session + booking
+			//   2. Seed organizer B (non-owner) with a session
+			//   3. Use testOwnershipEnforcement() to assert B is denied on A's booking registrant route
+			//   4. Seed a registrant for bookingA so the route has data to protect
+
+			const { testOwnershipEnforcement } = await import('../support/helpers/idor-template.js');
+
+			const devServerUrl = process.env['DEV_SERVER_URL']!;
+
+			const client = await pool.connect();
+			let bookingAId: string;
+			let nonOwnerCookie: string;
+
+			try {
+				// Seed organizer A (owner of the booking)
+				const ownerA = await seedUserWithSession(client, '5-8-idor-owner-a');
+				const roomA = await seedRoom(client, '5-8-idor-a');
+				bookingAId = await seedBooking(client, {
+					organizerId: ownerA.userId,
+					roomId: roomA,
+					eventName: 'ATDD Test Event 5.8-IDOR-001 (Owner A — SHOULD NOT LEAK)',
+					slotStart: '2026-11-01 09:00:00+00',
+					slotEnd: '2026-11-01 10:00:00+00'
+				});
+
+				// Seed a registrant for bookingA (so the route has data to protect)
+				await seedRegistrant(client, {
+					bookingId: bookingAId,
+					email: `registrant-idor-${randomUUID()}@example.com`,
+					status: 'registered'
+				});
+
+				// Seed organizer B (non-owner — will attempt access)
+				const nonOwnerB = await seedUserWithSession(client, '5-8-idor-non-owner-b');
+				nonOwnerCookie = nonOwnerB.sessionCookie;
+			} finally {
+				client.release();
+			}
+
+			// Assert: non-owner B cannot access owner A's registrant list.
+			// Wrap in expect(...).resolves.toBeUndefined() to satisfy Vitest's requireAssertions.
+			// testOwnershipEnforcement resolves (returns undefined) when the route correctly denies
+			// the non-owner; it throws when an unexpected status is received (IDOR bypass).
+			await expect(
+				testOwnershipEnforcement({
+					routeUrl: `${devServerUrl}/bookings/${bookingAId}/registrants`,
+					method: 'GET',
+					nonOwnerCookie,
+					expectedDenialStatuses: [403, 404]
+				}),
+				'non-owner organizer must be denied 403/404 on /bookings/[id]/registrants (AC-3 / R-007 MITIGATE)'
+			).resolves.toBeUndefined();
+		}
+	);
+});
+
+// ---------------------------------------------------------------------------
+// 5.8-INT-001 — Registrant list shows correct status: Registered / Cancelled [P0] ACTIVE
+// AC-1: getRegistrantsByBookingId returns all registrations with correct statuses
+// ---------------------------------------------------------------------------
+
+describe('Story 5.8 — Registrant List Shows Correct Status (AC-1)', () => {
+	test('[P0] 5.8-INT-001 — registrant list shows correct status: Registered and Cancelled', async () => {
+		// THIS TEST WILL FAIL until getRegistrantsByBookingId is implemented (Task 1).
+		//
+		// AC-1: GET /bookings/[id]/registrants page must show all registrants for the booking.
+		//   Each row shows: first name, last name, organization, email, and status.
+		//   Both 'registered' and 'cancelled' statuses must appear.
+		//
+		// Strategy:
+		//   1. Seed user + profile + room + booking
+		//   2. Seed 2 registrants: one status='registered', one status='cancelled'
+		//   3. Call getRegistrantsByBookingId(bookingId)
+		//   4. Assert both rows returned with correct status values
+		//   5. Assert ordering is by createdAt ASC (first seeded row comes first)
+
+		const { getRegistrantsByBookingId } =
+			await import('../../src/lib/server/db/queries/registrations.js');
+
+		const client = await pool.connect();
+		let bookingId: string;
+		try {
+			const organizerId = await seedUser(client, '5-8-int-001');
+			await seedUserProfile(client, organizerId, { firstName: 'Eve', lastName: 'Organizer' });
+			const roomId = await seedRoom(client, '5-8-int-001');
+			bookingId = await seedBooking(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD Test Event 5.8-INT-001',
+				slotStart: '2026-10-10 09:00:00+00',
+				slotEnd: '2026-10-10 10:00:00+00'
+			});
+
+			// Seed two registrants: one registered, one cancelled
+			await seedRegistrant(client, {
+				bookingId,
+				email: `registered-${randomUUID()}@example.com`,
+				status: 'registered'
+			});
+
+			await seedRegistrant(client, {
+				bookingId,
+				email: `cancelled-${randomUUID()}@example.com`,
+				status: 'cancelled'
+			});
+		} finally {
+			client.release();
+		}
+
+		const result = await getRegistrantsByBookingId(bookingId);
+
+		// AC-1: Both registrants must be returned (list includes all statuses)
+		expect(result, '5.8-INT-001: getRegistrantsByBookingId must return an array').toBeDefined();
+		expect(
+			result.length,
+			'5.8-INT-001: both registrants (registered + cancelled) must be returned'
+		).toBe(2);
+
+		// Assert both status values are present in the result
+		const statuses = result.map((r) => r.status);
+		expect(statuses, '5.8-INT-001: registered status must be present').toContain('registered');
+		expect(statuses, '5.8-INT-001: cancelled status must be present').toContain('cancelled');
+
+		// Assert each row has the expected shape (AC-1: name, org, email, status)
+		for (const reg of result) {
+			expect(typeof reg.firstName, '5.8-INT-001: firstName must be a string').toBe('string');
+			expect(typeof reg.lastName, '5.8-INT-001: lastName must be a string').toBe('string');
+			expect(typeof reg.organization, '5.8-INT-001: organization must be a string').toBe('string');
+			expect(typeof reg.email, '5.8-INT-001: email must be a string').toBe('string');
+			expect(
+				['registered', 'cancelled'],
+				'5.8-INT-001: status must be registered or cancelled'
+			).toContain(reg.status);
+		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.8-INT-002 — Dashboard headcount = registered count only (excludes cancelled) [P0] ACTIVE
+// AC-5 (FR-052), AC-6: getUpcomingBookingsByOrganizer returns registrantCount = status='registered' only
+// ---------------------------------------------------------------------------
+
+describe('Story 5.8 — Dashboard Headcount Excludes Cancelled Registrants (AC-5, AC-6, FR-052)', () => {
+	test('[P0] 5.8-INT-002 — dashboard headcount equals registered count only; cancelled registrants excluded', async () => {
+		// THIS TEST WILL FAIL until getUpcomingBookingsByOrganizer is extended
+		// with the registrantCount subquery (Task 2 in story 5.8).
+		//
+		// AC-5 (FR-052): The organizer dashboard shows live count of status='registered' rows.
+		// AC-6: Registrants with status='cancelled' are NOT counted in the headcount.
+		//
+		// Strategy:
+		//   1. Seed organizer + profile + room + booking with an upcoming slot (future date)
+		//   2. Seed 3 registrants with status='registered' + 1 with status='cancelled' (4 total)
+		//   3. Call getUpcomingBookingsByOrganizer(organizerId)
+		//   4. Assert the booking row has registrantCount === 3 (not 4 — cancelled excluded)
+		//
+		// Critical:
+		//   - registrantCount must be a JS number, not a string (::int cast in SQL)
+		//   - getUpcomingBookingsByOrganizer filters to upcoming bookings (slot in future)
+
+		const { getUpcomingBookingsByOrganizer } =
+			await import('../../src/lib/server/db/queries/bookings.js');
+
+		const client = await pool.connect();
+		let organizerId: string;
+		let bookingId: string;
+		try {
+			organizerId = await seedUser(client, '5-8-int-002');
+			await seedUserProfile(client, organizerId, { firstName: 'Frank', lastName: 'Organizer' });
+			const roomId = await seedRoom(client, '5-8-int-002');
+
+			// Seed a booking in the FUTURE so it appears in getUpcomingBookingsByOrganizer
+			// (query filters by slot > NOW())
+			const futureStart = '2027-06-01 09:00:00+00';
+			const futureEnd = '2027-06-01 10:00:00+00';
+			bookingId = await seedBooking(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD Test Event 5.8-INT-002 (Dashboard Headcount)',
+				slotStart: futureStart,
+				slotEnd: futureEnd
+			});
+
+			// Seed 3 registered + 1 cancelled registrants
+			for (let i = 0; i < 3; i++) {
+				await seedRegistrant(client, {
+					bookingId,
+					email: `registered-${i}-${randomUUID()}@example.com`,
+					status: 'registered'
+				});
+			}
+			await seedRegistrant(client, {
+				bookingId,
+				email: `cancelled-${randomUUID()}@example.com`,
+				status: 'cancelled'
+			});
+		} finally {
+			client.release();
+		}
+
+		const bookings = await getUpcomingBookingsByOrganizer(organizerId);
+
+		// Locate the seeded booking in the results
+		const bookingRow = bookings.find((b) => b.id === bookingId);
+		expect(
+			bookingRow,
+			'5.8-INT-002: seeded booking must appear in getUpcomingBookingsByOrganizer results'
+		).toBeDefined();
+
+		if (!bookingRow) return; // type narrowing
+
+		// AC-5 (FR-052): registrantCount must be present on the row
+		expect(
+			'registrantCount' in bookingRow,
+			'5.8-INT-002: bookingRow must have registrantCount field (Task 2.1 type extension)'
+		).toBe(true);
+
+		// AC-6: registrantCount must equal 3 (registered only — cancelled excluded)
+		expect(
+			(bookingRow as { registrantCount: number }).registrantCount,
+			'5.8-INT-002: registrantCount must be 3 (3 registered; 1 cancelled excluded per AC-6)'
+		).toBe(3);
+
+		// AC-6: registrantCount must be a number, not a string (::int cast requirement)
+		expect(
+			typeof (bookingRow as { registrantCount: unknown }).registrantCount,
+			'5.8-INT-002: registrantCount must be JS number (not string) — ::int cast required in SQL'
+		).toBe('number');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.8-INT-003 — Admin sees registrant list for event they do not own [P2] SKIP
+// AC-3: Admin user (isAdmin=true) can view registrant list for ALL events
+// ---------------------------------------------------------------------------
+
+describe('Story 5.8 — Admin Cross-Event Registrant List Access (AC-3)', () => {
+	test.skip('[P2] 5.8-INT-003 — admin user sees registrant list for event they do not own', async () => {
+		// Activation condition: Task 4 complete (/bookings/[id]/registrants + owner-or-admin guard).
+		//
+		// AC-3: Admin users (user.isAdmin = true) may view registrant lists for ALL events,
+		//   not just the events they own. The custom owner-or-admin guard skips assertOwner
+		//   for admin users:
+		//     if (!user.isAdmin && user.id !== booking.organizerId) { error(403, 'Forbidden') }
+		//
+		// Strategy:
+		//   1. Seed an admin user with a session (isAdmin=true in users table or relevant auth table)
+		//   2. Seed a second organizer's booking with some registrants
+		//   3. Admin GET /bookings/[other-organizer-booking-id]/registrants → must return 200
+		//   4. Assert registrant data is visible to admin
+
+		const devServerUrl = process.env['DEV_SERVER_URL']!;
+
+		const client = await pool.connect();
+		let otherOrgBookingId: string;
+		let adminCookie: string;
+
+		try {
+			// Seed a regular organizer + booking
+			const otherOrg = await seedUserWithSession(client, '5-8-int-003-other-org');
+			const roomId = await seedRoom(client, '5-8-int-003');
+			otherOrgBookingId = await seedBooking(client, {
+				organizerId: otherOrg.userId,
+				roomId,
+				eventName: 'ATDD Test Event 5.8-INT-003 (Other Organizer)',
+				slotStart: '2026-11-15 09:00:00+00',
+				slotEnd: '2026-11-15 10:00:00+00'
+			});
+
+			await seedRegistrant(client, {
+				bookingId: otherOrgBookingId,
+				email: `admin-test-registrant-${randomUUID()}@example.com`,
+				status: 'registered'
+			});
+
+			// Seed admin user — better-auth uses a separate roles/permissions mechanism;
+			// the isAdmin check in this app is implemented via user_profiles or a custom
+			// flag in the users table. Verify the exact column in the users schema before
+			// activating this test. The approach below seeds isAdmin in users table.
+			const adminUserId = randomUUID();
+			const adminSessionToken = `admin-session-${randomUUID()}`;
+			const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+			await client.query(
+				`INSERT INTO users ("id", "name", "email", "emailVerified", "is_admin", "createdAt", "updatedAt")
+         VALUES ($1, 'Admin User 5.8-INT-003', $2, false, true, NOW(), NOW())
+         ON CONFLICT ("id") DO NOTHING`,
+				[adminUserId, `admin-5-8-int-003-${adminUserId}@example.com`]
+			);
+			await client.query(
+				`INSERT INTO sessions ("id", "expiresAt", "token", "createdAt", "updatedAt", "userId")
+         VALUES (gen_random_uuid(), $1::timestamptz, $2, NOW(), NOW(), $3)
+         ON CONFLICT ("token") DO NOTHING`,
+				[expiresAt, adminSessionToken, adminUserId]
+			);
+
+			adminCookie = buildSignedSessionCookie(adminSessionToken);
+		} finally {
+			client.release();
+		}
+
+		// Admin should get 200 (not 403) on another organizer's registrant list
+		const response = await fetch(`${devServerUrl}/bookings/${otherOrgBookingId}/registrants`, {
+			headers: { Cookie: adminCookie },
+			redirect: 'manual'
+		});
+
+		expect(
+			response.status,
+			"5.8-INT-003: admin must receive 200 (not 403) on another organizer's registrant list"
+		).toBe(200);
 	});
 });

@@ -670,3 +670,176 @@ test.describe('Story 5.2 — Load Test: 50 Concurrent Registrations (R-012)', ()
 		expect(true).toBe(true); // placeholder — load test runs via k6 CLI
 	});
 });
+
+// ===========================================================================
+// STORY 5.8 — Registrant List & Dashboard Headcount
+//
+// ATDD Red-Phase E2E Scaffolds — Story 5.8: Registrant List & Dashboard Headcount
+//
+// STATUS: All tests skipped (TDD red-phase scaffolds — activate task-by-task during implementation).
+//
+// Playwright E2E tests — requires dev server running and seeded test data.
+//
+// Activation guide:
+//   1. Remove `test.skip(` → `test(` for the current task's test(s).
+//   2. Ensure dev server is running: `bun run dev`
+//   3. Ensure ORGANIZER_BOOKING_ID maps to a real booking in the DB (seeded via dev-bypass or direct SQL).
+//   4. Run: `bun run test:e2e -- --grep "<test-id>"` — verify it FAILS first (red).
+//   5. Implement the feature (per task in story 5.8).
+//   6. Run again — verify it PASSES (green).
+//   7. Commit passing tests.
+//
+// AC Coverage:
+//   - AC-1 (registrant list route): /bookings/[id]/registrants renders all registrants
+//   - AC-2 (status badges): Registered (green) and Cancelled (muted) badges visible with text labels
+//   - AC-5 (FR-052): Dashboard card shows live headcount (not placeholder "—")
+//
+// Scenario IDs (from story 5.8 Task 7):
+//   P1 (all skipped — activate during implementation):
+//   - 5.8-E2E-001: Organizer sees registrant list with Registered/Cancelled status badges [P1]
+//   - 5.8-E2E-002: Dashboard card shows live headcount after a new registration [P1]
+//
+// Booking ID constants:
+//   Replace ORGANIZER_BOOKING_ID with a real booking ID once seed wiring is complete.
+//   The booking must:
+//   - Be owned by the organizer in the authenticated session
+//   - Have at least one 'registered' and one 'cancelled' registrant seeded (for 5.8-E2E-001)
+//   - Have registrationEnabled=true (for 5.8-E2E-002)
+//
+// Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
+//   All string assertions use English mock data. Paraglide keys tested by name only.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 5.8 booking ID constant — replace with real booking ID once seed wiring is complete
+// ---------------------------------------------------------------------------
+
+/**
+ * ID of a booking owned by the test organizer, with mixed-status registrants.
+ * Must be seeded in the DB before these tests run.
+ */
+const ORGANIZER_BOOKING_ID_5_8 = 'placeholder-5-8-booking-id-replace-me';
+
+// ---------------------------------------------------------------------------
+// 5.8-E2E-001 — Organizer sees registrant list with status badges [P1] SKIP
+// AC-1, AC-2: /bookings/[id]/registrants renders table + Registered/Cancelled badges
+// ---------------------------------------------------------------------------
+
+test.describe('Story 5.8 — Registrant List with Status Badges (AC-1, AC-2)', () => {
+	test.skip('[P1] 5.8-E2E-001 — organizer sees registrant list with Registered and Cancelled status badges', async ({
+		page
+	}) => {
+		// Activation condition: Tasks 1, 4, and 5 complete (query + route + i18n keys).
+		// Prerequisite seed: booking with ORGANIZER_BOOKING_ID_5_8 must have at least
+		//   one 'registered' and one 'cancelled' registrant in the DB.
+		//   The organizer session must be authenticated (use dev-bypass or seed session).
+		//
+		// AC-1: /bookings/[id]/registrants page renders list of all registrants.
+		//   Page heading shows event name. Table shows name, org, email, status badge per row.
+		// AC-2: Status badges:
+		//   - "Registered" badge uses green styling (bg-green-100 text-green-700)
+		//   - "Cancelled" badge uses muted styling (bg-cream-200 text-ink-2 or equivalent)
+		//   - Each badge must contain a visible text label — status NOT conveyed by color alone (WCAG 2.1 AA)
+		// Note: If dev-bypass is available, use getDevBypassCookie() to authenticate the organizer.
+
+		// Navigate to the registrant list page as an authenticated organizer
+		await page.goto(`/bookings/${ORGANIZER_BOOKING_ID_5_8}/registrants`, {
+			waitUntil: 'networkidle'
+		});
+
+		// No redirect to /login — route must be accessible to the authenticated organizer
+		expect(page.url()).not.toContain('/login');
+		expect(page.url()).toContain('/registrants');
+
+		// AC-1: Page heading (event name) visible — Paraglide key: registrant_list_title
+		const heading = page.getByRole('heading').first();
+		await expect(heading).toBeVisible();
+
+		// AC-1: Table/list rows visible — at least one registrant row must render
+		const tableRows = page.locator('table tbody tr, [data-testid="registrant-row"]');
+		await expect(tableRows.first()).toBeVisible();
+
+		// AC-2: "Registered" status badge visible with text label
+		// Matches Paraglide key: registrant_list_status_registered ("Registered")
+		await expect(page.getByText('Registered')).toBeVisible();
+
+		// AC-2: "Cancelled" status badge visible with text label
+		// Matches Paraglide key: registrant_list_status_cancelled ("Cancelled")
+		await expect(page.getByText('Cancelled')).toBeVisible();
+
+		// AC-2 (WCAG 2.1 AA): Both badges must have visible text (not conveyed by color alone)
+		// The badge elements must not have aria-hidden on their text content
+		const registeredBadge = page.locator('[class*="green"]').filter({ hasText: 'Registered' });
+		await expect(registeredBadge).toBeVisible();
+
+		const cancelledBadge = page
+			.locator('[class*="cream"], [class*="stone"], [class*="amber"]')
+			.filter({
+				hasText: 'Cancelled'
+			});
+		await expect(cancelledBadge).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.8-E2E-002 — Dashboard card shows live headcount after a new registration [P1] SKIP
+// AC-5 (FR-052): Dashboard BookingCard replaces "—" placeholder with real registrantCount
+// ---------------------------------------------------------------------------
+
+test.describe('Story 5.8 — Dashboard Live Headcount (AC-5, FR-052)', () => {
+	test.skip('[P1] 5.8-E2E-002 — dashboard card shows live headcount after a new registration (not "—" placeholder)', async ({
+		page
+	}) => {
+		// Activation condition: Tasks 2, 3, and 4 complete (headcount subquery +
+		//   BookingCard.svelte update + route).
+		// Prerequisite: An organizer with at least one FUTURE booking that has registrationEnabled=true.
+		//   Use dev-bypass to authenticate as the organizer.
+		//   Seed the booking via SQL or dev-bypass endpoint.
+		//
+		// AC-5 (FR-052): The dashboard BookingCard for each upcoming booking shows
+		//   the live count of status='registered' registrants.
+		//   Before this story: the placeholder "—" is shown.
+		//   After implementation: the real count (e.g. "1", "3") replaces "—".
+		//
+		// Strategy:
+		//   1. Authenticate as organizer (dev-bypass or seeded session)
+		//   2. Navigate to /dashboard — verify booking card shows initial headcount (0 or N)
+		//   3. Submit a new registration via the public /r/[token] form
+		//   4. Navigate back to /dashboard
+		//   5. Assert the booking card shows the updated headcount (> previous value)
+		//   6. Assert "—" placeholder is NOT visible on the card
+
+		// Step 1: Navigate to dashboard as authenticated organizer
+		await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+		// Must not redirect to /login — organizer must be authenticated
+		expect(page.url()).not.toContain('/login');
+		expect(page.url()).toContain('/dashboard');
+
+		// Step 2: Record the initial headcount on the booking card
+		// The booking card for ORGANIZER_BOOKING_ID_5_8 should show the registrant count
+		// Look for the count display area on the booking card
+		const bookingCard = page
+			.locator(
+				`[data-booking-id="${ORGANIZER_BOOKING_ID_5_8}"], [href*="${ORGANIZER_BOOKING_ID_5_8}"]`
+			)
+			.first();
+		await expect(bookingCard).toBeVisible();
+
+		// AC-5: After implementation, "—" placeholder must NOT appear
+		// (BookingCard.svelte replaces dashboard_registrant_count_placeholder with booking.registrantCount)
+		await expect(page.getByText('—')).not.toBeVisible();
+
+		// AC-5: A numeric value must be shown in the headcount area
+		// The headcount area contains a number (0, 1, 2, etc.)
+		const headcountText = bookingCard.locator('span').filter({ hasText: /^\d+$/ }).first();
+		await expect(headcountText).toBeVisible();
+
+		const initialCount = Number(await headcountText.textContent());
+		expect(
+			Number.isInteger(initialCount),
+			'5.8-E2E-002: headcount must be a non-negative integer'
+		).toBe(true);
+		expect(initialCount, '5.8-E2E-002: headcount must be >= 0').toBeGreaterThanOrEqual(0);
+	});
+});
