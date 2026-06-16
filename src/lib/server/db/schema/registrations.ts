@@ -1,11 +1,14 @@
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';
+import { bookings } from './bookings.js';
 
 export const registrations = pgTable('registrations', {
 	id: text('id')
 		.primaryKey()
 		.$defaultFn(() => uuidv7()),
-	bookingId: text('booking_id').notNull(), // FK → bookings.id (enforced in SQL migration)
+	bookingId: text('booking_id')
+		.notNull()
+		.references(() => bookings.id, { onDelete: 'cascade' }),
 	title: text('title').notNull(), // 'Mr' | 'Mrs' | 'Ms' | 'Other'
 	titleOtherText: text('title_other_text'), // nullable; required when title='Other'
 	firstName: text('first_name').notNull(),

@@ -1,16 +1,6 @@
-import type { PgTransaction } from 'drizzle-orm/pg-core';
-import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
-import type * as schema from '../schema/index.js';
+import type { DrizzleTransaction } from '../index.js';
 import { registrations } from '../schema/registrations.js';
 import type { RegistrationInsert, Registration } from '../schema/registrations.js';
-
-// Matches the tx parameter inside db.transaction(async (tx) => { ... })
-type DrizzleTransaction = PgTransaction<
-	NodePgQueryResultHKT,
-	typeof schema,
-	ExtractTablesWithRelations<typeof schema>
->;
 
 /**
  * Inserts a registration record inside a transaction.
