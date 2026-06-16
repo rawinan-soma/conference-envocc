@@ -2607,11 +2607,17 @@ describe('Story 5.5 — Resend Neutral Disclosure (R-003 MITIGATE)', () => {
 			const resendUrl = `${devServerUrl}/r/${registrationToken}/resend`;
 
 			// POST helper: submit the resend form via SvelteKit action (?/resend)
+			// Accept: application/json is REQUIRED — SvelteKit's is_action_json_request()
+			// gates the JSON response path on this header. Without it, the action falls
+			// through to a full HTML page render and res.json() would throw a parse error.
 			async function postResend(email: string) {
 				const body = new URLSearchParams({ email });
 				const res = await fetch(`${resendUrl}?/resend`, {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+						Accept: 'application/json'
+					},
 					body: body.toString(),
 					redirect: 'manual'
 				});
@@ -2621,29 +2627,55 @@ describe('Story 5.5 — Resend Neutral Disclosure (R-003 MITIGATE)', () => {
 			// Found case — registered email
 			const foundRes = await postResend(registrantEmail);
 			expect(foundRes.status, '5.5-INT-001: registered email must return 200').toBe(200);
-			const foundBody = await foundRes.json();
+			// SvelteKit action JSON envelope: { type, status, data: devalue.stringify(...) }
+			// We must decode `data` with devalue.parse() to access the actual action payload.
+			// Asserting on the raw envelope would be vacuous — `found` would never appear
+			// as a top-level key regardless of what the action returned.
+			const { parse: devalueParse } = await import('devalue');
+			const foundEnvelope = (await foundRes.json()) as {
+				type: string;
+				status: number;
+				data: string;
+			};
+			const foundPayload = devalueParse(foundEnvelope.data) as Record<string, unknown>;
 
 			// Not-found case — unregistered email
 			const notFoundEmail = `not-registered-${randomUUID()}@example.com`;
 			const notFoundRes = await postResend(notFoundEmail);
 			expect(notFoundRes.status, '5.5-INT-001: unregistered email must also return 200').toBe(200);
-			const notFoundBody = await notFoundRes.json();
+			const notFoundEnvelope = (await notFoundRes.json()) as {
+				type: string;
+				status: number;
+				data: string;
+			};
+			const notFoundPayload = devalueParse(notFoundEnvelope.data) as Record<string, unknown>;
 
-			// Both responses must have the same shape — no 'found' field must be present
+			// R-003 MITIGATE: the action payload must NOT expose 'found' in either case.
+			// The service returns `{ found: boolean }` internally — the action DISCARDS it.
 			expect(
-				foundBody,
-				'5.5-INT-001: found case body must not expose found field'
+				foundPayload,
+				'5.5-INT-001: found case payload must not expose found field (R-003)'
 			).not.toHaveProperty('found');
 			expect(
-				notFoundBody,
-				'5.5-INT-001: not-found case body must not expose found field'
+				notFoundPayload,
+				'5.5-INT-001: not-found case payload must not expose found field (R-003)'
 			).not.toHaveProperty('found');
 
-			// Both must have the same top-level keys (SvelteKit returns action data as JSON)
+			// The payload must acknowledge the request with { form, acknowledged: true }.
+			// We compare key sets (not values) — form.data.email legitimately differs
+			// between found/not-found cases, but the shape must be identical.
 			expect(
-				Object.keys(foundBody).sort(),
-				'5.5-INT-001: response shape must be identical for both cases'
-			).toEqual(Object.keys(notFoundBody).sort());
+				foundPayload['acknowledged'],
+				'5.5-INT-001: found case payload must have acknowledged: true'
+			).toBe(true);
+			expect(
+				notFoundPayload['acknowledged'],
+				'5.5-INT-001: not-found case payload must have acknowledged: true'
+			).toBe(true);
+			expect(
+				Object.keys(foundPayload).sort(),
+				'5.5-INT-001: response shape must be identical for both cases (R-003 neutrality)'
+			).toEqual(Object.keys(notFoundPayload).sort());
 		}
 	);
 });
