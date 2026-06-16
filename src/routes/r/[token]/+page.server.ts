@@ -107,18 +107,33 @@ export const actions: Actions = {
 				cancelLink
 			});
 
-			// Enqueue AFTER transaction commits (createRegistration already committed) — AC-1, AC-3
-			// singletonKey prevents duplicate emails for the same registration — AC-4
-			await enqueueJob(
-				QUEUE.SEND_EMAIL,
-				{
-					to: form.data.email,
-					subject: template.subject,
-					textBody: template.text,
-					htmlBody: template.html
-				},
-				{ singletonKey: `registration-confirm-${registrationId}` }
-			);
+			// Enqueue AFTER transaction commits (createRegistration already committed) — AC-1, AC-3.
+			// pg-boss is started in the worker process, not the web process, so boss.send() can
+			// throw here (e.g. queue not reachable). The registration already succeeded — log and
+			// continue so the registrant still gets { success: true } rather than a 500. The HTTP
+			// response must never be coupled to email delivery (AC-3). Mirrors the 4.6 booking action.
+			try {
+				await enqueueJob(
+					QUEUE.SEND_EMAIL,
+					{
+						to: form.data.email,
+						subject: template.subject,
+						textBody: template.text,
+						htmlBody: template.html
+					},
+					// AC-4: idempotency per registration. The shared `send-email` queue uses the
+					// default `standard` policy, under which `singletonKey` alone does NOT dedup.
+					// Pairing it with `singletonSeconds` makes pg-boss compute a (epoch-aligned)
+					// singleton slot, so a repeat enqueue for the same registration within that slot
+					// collapses to one job. Mirrors the 4.6 booking-confirm enqueue (verified by 4.6-INT-003).
+					{ singletonKey: `registration-confirm-${registrationId}`, singletonSeconds: 86_400 }
+				);
+			} catch (jobErr: unknown) {
+				console.warn(
+					'[r/[token]] confirmation email enqueue failed (worker may not be running):',
+					jobErr
+				);
+			}
 		} catch (err) {
 			if (err instanceof RegistrationClosedError) {
 				// R-005 MITIGATE: registration closed — guard enforced in service layer
