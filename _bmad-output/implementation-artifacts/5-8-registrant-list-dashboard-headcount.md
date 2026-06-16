@@ -4,7 +4,7 @@ baseline_commit: 6984b37
 
 # Story 5.8: Registrant List & Dashboard Headcount
 
-**Status:** `review`
+**Status:** `done`
 **Epic:** 5 — External Registration & Headcount
 **GH Issue:** #36
 **Previous Story:** 5.2 — Submit a Registration
@@ -390,6 +390,16 @@ Run before every commit. CI will also run lint; failing lint blocks merge.
 - `src/routes/(app)/bookings/[id]/registrants/+page.server.ts`
 - `src/routes/(app)/bookings/[id]/registrants/+page.svelte`
 
+## Review Findings
+
+Code review 2026-06-16 (adversarial: Blind Hunter + Edge Case Hunter + Acceptance Auditor). Outcome: clean — 0 patches, 0 decisions, 2 deferred, 6 dismissed. Acceptance Auditor confirmed all seven ACs satisfied; prettier + eslint green.
+
+- [x] [Review][Defer] E2E `getByText('—')` placeholder assertion is brittle [tests/e2e/registrations.spec.ts] — deferred: test-only, inside a `test.skip` red-phase stub; harden (use a scoped locator / role) when 5.8-E2E-002 is activated in its green phase.
+- [x] [Review][Defer] Registrant list route not gated by `registrationEnabled` [src/routes/(app)/bookings/[id]/registrants/+page.server.ts] — deferred: by design. The "View Registrants" link is gated (Task 4.3) but the route is intentionally reachable so an organizer can review registrants after registration closes; route is still owner-or-admin guarded (AC-3). Revisit only if product requires hiding the list once registration is disabled.
+
+Dismissed as noise/false-positive or documented intent: (1) 403-vs-404 enumeration oracle — AC-3 explicitly mandates 403 for non-owner; booking IDs are UUIDs (non-enumerable). (2) Status badge `else`-branch labels unknown status as "Cancelled" — intentional forward-compat per Dev Notes (line 235). (3) `let bookingAId`/`nonOwnerCookie` definite-assignment in test — cosmetic; tsc/eslint pass. (4) Unbounded result set / no pagination — explicitly out of scope (Dev Notes; PERF test is P3 do-not-block). (5) IDOR gate `5.8-INT-IDOR-001` skipped in CI — verified false: CI sets `DEV_SERVER_URL` (`.github/workflows/ci.yml:128`) and starts the dev server, so the R-007 MITIGATE gate runs in CI. (6) Owner-or-admin guard phrasing — Acceptance Auditor confirmed functionally identical to spec, not a violation.
+
 ## Change Log
 
+- 2026-06-16: Code review complete — clean (0 patches, 0 decisions). 2 items deferred (test-only / by-design), 6 dismissed. Status → done.
 - 2026-06-16: Story 5.8 implementation complete — getRegistrantsByBookingId query, registrantCount subquery in getUpcomingBookingsByOrganizer, BookingCard headcount wired, registrant list route with owner-or-admin guard, status badges, "View Registrants" link, 10 i18n keys. ATDD P0 tests (INT-001, INT-002) PASS.
