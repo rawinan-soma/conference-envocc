@@ -552,6 +552,98 @@ test.describe('Story 5.2 — Registration Timing: ≤2 Minutes End-to-End (AC-5,
 });
 
 // ---------------------------------------------------------------------------
+// 5.7-E2E-001 — Dashboard BookingCard shows catering summary with correct counts
+//               when cateringEnabled=true [P1] SKIP
+// AC-1 (FR-022, FR-051): catering summary visible on /dashboard for catering-enabled booking
+// ---------------------------------------------------------------------------
+
+test.describe('Story 5.7 — Catering Summary on Dashboard BookingCard (AC-1, FR-022, FR-051)', () => {
+	test.skip('[P1] 5.7-E2E-001 — /dashboard BookingCard shows catering summary with Normal/Vegetarian/Muslim/Other counts when cateringEnabled=true', async ({
+		page
+	}) => {
+		// Activation condition: Tasks 1–3 complete (getCateringCountsByBookingIds query +
+		//   dashboard page.server.ts extension + BookingCard.svelte cateringCounts prop).
+		//
+		// AC-1 (FR-022, FR-051): Each BookingCard on /dashboard shows per-meal-type counts
+		//   (Normal / Vegetarian / Muslim / Other) when cateringEnabled=true.
+		//   The summary is omitted (not rendered) when cateringEnabled=false.
+		//
+		// Strategy:
+		//   1. Authenticate via dev-bypass (authenticated organizer session)
+		//   2. Seed a booking (cateringEnabled=true) via direct SQL through dev-bypass seed
+		//      or manually via raw SQL in a Playwright global setup fixture
+		//   3. Seed 2× Normal + 1× Vegetarian registrations for that booking
+		//   4. Navigate to /dashboard
+		//   5. Assert the catering summary heading is visible (m.catering_summary_heading())
+		//   6. Assert Normal count = 2, Vegetarian count = 1, Muslim count = 0, Other count = 0
+		//
+		// Note: This test requires a seeded booking with cateringEnabled=true and known
+		//   registrations. The seed wiring must be implemented before activating this test.
+		// Note: No Thai text — all assertions use English values from messages/en.json.
+		//   (Paraglide keys: catering_summary_heading, catering_summary_normal_label, etc.)
+
+		await page.request.post('/auth/dev-bypass?seedRoom=true');
+
+		// TODO: Seed a catering-enabled booking with 2× Normal + 1× Vegetarian registrations.
+		// Replace CATERING_BOOKING_ID with the ID of the seeded booking once seed wiring is done.
+		// Option A: Extend dev-bypass to accept a seedCateringBooking=true param.
+		// Option B: Insert via direct SQL in a Playwright global setup file.
+		// For now the test stays .skip until the seed wiring is implemented.
+		const CATERING_BOOKING_EVENT_NAME = 'ATDD Catering Test Event 5.7-E2E-001';
+
+		await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+		// AC-1: Catering summary heading visible on the BookingCard for the seeded booking
+		// (Paraglide key: catering_summary_heading → "Catering Summary" in en.json)
+		const bookingCard = page.getByText(CATERING_BOOKING_EVENT_NAME).locator('..').locator('..');
+		await expect(
+			bookingCard.getByText('Catering Summary'),
+			'5.7-E2E-001: catering summary heading must be visible when cateringEnabled=true'
+		).toBeVisible();
+
+		// AC-1: Meal-type count rows visible with correct counts
+		// Normal: 2 registrations seeded
+		await expect(
+			bookingCard.getByText('Normal'),
+			'5.7-E2E-001: Normal label must be visible in catering summary'
+		).toBeVisible();
+		await expect(
+			bookingCard.locator('text=Normal').locator('..').getByText('2'),
+			'5.7-E2E-001: Normal count must be 2'
+		).toBeVisible();
+
+		// Vegetarian: 1 registration seeded
+		await expect(
+			bookingCard.getByText('Vegetarian'),
+			'5.7-E2E-001: Vegetarian label must be visible'
+		).toBeVisible();
+		await expect(
+			bookingCard.locator('text=Vegetarian').locator('..').getByText('1'),
+			'5.7-E2E-001: Vegetarian count must be 1'
+		).toBeVisible();
+
+		// Muslim: 0 registrations seeded — still shown when cateringEnabled=true (AC-4)
+		await expect(
+			bookingCard.getByText('Muslim'),
+			'5.7-E2E-001: Muslim label must be visible (zero count still shown)'
+		).toBeVisible();
+
+		// Other: 0 registrations seeded — still shown when cateringEnabled=true (AC-4)
+		await expect(
+			bookingCard.getByText('Other'),
+			'5.7-E2E-001: Other label must be visible (zero count still shown)'
+		).toBeVisible();
+
+		// AC-7 scope boundary: registrant-count placeholder ("—") must still be present
+		// (not replaced by Story 5.7 — that belongs to Story 5.8)
+		await expect(
+			bookingCard.getByText('—'),
+			'5.7-E2E-001: registrant-count placeholder "—" must remain (Story 5.8 will replace it)'
+		).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
 // 5.2-LOAD-001 — k6 50 concurrent registrations complete without error [P3] SKIP
 // AC-3, R-012: Load test — no capacity cap, concurrent registrations succeed
 // ---------------------------------------------------------------------------

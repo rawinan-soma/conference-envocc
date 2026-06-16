@@ -146,6 +146,7 @@ async function seedBookingWithToken(
 		eventName: string;
 		token: string;
 		registrationEnabled?: boolean;
+		cateringEnabled?: boolean;
 		agenda?: string | null;
 		slotStart?: string;
 		slotEnd?: string;
@@ -153,6 +154,7 @@ async function seedBookingWithToken(
 ): Promise<string> {
 	const bookingId = randomUUID();
 	const registrationEnabled = opts.registrationEnabled ?? true;
+	const cateringEnabled = opts.cateringEnabled ?? false;
 	const slotStart = opts.slotStart ?? '2026-08-01 09:00:00+00';
 	const slotEnd = opts.slotEnd ?? '2026-08-01 10:00:00+00';
 
@@ -165,7 +167,7 @@ async function seedBookingWithToken(
     VALUES (
       $1, $2, $3, $4, $5,
       tstzrange($6::timestamptz, $7::timestamptz, '[)'),
-      'active', false, $8, $9,
+      'active', $8, $9, $10,
       NOW(), NOW()
     )
     ON CONFLICT (id) DO NOTHING`,
@@ -177,6 +179,7 @@ async function seedBookingWithToken(
 			opts.agenda ?? null,
 			slotStart,
 			slotEnd,
+			cateringEnabled,
 			registrationEnabled,
 			opts.token
 		]
@@ -1024,6 +1027,231 @@ describe('Story 5.2 — Meal Type Other Text Stored (AC-2)', () => {
 		} finally {
 			verifyClient.release();
 		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.7-INT-001 — Catering aggregation counts correct after concurrent registrations
+//               [P0] ACTIVE — R-006 concurrency mitigation
+// AC-3: counts reflect only status='registered'; meal_type IS NOT NULL rows aggregated
+// ---------------------------------------------------------------------------
+
+describe('Story 5.7 — Catering Aggregation: Concurrent Inserts (AC-3, R-006)', () => {
+	test('[P0] 5.7-INT-001 — getCateringCountsByBookingId returns correct per-meal counts after 5 concurrent inserts', async () => {
+		// THIS TEST WILL FAIL until getCateringCountsByBookingId is implemented (Task 1).
+		//
+		// R-006 mitigation: concurrent inserts (Promise.all) must not lose counts.
+		// Strategy:
+		//   1. Seed user + profile + room + booking (cateringEnabled=true, registrationEnabled=true)
+		//   2. Concurrently insert 5 registrations via Promise.all using pool.query() (separate
+		//      DB connections — ensures genuine concurrency, not serialized PoolClient calls):
+		//        - 2× Normal, 1× Vegetarian, 1× Muslim, 1× Other
+		//   3. Import getCateringCountsByBookingId (not yet implemented — causes import error)
+		//   4. Assert: { normal: 2, vegetarian: 1, muslim: 1, other: 1 }
+
+		const { getCateringCountsByBookingId } =
+			await import('../../src/lib/server/db/queries/registrations.js');
+
+		const regSlug = `5-7-int-001-${randomUUID().replace(/-/g, '')}`;
+
+		const client = await pool.connect();
+		let bookingId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-7-001');
+			await seedUserProfile(client, organizerId);
+			const roomId = await seedRoom(client, 'int-5-7-001');
+			bookingId = await seedBookingWithToken(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD Test Event 5.7-INT-001 (Catering Concurrency)',
+				token: regSlug,
+				registrationEnabled: true,
+				cateringEnabled: true
+			});
+		} finally {
+			client.release();
+		}
+
+		// Meal-type values from MEAL_OPTIONS: 'Normal' | 'Vegetarian' | 'Muslim' | 'Other'
+		// 2× Normal, 1× Vegetarian, 1× Muslim, 1× Other — 5 concurrent inserts
+		const mealTypes = ['Normal', 'Normal', 'Vegetarian', 'Muslim', 'Other'];
+
+		// Use pool.query() (not pool.connect()) so each insert gets its own connection.
+		// This provides genuine DB-level concurrency for R-006 verification.
+		await Promise.all(
+			mealTypes.map((mealType) => {
+				const registrationId = uuidv7();
+				const cancelTokenHash = createHash('sha256').update(randomBytes(32)).digest('hex');
+				return pool.query(
+					`INSERT INTO registrations (id, booking_id, title, first_name, last_name, organization, email, meal_type, cancel_token_hash, status, created_at, updated_at)
+           VALUES ($1, $2, 'Mr', 'Test', 'Registrant', 'Test Org', $3, $4, $5, 'registered', NOW(), NOW())
+           ON CONFLICT (id) DO NOTHING`,
+					[
+						registrationId,
+						bookingId,
+						`registrant-${registrationId}@example.com`,
+						mealType,
+						cancelTokenHash
+					]
+				);
+			})
+		);
+
+		const counts = await getCateringCountsByBookingId(bookingId);
+
+		expect(counts.normal, '5.7-INT-001: normal count must be 2 (2× Normal inserted)').toBe(2);
+		expect(
+			counts.vegetarian,
+			'5.7-INT-001: vegetarian count must be 1 (1× Vegetarian inserted)'
+		).toBe(1);
+		expect(counts.muslim, '5.7-INT-001: muslim count must be 1 (1× Muslim inserted)').toBe(1);
+		expect(counts.other, '5.7-INT-001: other count must be 1 (1× Other inserted)').toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.7-INT-002 — Catering counts decrement correctly after cancellation [P0] ACTIVE
+// AC-3, R-006: cancelled registrations excluded from aggregation
+// ---------------------------------------------------------------------------
+
+describe('Story 5.7 — Catering Aggregation: Cancellation Decrement (AC-3, R-006)', () => {
+	test('[P0] 5.7-INT-002 — getCateringCountsByBookingId excludes cancelled registrations from counts', async () => {
+		// THIS TEST WILL FAIL until getCateringCountsByBookingId is implemented (Task 1).
+		//
+		// Strategy (continues from 5.7-INT-001 scenario but uses fresh seed):
+		//   1. Seed user + profile + room + booking (cateringEnabled=true)
+		//   2. Insert 5 registrations: 2× Normal, 1× Vegetarian, 1× Muslim, 1× Other
+		//      (all status='registered')
+		//   3. Cancel 2 of the 5 (set status='cancelled' for 1× Normal, 1× Vegetarian)
+		//   4. Call getCateringCountsByBookingId
+		//   5. Assert: { normal: 1, vegetarian: 0, muslim: 1, other: 1 }
+		//      — cancelled rows are excluded; null meal_type rows never counted
+
+		const { getCateringCountsByBookingId } =
+			await import('../../src/lib/server/db/queries/registrations.js');
+
+		const regSlug = `5-7-int-002-${randomUUID().replace(/-/g, '')}`;
+
+		const client = await pool.connect();
+		let bookingId: string;
+		let normalId1: string;
+		let vegetarianId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-7-002');
+			await seedUserProfile(client, organizerId);
+			const roomId = await seedRoom(client, 'int-5-7-002');
+			bookingId = await seedBookingWithToken(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD Test Event 5.7-INT-002 (Catering Cancellation)',
+				token: regSlug,
+				registrationEnabled: true,
+				cateringEnabled: true
+			});
+
+			// Seed 5 registrations: 2× Normal, 1× Vegetarian, 1× Muslim, 1× Other
+			const mealTypes: [string, string][] = [
+				['Normal', ''],
+				['Normal', ''],
+				['Vegetarian', ''],
+				['Muslim', ''],
+				['Other', '']
+			];
+			const ids: string[] = [];
+			for (const [mealType] of mealTypes) {
+				const id = await seedRegistrant(client, {
+					bookingId,
+					mealType,
+					status: 'registered'
+				});
+				ids.push(id);
+			}
+			// ids[0] = Normal #1 (to cancel), ids[2] = Vegetarian (to cancel)
+			normalId1 = ids[0]!;
+			vegetarianId = ids[2]!;
+		} finally {
+			client.release();
+		}
+
+		// Cancel 1× Normal and 1× Vegetarian
+		const cancelClient = await pool.connect();
+		try {
+			await cancelClient.query(
+				`UPDATE registrations SET status = 'cancelled', updated_at = NOW() WHERE id = ANY($1::text[])`,
+				[[normalId1, vegetarianId]]
+			);
+		} finally {
+			cancelClient.release();
+		}
+
+		const counts = await getCateringCountsByBookingId(bookingId);
+
+		// After cancelling Normal #1 and Vegetarian: normal=1, vegetarian=0, muslim=1, other=1
+		expect(
+			counts.normal,
+			'5.7-INT-002: normal must be 1 after cancelling one of two Normal registrations'
+		).toBe(1);
+		expect(
+			counts.vegetarian,
+			'5.7-INT-002: vegetarian must be 0 after cancelling the only Vegetarian registration'
+		).toBe(0);
+		expect(counts.muslim, '5.7-INT-002: muslim must be 1 (not cancelled)').toBe(1);
+		expect(counts.other, '5.7-INT-002: other must be 1 (not cancelled)').toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 5.7-INT-003 — Catering aggregate returns zero struct when no registrations [P2] SKIP
+// AC-4: zero counts shown when catering is enabled but no registrations exist
+// ---------------------------------------------------------------------------
+
+describe('Story 5.7 — Catering Aggregation: Zero Counts When Empty (AC-4)', () => {
+	test.skip('[P2] 5.7-INT-003 — getCateringCountsByBookingId returns all-zero struct for bookingId with no registrations', async () => {
+		// Activation condition: getCateringCountsByBookingId implemented (Task 1).
+		//
+		// AC-4: When cateringEnabled=true but no registrations exist,
+		//   render all four meal-type rows with count 0, not an empty section.
+		//   This test confirms the query returns { normal: 0, vegetarian: 0, muslim: 0, other: 0 }
+		//   instead of null / empty object when there are no rows.
+		//
+		// Strategy:
+		//   1. Seed user + profile + room + booking (cateringEnabled=true) with NO registrations
+		//   2. Call getCateringCountsByBookingId(bookingId)
+		//   3. Assert: { normal: 0, vegetarian: 0, muslim: 0, other: 0 }
+
+		const { getCateringCountsByBookingId } =
+			await import('../../src/lib/server/db/queries/registrations.js');
+
+		const regSlug = `5-7-int-003-${randomUUID().replace(/-/g, '')}`;
+
+		const client = await pool.connect();
+		let bookingId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-7-003');
+			await seedUserProfile(client, organizerId);
+			const roomId = await seedRoom(client, 'int-5-7-003');
+			bookingId = await seedBookingWithToken(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD Test Event 5.7-INT-003 (Catering Zero)',
+				token: regSlug,
+				registrationEnabled: true,
+				cateringEnabled: true
+				// No registrations seeded — intentionally empty
+			});
+		} finally {
+			client.release();
+		}
+
+		const counts = await getCateringCountsByBookingId(bookingId);
+
+		expect(counts, '5.7-INT-003: must return an object (not null/undefined)').toBeDefined();
+		expect(counts.normal, '5.7-INT-003: normal must be 0 when no registrations exist').toBe(0);
+		expect(counts.vegetarian, '5.7-INT-003: vegetarian must be 0 when no registrations exist').toBe(
+			0
+		);
+		expect(counts.muslim, '5.7-INT-003: muslim must be 0 when no registrations exist').toBe(0);
+		expect(counts.other, '5.7-INT-003: other must be 0 when no registrations exist').toBe(0);
 	});
 });
 
