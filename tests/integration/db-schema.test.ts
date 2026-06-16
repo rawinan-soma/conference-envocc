@@ -564,3 +564,31 @@ describe('Story 4.2 — DB Schema: GiST index on bookings(during) exists (AC-3, 
 		).toBe('gist');
 	});
 });
+
+// ---------------------------------------------------------------------------
+
+describe('Story 5.2 — registrations table schema', () => {
+	test('[P0] 5.2-SCHEMA-001 — registrations table has all required columns', async () => {
+		const result = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'registrations'
+      ORDER BY ordinal_position
+    `);
+		const columns = result.rows.map((r: { column_name: string }) => r.column_name);
+		expect(columns).toContain('id');
+		expect(columns).toContain('booking_id');
+		expect(columns).toContain('title');
+		expect(columns).toContain('title_other_text');
+		expect(columns).toContain('first_name');
+		expect(columns).toContain('last_name');
+		expect(columns).toContain('organization');
+		expect(columns).toContain('email');
+		expect(columns).toContain('meal_type');
+		expect(columns).toContain('meal_type_other_text');
+		expect(columns).toContain('cancel_token_hash');
+		expect(columns).toContain('status');
+		expect(columns).toContain('created_at');
+		expect(columns).toContain('updated_at');
+	});
+});

@@ -8,6 +8,9 @@
  */
 
 import { drizzle } from 'drizzle-orm/node-postgres';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
+import type { ExtractTablesWithRelations } from 'drizzle-orm';
+import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { env } from '../env.js'; // relative import — $lib alias not available in worker
 import * as schema from './schema/index.js';
@@ -15,3 +18,10 @@ import * as schema from './schema/index.js';
 export const pool = new Pool({ connectionString: env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
 export type DrizzleDb = typeof db;
+
+/** Matches the `tx` parameter inside `db.transaction(async (tx) => { ... })`. */
+export type DrizzleTransaction = PgTransaction<
+	NodePgQueryResultHKT,
+	typeof schema,
+	ExtractTablesWithRelations<typeof schema>
+>;

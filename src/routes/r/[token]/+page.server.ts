@@ -1,5 +1,5 @@
 /**
- * Server load for the public registration page — Story 5.1
+ * Server load for the public registration page — Story 5.1, Story 5.2
  *
  * Route: /r/[token]
  *
@@ -17,13 +17,24 @@
  *   AC-2: registrationEnabled=false → registrationEnabled flag returned; page shows closed msg
  *   AC-3 (R-001 BLOCK): token not found → error(404)
  *   AC-4: agenda=null → agenda field is null; Svelte template hides section
+ *   Story 5.2:
+ *   AC-3 (5.2): Valid form submission → registrations row + audit log
+ *   AC-4 (5.2): On success, return { form, success: true } — page shows confirmation
+ *   AC-6 (5.2, R-005 MITIGATE): register action catches RegistrationClosedError → fail(400)
  */
 
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
+import { superValidate } from 'sveltekit-superforms';
+import { valibot } from 'sveltekit-superforms/adapters';
 import { getBookingByRegistrationToken } from '$lib/server/db/queries/bookings.js';
 import { parseTstzrange } from '$lib/utils/tstzrange.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
-import type { PageServerLoad } from './$types.js';
+import { RegistrationSchema } from '$lib/schemas/registration.js';
+import {
+	createRegistration,
+	RegistrationClosedError
+} from '$lib/server/services/registration-service.js';
+import type { Actions, PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	// NO requireUser — this route is public (unauthenticated)
@@ -40,15 +51,53 @@ export const load: PageServerLoad = async ({ params }) => {
 	const startTime = range ? formatDateBangkok(range.lower, 'time') : '';
 	const endTime = range ? formatDateBangkok(range.upper, 'time') : '';
 
+	// Initialize superform (Story 5.2 — needed so page has form prop for the register action)
+	const form = await superValidate(valibot(RegistrationSchema));
+
 	return {
 		eventName: booking.eventName,
 		roomName: booking.roomName,
 		agenda: booking.agenda,
 		registrationEnabled: booking.registrationEnabled,
+		cateringEnabled: booking.cateringEnabled, // NEW (Story 5.2) — conditional meal type field
 		dateStr,
 		startTime,
 		endTime,
 		contactName: `${booking.organizerFirstName} ${booking.organizerLastName}`.trim(),
-		contactPhone: booking.organizerPhone // string — notNull() in user_profiles schema
+		contactPhone: booking.organizerPhone, // string — notNull() in user_profiles schema
+		form // NEW (Story 5.2) — superform initial state
 	};
+};
+
+export const actions: Actions = {
+	register: async (event) => {
+		// Parse form first (consumes body stream — must be first to avoid unconsumed-body error)
+		const form = await superValidate(event.request, valibot(RegistrationSchema));
+
+		// Fetch booking — 404 if token invalid
+		const booking = await getBookingByRegistrationToken(event.params.token);
+		if (!booking) {
+			error(404, 'Event not found');
+		}
+
+		if (!form.valid) {
+			return fail(422, { form });
+		}
+
+		try {
+			// createRegistration handles the closed-guard inside a transaction (R-005 MITIGATE)
+			// cancelToken is for Story 5.3 email — not returned to the browser
+			await createRegistration(booking.id, form.data);
+		} catch (err) {
+			if (err instanceof RegistrationClosedError) {
+				// R-005 MITIGATE: registration closed — guard enforced in service layer
+				return fail(400, { form });
+			}
+			throw err;
+		}
+
+		// AC-4: return success flag — page hides form and shows confirmation message
+		// Story 5.3 will use cancelToken from createRegistration to enqueue the confirmation email
+		return { form, success: true };
+	}
 };

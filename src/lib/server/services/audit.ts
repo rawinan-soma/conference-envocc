@@ -1,15 +1,5 @@
-import type { PgTransaction } from 'drizzle-orm/pg-core';
-import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
-import type * as schema from '../db/schema/index.js';
+import type { DrizzleTransaction } from '../db/index.js';
 import { auditLog } from '../db/schema/audit-log.js';
-
-// Matches the tx parameter inside db.transaction(async (tx) => { ... })
-type DrizzleTransaction = PgTransaction<
-	NodePgQueryResultHKT,
-	typeof schema,
-	ExtractTablesWithRelations<typeof schema>
->;
 
 export type AuditLogEntry = {
 	actorId: string | null;
