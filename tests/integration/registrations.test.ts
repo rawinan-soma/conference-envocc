@@ -2570,15 +2570,22 @@ describe('Story 5.4 — Single-Use Cancel Token (AC-2, R-002 MITIGATE)', () => {
 		// Verify DB state
 		const client2 = await pool.connect();
 		try {
-			const row = await client2.query<{ status: string; cancel_token_hash: string | null }>(
-				`SELECT status, cancel_token_hash FROM registrations WHERE id = $1`,
-				[registrationId]
-			);
+			const row = await client2.query<{
+				status: string;
+				cancel_token_hash: string | null;
+				updated_at: Date;
+			}>(`SELECT status, cancel_token_hash, updated_at FROM registrations WHERE id = $1`, [
+				registrationId
+			]);
 			expect(row.rows[0]?.status, '5.4-INT-001: status must be cancelled').toBe('cancelled');
 			expect(
 				row.rows[0]?.cancel_token_hash,
 				'5.4-INT-001: cancel_token_hash must be NULL after single use'
 			).toBeNull();
+			expect(
+				row.rows[0]?.updated_at,
+				'5.4-INT-001: updated_at must be set after cancellation (Task 1 atomicity)'
+			).toBeDefined();
 		} finally {
 			client2.release();
 		}
