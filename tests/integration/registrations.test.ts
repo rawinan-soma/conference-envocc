@@ -1038,9 +1038,8 @@ describe('Story 5.2 — Meal Type Other Text Stored (AC-2)', () => {
 
 describe('Story 5.7 — Catering Aggregation: Concurrent Inserts (AC-3, R-006)', () => {
 	test('[P0] 5.7-INT-001 — getCateringCountsByBookingId returns correct per-meal counts after 5 concurrent inserts', async () => {
-		// THIS TEST WILL FAIL until getCateringCountsByBookingId is implemented (Task 1).
-		//
 		// R-006 mitigation: concurrent inserts (Promise.all) must not lose counts.
+		// Implementation complete (Task 1 done) — this test passes green.
 		// Strategy:
 		//   1. Seed user + profile + room + booking (cateringEnabled=true, registrationEnabled=true)
 		//   2. Concurrently insert 5 registrations via Promise.all using pool.query() (separate
@@ -1116,7 +1115,7 @@ describe('Story 5.7 — Catering Aggregation: Concurrent Inserts (AC-3, R-006)',
 
 describe('Story 5.7 — Catering Aggregation: Cancellation Decrement (AC-3, R-006)', () => {
 	test('[P0] 5.7-INT-002 — getCateringCountsByBookingId excludes cancelled registrations from counts', async () => {
-		// THIS TEST WILL FAIL until getCateringCountsByBookingId is implemented (Task 1).
+		// Implementation complete (Task 1 done) — this test passes green.
 		//
 		// Strategy (continues from 5.7-INT-001 scenario but uses fresh seed):
 		//   1. Seed user + profile + room + booking (cateringEnabled=true)
