@@ -1,5 +1,5 @@
 /**
- * Server load for the public registration page — Story 5.1, Story 5.2
+ * Server load for the public registration page — Story 5.1, Story 5.2, Story 5.3
  *
  * Route: /r/[token]
  *
@@ -21,6 +21,10 @@
  *   AC-3 (5.2): Valid form submission → registrations row + audit log
  *   AC-4 (5.2): On success, return { form, success: true } — page shows confirmation
  *   AC-6 (5.2, R-005 MITIGATE): register action catches RegistrationClosedError → fail(400)
+ *   Story 5.3:
+ *   AC-1 (5.3): After createRegistration commits, enqueue send-email pg-boss job
+ *   AC-3 (5.3): HTTP response never delayed by SMTP — email via pg-boss only
+ *   AC-4 (5.3): singletonKey = 'registration-confirm-${registrationId}' (dedup)
  */
 
 import { error, fail } from '@sveltejs/kit';
@@ -34,6 +38,8 @@ import {
 	createRegistration,
 	RegistrationClosedError
 } from '$lib/server/services/registration-service.js';
+import { getRegistrationConfirmationTemplate } from '$lib/server/email/templates/registration-confirmation.js';
+import { enqueueJob, QUEUE } from '$lib/server/jobs/index.js';
 import type { Actions, PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -86,8 +92,33 @@ export const actions: Actions = {
 
 		try {
 			// createRegistration handles the closed-guard inside a transaction (R-005 MITIGATE)
-			// cancelToken is for Story 5.3 email — not returned to the browser
-			await createRegistration(booking.id, form.data);
+			// cancelToken is for the confirmation email only — NEVER returned to the browser (AC-3 5.3)
+			const { registrationId, cancelToken } = await createRegistration(booking.id, form.data);
+
+			// Build cancel link URL (Story 5.4 contract: ?token= query param)
+			// event.params.token is the event's registrationToken (public, already on the URL)
+			const cancelLink = `${event.url.origin}/r/${event.params.token}/cancel?token=${cancelToken}`;
+
+			// Pre-render the email template in the web process (worker cannot import $lib alias)
+			const template = getRegistrationConfirmationTemplate({
+				firstName: form.data.firstName,
+				lastName: form.data.lastName,
+				eventName: booking.eventName,
+				cancelLink
+			});
+
+			// Enqueue AFTER transaction commits (createRegistration already committed) — AC-1, AC-3
+			// singletonKey prevents duplicate emails for the same registration — AC-4
+			await enqueueJob(
+				QUEUE.SEND_EMAIL,
+				{
+					to: form.data.email,
+					subject: template.subject,
+					textBody: template.text,
+					htmlBody: template.html
+				},
+				{ singletonKey: `registration-confirm-${registrationId}` }
+			);
 		} catch (err) {
 			if (err instanceof RegistrationClosedError) {
 				// R-005 MITIGATE: registration closed — guard enforced in service layer
@@ -96,8 +127,8 @@ export const actions: Actions = {
 			throw err;
 		}
 
-		// AC-4: return success flag — page hides form and shows confirmation message
-		// Story 5.3 will use cancelToken from createRegistration to enqueue the confirmation email
+		// AC-4 (5.2): return success flag — page hides form and shows confirmation message
+		// cancelToken is NOT returned here (used only for email link — AC-3 5.3)
 		return { form, success: true };
 	}
 };

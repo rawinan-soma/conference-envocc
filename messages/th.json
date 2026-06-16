@@ -201,5 +201,12 @@
 	"reg_form_submit_button": "",
 	"reg_form_submitting_button": "",
 	"reg_form_success_title": "",
-	"reg_form_success_message": ""
+	"reg_form_success_message": "",
+
+	"reg_email_subject": "",
+	"reg_email_greeting": "",
+	"reg_email_event_label": "",
+	"reg_email_cancel_link_label": "",
+	"reg_email_cancel_link_text": "",
+	"reg_email_footer": ""
 }
