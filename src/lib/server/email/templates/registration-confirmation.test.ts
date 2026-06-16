@@ -15,9 +15,9 @@
  * Note: No Thai assertions here — Thai translation is Rawinan's responsibility.
  */
 
-import { randomUUID } from 'node:crypto';
-
 import { describe, test, expect } from 'vitest';
+
+import { uuidv7 } from 'uuidv7';
 
 import { getRegistrationConfirmationTemplate } from './registration-confirmation.js';
 
@@ -132,7 +132,7 @@ describe('getRegistrationConfirmationTemplate', () => {
 	test('[P1] 5.3-UNIT-006 — registration-confirm singletonKey format is correct', () => {
 		// The singletonKey is constructed in +page.server.ts, not in the template.
 		// This test documents the contract: registration-confirm-{registrationId}
-		const registrationId = randomUUID();
+		const registrationId = uuidv7(); // mirrors production: createRegistration returns a uuidv7 registrationId
 		const singletonKey = `registration-confirm-${registrationId}`;
 
 		expect(singletonKey, 'singletonKey must match registration-confirm-{uuid}').toMatch(
