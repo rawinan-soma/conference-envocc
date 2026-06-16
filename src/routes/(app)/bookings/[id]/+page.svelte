@@ -8,6 +8,7 @@
 	const { data }: { data: PageData } = $props();
 
 	let showCancelModal = $state(false);
+	let showCloseRegistrationModal = $state(false);
 
 	const duplicateHref = $derived(
 		`${resolve('/bookings/new' as Pathname)}?from=${data.booking.id}` as ResolvedPathname
@@ -222,6 +223,16 @@
 			{m.booking_duplicate_button()}
 		</a>
 
+		{#if data.booking.status === 'active' && data.booking.registrationEnabled}
+			<button
+				type="button"
+				onclick={() => (showCloseRegistrationModal = true)}
+				class="inline-flex items-center justify-center rounded-md border border-destructive px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			>
+				{m.booking_close_registration_button()}
+			</button>
+		{/if}
+
 		{#if data.booking.status === 'active'}
 			<button
 				type="button"
@@ -265,6 +276,43 @@
 						class="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						{m.booking_cancel_confirm_action()}
+					</button>
+				</form>
+			</div>
+		</div>
+	</dialog>
+{/if}
+
+<!-- Close registration confirm modal (Story 5.6, AC-2) -->
+{#if showCloseRegistrationModal}
+	<dialog
+		open
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		aria-labelledby="close-reg-dialog-title"
+	>
+		<div class="w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-lg">
+			<h2 id="close-reg-dialog-title" class="mb-2 text-lg font-semibold">
+				{m.booking_close_registration_confirm_title()}
+			</h2>
+			<p class="mb-6 text-sm text-muted-foreground">
+				{m.booking_close_registration_confirm_body()}
+			</p>
+			<div class="flex justify-end gap-3">
+				<button
+					type="button"
+					onclick={() => (showCloseRegistrationModal = false)}
+					class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<!-- Cross-namespace reuse: room_cancel_button renders the right "Cancel"/"ยกเลิก"
+					     dismiss label in both locales -->
+					{m.room_cancel_button()}
+				</button>
+				<form method="POST" action="?/closeRegistration">
+					<button
+						type="submit"
+						class="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						{m.booking_close_registration_confirm_action()}
 					</button>
 				</form>
 			</div>

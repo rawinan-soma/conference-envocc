@@ -208,5 +208,10 @@
 	"reg_email_event_label": "",
 	"reg_email_cancel_link_label": "",
 	"reg_email_cancel_link_text": "",
-	"reg_email_footer": ""
+	"reg_email_footer": "",
+
+	"booking_close_registration_button": "",
+	"booking_close_registration_confirm_title": "",
+	"booking_close_registration_confirm_body": "",
+	"booking_close_registration_confirm_action": ""
 }

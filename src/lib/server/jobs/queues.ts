@@ -4,7 +4,8 @@ import * as v from 'valibot';
 
 export const QUEUE = {
 	SMOKE_EMAIL: 'smoke-email',
-	SEND_EMAIL: 'send-email'
+	SEND_EMAIL: 'send-email',
+	CLOSE_REGISTRATION: 'close-registration'
 } as const;
 
 export const SmokeEmailPayload = v.object({
@@ -19,5 +20,10 @@ export const SendEmailPayload = v.object({
 	htmlBody: v.optional(v.string())
 });
 
+export const CloseRegistrationPayload = v.object({
+	bookingId: v.pipe(v.string(), v.minLength(1))
+});
+
 export type SmokeEmailPayload = v.InferOutput<typeof SmokeEmailPayload>;
 export type SendEmailPayload = v.InferOutput<typeof SendEmailPayload>;
+export type CloseRegistrationPayload = v.InferOutput<typeof CloseRegistrationPayload>;
