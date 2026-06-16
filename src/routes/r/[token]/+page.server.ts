@@ -71,7 +71,8 @@ export const load: PageServerLoad = async ({ params }) => {
 		endTime,
 		contactName: `${booking.organizerFirstName} ${booking.organizerLastName}`.trim(),
 		contactPhone: booking.organizerPhone, // string — notNull() in user_profiles schema
-		form // NEW (Story 5.2) — superform initial state
+		form, // NEW (Story 5.2) — superform initial state
+		token: params.token // NEW (Story 5.5) — needed for the resend link href (resolve())
 	};
 };
 

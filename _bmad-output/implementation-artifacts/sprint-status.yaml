@@ -92,7 +92,7 @@ development_status:
   5-2-submit-a-registration: done  # PR #129 merged 2026-06-16T02:44:27Z
   5-3-confirmation-email-with-self-cancel-link: done  # PR #130 merged 2026-06-16T14:34:45Z
   5-4-self-cancel-a-registration: backlog
-  5-5-resend-a-lost-link: backlog
+  5-5-resend-a-lost-link: review
   5-6-registration-open-close-rules: done  # PR #132 merged 2026-06-16T14:54:53Z
   5-7-catering-aggregation: done  # PR #133 merged 2026-06-16T15:01:05Z
   5-8-registrant-list-dashboard-headcount: done  # PR #131 merged 2026-06-16T15:16:14Z

@@ -5,6 +5,56 @@ import { registrations } from '../schema/registrations.js';
 import type { RegistrationInsert, Registration } from '../schema/registrations.js';
 import { MEAL_OPTIONS } from '$lib/schemas/registration.js';
 
+// ---------------------------------------------------------------------------
+// Resend a Lost Link — Story 5.5 (FR-047, AC-3, AC-4, AC-6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal registration data needed by the resend service.
+ */
+export type ActiveRegistrationRow = {
+	id: string;
+	cancelTokenHash: string | null;
+	firstName: string;
+	lastName: string;
+};
+
+/**
+ * Look up a single status='registered' row by booking + email.
+ * Used inside the resend service to locate a registration without
+ * short-circuiting on a miss (R-003 MITIGATE — always execute the query).
+ *
+ * Returns null when no matching row exists — callers must NOT skip this
+ * call even when they intend to no-op, because timing neutrality depends
+ * on the DB round-trip always happening.
+ *
+ * @param tx - Drizzle transaction (called from inside db.transaction())
+ * @param bookingId - The booking's primary key
+ * @param email - The email address submitted by the attendee
+ */
+export async function getActiveRegistrationByEmail(
+	tx: DrizzleTransaction,
+	bookingId: string,
+	email: string
+): Promise<ActiveRegistrationRow | null> {
+	const [row] = await tx
+		.select({
+			id: registrations.id,
+			cancelTokenHash: registrations.cancelTokenHash,
+			firstName: registrations.firstName,
+			lastName: registrations.lastName
+		})
+		.from(registrations)
+		.where(
+			sql`${registrations.bookingId} = ${bookingId}
+				AND ${registrations.email} = ${email}
+				AND ${registrations.status} = 'registered'`
+		)
+		.limit(1);
+
+	return row ?? null;
+}
+
 /**
  * Inserts a registration record inside a transaction.
  * Returns the newly created registration row.
