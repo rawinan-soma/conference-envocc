@@ -32,7 +32,6 @@
 	"profile_error_last_name_required": "Last name is required.",
 	"profile_error_phone_required": "Phone is required.",
 	"profile_error_organization_required": "Organization is required.",
-
 	"room_list_title": "Rooms",
 	"room_list_empty": "No rooms yet. Create the first room.",
 	"room_create_title": "Create room",
@@ -57,7 +56,6 @@
 	"room_deactivate_button": "Deactivate",
 	"room_deactivated_toast": "Room deactivated.",
 	"room_deactivate_confirm": "Deactivate this room?",
-
 	"room_photo_upload_title": "Room photo",
 	"room_photo_upload_label": "Upload photo",
 	"room_photo_upload_hint": "JPEG, PNG, or WebP. Maximum 10 MB.",
@@ -68,7 +66,6 @@
 	"room_photo_error_invalid_type": "Invalid file type. Please upload a JPEG, PNG, or WebP image.",
 	"room_photo_error_too_large": "File is too large. Maximum size is 10 MB.",
 	"room_photo_upload_link": "Upload photo",
-
 	"room_block_list_title": "Block Time Slots",
 	"room_block_list_empty": "No blocks for this room.",
 	"room_block_create_title": "Block a Time Range",
@@ -85,7 +82,6 @@
 	"room_block_validation_start_invalid": "Start must be a valid date and time.",
 	"room_block_validation_end_invalid": "End must be a valid date and time.",
 	"room_block_validation_end_after_start": "End time must be after start time.",
-
 	"calendar_title": "Room Calendar",
 	"calendar_week_heading": "Week of {start} – {end}",
 	"calendar_prev_week": "Previous week",
@@ -98,7 +94,6 @@
 	"calendar_rooms_column_header": "Rooms",
 	"calendar_room_floor_prefix": "Floor {floor}",
 	"calendar_booking_continuation_label": "→ (cont.)",
-
 	"booking_new_title": "New Booking",
 	"booking_room_label": "Room",
 	"booking_room_required": "Room is required.",
@@ -123,7 +118,6 @@
 	"booking_contact_email_label": "Email",
 	"booking_contact_phone_label": "Phone",
 	"booking_contact_org_label": "Organization",
-
 	"booking_detail_title": "Booking Details",
 	"booking_confirmation_success": "Your room has been booked successfully.",
 	"booking_registration_link_heading": "Registration Link",
@@ -136,14 +130,12 @@
 	"booking_qr_hint": "Download and print this QR code for event materials.",
 	"booking_qr_alt": "QR code for event registration",
 	"booking_qr_download_button": "Download QR",
-
 	"booking_confirmation_email_subject": "Booking Confirmed: {eventName}",
 	"booking_confirmation_email_greeting": "Dear {name},",
 	"booking_confirmation_email_event_label": "Event:",
 	"booking_confirmation_email_room_label": "Room:",
 	"booking_confirmation_email_time_label": "Time:",
 	"booking_confirmation_email_footer": "This email was sent automatically. Please do not reply.",
-
 	"booking_edit_title": "Edit Booking",
 	"booking_edit_button": "Edit",
 	"booking_edit_save_button": "Save changes",
@@ -159,7 +151,6 @@
 	"booking_status_cancelled": "Cancelled",
 	"booking_value_yes": "Yes",
 	"booking_value_no": "No",
-
 	"dashboard_manage_button": "Manage",
 	"dashboard_title": "My Bookings",
 	"dashboard_empty_title": "No upcoming bookings",
@@ -170,7 +161,6 @@
 	"dashboard_booking_card_room_label": "Room",
 	"dashboard_booking_card_time_label": "Time",
 	"dashboard_load_error": "We couldn't load your bookings. Please refresh to try again.",
-
 	"reg_page_title": "Event Registration",
 	"reg_page_date_label": "Date & Time",
 	"reg_page_room_label": "Room",
@@ -179,7 +169,6 @@
 	"reg_page_closed_title": "Registration Closed",
 	"reg_page_closed_message": "Registration for this event is no longer available.",
 	"reg_page_registration_section_title": "Register to Attend",
-
 	"reg_form_title_label": "Salutation",
 	"reg_form_title_placeholder": "Select title",
 	"reg_form_title_mr": "Mr",
@@ -213,5 +202,11 @@
 	"booking_close_registration_button": "Close registration",
 	"booking_close_registration_confirm_title": "Close registration?",
 	"booking_close_registration_confirm_body": "This will immediately prevent new attendees from registering. Already registered attendees are not affected.",
-	"booking_close_registration_confirm_action": "Yes, close registration"
+	"booking_close_registration_confirm_action": "Yes, close registration",
+
+	"catering_summary_heading": "Catering Summary",
+	"catering_summary_normal_label": "Normal",
+	"catering_summary_vegetarian_label": "Vegetarian",
+	"catering_summary_muslim_label": "Muslim",
+	"catering_summary_other_label": "Other"
 }

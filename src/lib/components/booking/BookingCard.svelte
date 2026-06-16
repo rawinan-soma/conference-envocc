@@ -1,15 +1,18 @@
 <!--
-  BookingCard.svelte — Story 4.8
+  BookingCard.svelte — Story 4.8 + Story 5.7
   Displays a single upcoming booking on the organizer dashboard.
 
   Props:
     - booking:         UpcomingBookingRow (all booking fields + roomName from JOIN)
     - registrationUrl: string | null       (pre-built by page.server.ts)
+    - cateringCounts:  CateringCounts | null (non-null when cateringEnabled=true; Story 5.7)
     - onCopy:          optional callback invoked after a successful clipboard write
 
   AC Coverage:
     AC-2 (FR-051): event name, room name, date/time (Bangkok timezone)
     AC-3 (FR-052): copy-link button when registrationEnabled; same clipboard guard as /bookings/[id]
+    Story 5.7 AC-1: catering summary section rendered when cateringCounts is non-null
+    Story 5.7 AC-7: registrant count placeholder left untouched (Story 5.8 will replace it)
     Design: card surface bg-card border rounded-md shadow-sm
 -->
 <script lang="ts">
@@ -19,14 +22,17 @@
 	import { parseTstzrange } from '$lib/utils/tstzrange.js';
 	import { formatDateBangkok } from '$lib/utils/date.js';
 	import type { UpcomingBookingRow } from '$lib/server/db/queries/bookings.js';
+	import type { CateringCounts } from '$lib/server/db/queries/registrations.js';
 
 	const {
 		booking,
 		registrationUrl = null,
+		cateringCounts = null,
 		onCopy
 	}: {
 		booking: UpcomingBookingRow;
 		registrationUrl?: string | null;
+		cateringCounts?: CateringCounts | null;
 		onCopy?: () => void;
 	} = $props();
 
@@ -97,6 +103,31 @@
 			>{m.dashboard_registrant_count_placeholder()}</span
 		>
 	</div>
+
+	<!-- Catering summary (Story 5.7 AC-1 — only when cateringCounts is non-null / cateringEnabled) -->
+	{#if cateringCounts !== null}
+		<div class="flex flex-col gap-1">
+			<span class="text-xs text-muted-foreground">{m.catering_summary_heading()}</span>
+			<div class="flex flex-col gap-0.5">
+				<div class="flex justify-between">
+					<span class="text-xs text-muted-foreground">{m.catering_summary_normal_label()}</span>
+					<span class="text-sm font-medium text-foreground">{cateringCounts.normal}</span>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-xs text-muted-foreground">{m.catering_summary_vegetarian_label()}</span>
+					<span class="text-sm font-medium text-foreground">{cateringCounts.vegetarian}</span>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-xs text-muted-foreground">{m.catering_summary_muslim_label()}</span>
+					<span class="text-sm font-medium text-foreground">{cateringCounts.muslim}</span>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-xs text-muted-foreground">{m.catering_summary_other_label()}</span>
+					<span class="text-sm font-medium text-foreground">{cateringCounts.other}</span>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Copy registration link (only when registrationEnabled) -->
 	{#if booking.registrationEnabled && registrationUrl}
