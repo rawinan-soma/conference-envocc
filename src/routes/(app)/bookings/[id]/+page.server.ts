@@ -75,8 +75,12 @@ export const load: PageServerLoad = async (event) => {
 	if (booking.cateringEnabled) {
 		try {
 			cateringCounts = await getCateringCountsByBookingId(booking.id);
-		} catch {
+		} catch (err) {
 			// Catering query failed — render the section as absent rather than 500.
+			console.error(
+				'[bookings/detail] catering aggregation query failed — hiding catering section',
+				err
+			);
 			cateringCounts = null;
 		}
 	}

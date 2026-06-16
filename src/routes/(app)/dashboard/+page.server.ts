@@ -40,12 +40,15 @@ export const load: PageServerLoad = async (event) => {
 
 		// Single DB round-trip for all catering-enabled bookings (avoids N+1 — Story 5.7 Task 1.3).
 		// Guarded with try/catch: a catering DB failure must not hide all booking cards.
-		// On error, fall back to empty map so all bookings render with cateringCounts=null.
-		let cateringMap: Map<string, CateringCounts>;
+		// On error, hide the catering section for every booking (cateringCounts=null) — matching
+		// the detail page behaviour — rather than displaying misleading all-zero counts.
+		let cateringMap: Map<string, CateringCounts> = new Map();
+		let cateringFailed = false;
 		try {
 			cateringMap = await getCateringCountsByBookingIds(cateringBookingIds);
-		} catch {
-			cateringMap = new Map();
+		} catch (err) {
+			cateringFailed = true;
+			console.error('[dashboard] catering aggregation query failed — hiding catering section', err);
 		}
 
 		return rows.map(
@@ -61,11 +64,14 @@ export const load: PageServerLoad = async (event) => {
 				registrationUrl: booking.registrationToken
 					? `${origin}/r/${booking.registrationToken}`
 					: null,
-				// cateringCounts: non-null only when cateringEnabled=true (AC-1, Story 5.7).
-				// Fall back to zero struct if no rows found for this bookingId (AC-4).
-				cateringCounts: booking.cateringEnabled
-					? (cateringMap.get(booking.id) ?? CATERING_ZERO_COUNTS)
-					: null
+				// cateringCounts: non-null only when cateringEnabled=true AND the query succeeded.
+				// Fall back to zero struct if no rows found for this bookingId (AC-4: zero counts
+				// when there are no registrations yet). On query failure (cateringFailed=true),
+				// return null so the catering section is hidden — same as the detail page.
+				cateringCounts:
+					booking.cateringEnabled && !cateringFailed
+						? (cateringMap.get(booking.id) ?? CATERING_ZERO_COUNTS)
+						: null
 			})
 		);
 	});
