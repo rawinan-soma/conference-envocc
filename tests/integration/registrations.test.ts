@@ -2511,3 +2511,170 @@ describe('Story 5.8 — Admin Cross-Event Registrant List Access (AC-3)', () => 
 		).toBe(200);
 	});
 });
+
+// ===========================================================================
+// ATDD Red-Phase Integration Scaffolds — Story 5.5: Resend a Lost Link
+//
+// STATUS:
+//   P0 test ACTIVE (test.skipIf — skipped locally without DEV_SERVER_URL, runs in CI).
+//   P1 test skipped (activate after route action is wired).
+//   P2 test skipped (activate after route action is wired + pg-boss job assertion).
+//
+// AC Coverage:
+//   - AC-3 + AC-6 (R-003 MITIGATE): Resend endpoint returns identical HTTP status
+//                                    and response shape for registered email and
+//                                    unregistered email — no enumeration signal.
+//   - AC-4 (via P2 stub): Resend action enqueues a SEND_EMAIL pg-boss job (async).
+//
+// Scenario IDs (from story 5.5 Task 7 + test-design-epic-5.md):
+//   P0 (ACTIVE — skipped without DEV_SERVER_URL, runs in CI):
+//   - 5.5-INT-001: POST /r/[token]/resend with registered + unregistered email
+//                  → both return HTTP 200, identical response shape, no 'found' field (R-003 MITIGATE)
+//   P1 (skipped — activate after route action wired):
+//   - 5.5-E2E-001: Resend form shows neutral acknowledgement in browser (Playwright stub)
+//   P2 (skipped — activate after route action wired):
+//   - 5.5-INT-002: Resend action enqueues send-email pg-boss job (not synchronous)
+//
+// Prerequisites:
+//   - DATABASE_URL set in environment (CI service) or Testcontainers starts Postgres
+//   - DEV_SERVER_URL set (e.g. http://localhost:5173) for 5.5-INT-001 to run
+//   - Story 5.5 implementation complete (Tasks 1–4):
+//       resend route at /r/[token]/resend, ResendSchema, resendRegistrationLink service,
+//       always-acknowledge response pattern
+//
+// Architecture note (R-003 MITIGATE — MANDATORY):
+//   5.5-INT-001 drives the HTTP endpoint directly, not the service. The externally
+//   observable contract must be neutral — same status + body shape for found/not-found.
+//   Internally the service returns { found: boolean }, but the action MUST discard this
+//   from the response. This test closes R-003 (email enumeration, score=6 OPEN).
+//
+//   The resend action uses test.skipIf(!process.env['DEV_SERVER_URL']) — same pattern
+//   as 5.8-INT-IDOR-001 — so it is skipped in local unit-only runs but runs in CI.
+//
+// Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
+//   All string assertions use English mock data. Paraglide keys tested by name only.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 5.5-INT-001 — Resend neutral disclosure (R-003 MITIGATE) [P0] ACTIVE (skipIf DEV_SERVER_URL)
+// AC-3: Always acknowledge (same status + body shape for found and not-found)
+// AC-6: Registration not found → silent no-op, same acknowledgement
+// ---------------------------------------------------------------------------
+
+describe('Story 5.5 — Resend Neutral Disclosure (R-003 MITIGATE)', () => {
+	test.skipIf(!process.env['DEV_SERVER_URL'])(
+		'[P0] 5.5-INT-001 — resend endpoint returns identical status and shape for registered and unregistered email',
+		{ timeout: 15000 },
+		async () => {
+			// THIS TEST WILL FAIL until the resend route is implemented (Tasks 1–4).
+			//
+			// AC-3 + AC-6 (R-003 MITIGATE — MANDATORY PR GATE):
+			//   POST to /r/[registrationToken]/resend with a registered email (found case)
+			//   and an unregistered email (not-found case). Assert both return HTTP 200 and
+			//   the response body has the same shape — no 'found' field exposed externally.
+			//   This closes R-003 (email enumeration risk score=6 OPEN).
+			//
+			// Strategy:
+			//   1. Seed organizer + profile + room + booking (registrationEnabled=true, known token).
+			//   2. Seed one 'registered' registrant (registrantEmail).
+			//   3. POST /r/[token]/resend?/resend with registrantEmail (found case) → assert 200 + shape.
+			//   4. POST /r/[token]/resend?/resend with unknown email (not-found case) → assert 200 + shape.
+			//   5. Assert both response bodies have the same top-level keys (no 'found' field disclosed).
+
+			const devServerUrl = process.env['DEV_SERVER_URL']!;
+
+			const client = await pool.connect();
+			let registrationToken: string;
+			const registrantEmail = `resend-int-001-${randomUUID().replace(/-/g, '')}@example.com`;
+
+			try {
+				const organizerId = await seedUser(client, 'int-5-5-001');
+				await seedUserProfile(client, organizerId, { firstName: 'Alice', lastName: 'Test' });
+				const roomId = await seedRoom(client, 'int-5-5-001');
+				registrationToken = `5-5-int-001-${randomUUID().replace(/-/g, '')}`;
+				const bookingId = await seedBookingWithToken(client, {
+					organizerId,
+					roomId,
+					eventName: 'ATDD Test Event 5.5-INT-001',
+					token: registrationToken,
+					registrationEnabled: true
+				});
+				await seedRegistrant(client, { bookingId, email: registrantEmail, status: 'registered' });
+			} finally {
+				client.release();
+			}
+
+			const resendUrl = `${devServerUrl}/r/${registrationToken}/resend`;
+
+			// POST helper: submit the resend form via SvelteKit action (?/resend)
+			async function postResend(email: string) {
+				const body = new URLSearchParams({ email });
+				const res = await fetch(`${resendUrl}?/resend`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+					body: body.toString(),
+					redirect: 'manual'
+				});
+				return res;
+			}
+
+			// Found case — registered email
+			const foundRes = await postResend(registrantEmail);
+			expect(foundRes.status, '5.5-INT-001: registered email must return 200').toBe(200);
+			const foundBody = await foundRes.json();
+
+			// Not-found case — unregistered email
+			const notFoundEmail = `not-registered-${randomUUID()}@example.com`;
+			const notFoundRes = await postResend(notFoundEmail);
+			expect(notFoundRes.status, '5.5-INT-001: unregistered email must also return 200').toBe(200);
+			const notFoundBody = await notFoundRes.json();
+
+			// Both responses must have the same shape — no 'found' field must be present
+			expect(
+				foundBody,
+				'5.5-INT-001: found case body must not expose found field'
+			).not.toHaveProperty('found');
+			expect(
+				notFoundBody,
+				'5.5-INT-001: not-found case body must not expose found field'
+			).not.toHaveProperty('found');
+
+			// Both must have the same top-level keys (SvelteKit returns action data as JSON)
+			expect(
+				Object.keys(foundBody).sort(),
+				'5.5-INT-001: response shape must be identical for both cases'
+			).toEqual(Object.keys(notFoundBody).sort());
+		}
+	);
+});
+
+// ---------------------------------------------------------------------------
+// 5.5-INT-002 — Resend enqueues send-email pg-boss job (async) [P2] SKIP
+// AC-4: Job exists in pgboss.job with singletonKey = 'resend-link-${registrationId}'
+// ---------------------------------------------------------------------------
+
+describe('Story 5.5 — Resend Enqueues Email Job (AC-4, async proof)', () => {
+	test.skip('[P2] 5.5-INT-002 — resend enqueues send-email pg-boss job (async, not synchronous)', async () => {
+		// Activation condition: Tasks 1–4 complete (route action wired).
+		//
+		// AC-4: When a status='registered' registration exists for the given email+booking,
+		//   the resend action enqueues a SEND_EMAIL pg-boss job with:
+		//   singletonKey = 'resend-link-${registrationId}'
+		//   singletonSeconds = 300 (5-minute dedup window)
+		//
+		// Strategy:
+		//   1. Seed booking + registrant (known registrationId + email).
+		//   2. POST to /r/[token]/resend?/resend with the registrant email.
+		//   3. Assert pgboss.job row exists with name='send-email' and
+		//      singleton_key = 'resend-link-${registrationId}'.
+		//   Pattern: mirrors 5.3-INT-001+002 raw SQL proof (see Story 5.3 section).
+		//
+		// Note: singletonKey differs from Story 5.3:
+		//   5.3 uses 'registration-confirm-${registrationId}'
+		//   5.5 uses 'resend-link-${registrationId}'
+
+		throw new Error(
+			'5.5-INT-002: not yet implemented — activate after Task 4 (resend action) is wired'
+		);
+	});
+});
