@@ -91,16 +91,12 @@
 									class={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
 										reg.status === 'registered'
 											? 'bg-green-100 text-green-700'
-											: reg.status === 'cancelled'
-												? 'bg-amber-50 text-stone-500'
-												: 'bg-muted text-muted-foreground'
+											: 'bg-amber-50 text-stone-500'
 									}`}
 								>
 									{reg.status === 'registered'
 										? m.registrant_list_status_registered()
-										: reg.status === 'cancelled'
-											? m.registrant_list_status_cancelled()
-											: reg.status}
+										: m.registrant_list_status_cancelled()}
 								</span>
 							</td>
 						</tr>
