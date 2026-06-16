@@ -10,16 +10,21 @@ stepsCompleted:
 lastStep: 'step-05-generate-output'
 nextStep: ''
 lastSaved: '2026-06-16'
-version: v3
+version: v4
 changeLog:
   - 'v1 (2026-06-15): initial epic-level test design — all 5.1–5.8 stories backlog'
   - 'v2 (2026-06-15): status update — 5.1 done (PR #128), 5.2 atdd-done; implementation status table added; foundation from 5.1 documented'
   - 'v3 (2026-06-16): status update — 5.2 done (PR #129 merged); R-005 MITIGATED; implementation details documented; P1 stubs status updated'
+  - 'v4 (2026-06-16): status update — 5.3 done (PR #130), 5.6 done (PR #132), 5.7 done (PR #133), 5.8 done (PR #131); R-004/R-006/R-007 MITIGATED; R-009 partially addressed; R-011 documented; all 5.3/5.6/5.7/5.8 P0 tests active; 5.4/5.5 remain backlog'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/implementation-artifacts/sprint-status.yaml
   - _bmad-output/implementation-artifacts/5-2-submit-a-registration.md
+  - _bmad-output/implementation-artifacts/5-3-confirmation-email-with-self-cancel-link.md
+  - _bmad-output/implementation-artifacts/5-6-registration-open-close-rules.md
+  - _bmad-output/implementation-artifacts/5-7-catering-aggregation.md
+  - _bmad-output/implementation-artifacts/5-8-registrant-list-dashboard-headcount.md
   - _bmad-output/implementation-artifacts/adr-4-5-registration-token-storage.md
   - _bmad/tea/config.yaml
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/risk-governance.md
@@ -34,13 +39,17 @@ inputDocuments:
   - tests/e2e/registrations.spec.ts
   - _bmad-output/test-artifacts/atdd-checklist-5-1-branded-public-registration-page.md
   - _bmad-output/test-artifacts/atdd-checklist-5-2-submit-a-registration.md
+  - _bmad-output/test-artifacts/atdd-checklist-5-3-confirmation-email-with-self-cancel-link.md
+  - _bmad-output/test-artifacts/atdd-checklist-5-6-registration-open-close-rules.md
+  - _bmad-output/test-artifacts/atdd-checklist-5-7-catering-aggregation.md
+  - _bmad-output/test-artifacts/atdd-checklist-5-8-registrant-list-dashboard-headcount.md
 ---
 
 # Test Design: Epic 5 — External Registration & Headcount
 
 **Date:** 2026-06-15
 **Author:** Rawinan
-**Status:** Living Document (v3 — updated 2026-06-16)
+**Status:** Living Document (v4 — updated 2026-06-16)
 **Mode:** Epic-Level Test Design
 
 ---
@@ -61,13 +70,18 @@ Epic 5 carries five distinct failure vectors that each block the shippable headl
 4. **Auto-close job idempotency** — the pg-boss registration-close sweeper must not double-close, must self-heal after worker restarts, and must tolerate already-closed bookings without error.
 5. **Mobile responsiveness** — NFR-004 mandates full-responsive external registration (mobile + desktop, equal). This is the only NFR with an explicit "equal" parity requirement rather than "usable."
 
-**Implementation Status (2026-06-16 — v3):**
+**Implementation Status (2026-06-16 — v4):**
 
 | Story | Status | Notes |
 |-------|--------|-------|
 | 5.1 Branded Public Registration Page | **done** | PR #128 merged 2026-06-15; `getBookingByRegistrationToken` implemented; `/r/[token]` route live; R-001 IDOR test (`5.1-INT-IDOR-001`) green in CI gate |
 | 5.2 Submit a Registration | **done** | PR #129 merged 2026-06-16; `registrations` schema + migration (`0010_registrations.sql`); `createRegistration` service + `RegistrationClosedError`; superform action; 22 i18n keys; `5.2-INT-001` + `5.2-INT-CLOSED-001` green (R-005 MITIGATED) |
-| 5.3–5.8 | backlog | Not yet started |
+| 5.3 Confirmation Email with Self-Cancel Link | **done** | PR #130 merged 2026-06-16; `registration-confirmation.ts` email template; pg-boss `SEND_EMAIL` queue; `singletonKey: registration-confirm-${registrationId}`; cancel link `${origin}/r/${eventToken}/cancel?token=${cancelTokenPlain}`; 6 `reg_email_*` i18n keys; `5.3-INT-001+002` P0 ACTIVE (R-009 partially addressed) |
+| 5.4 Self-Cancel Registration | backlog | Not yet started; R-002 still OPEN |
+| 5.5 Resend Cancel Link | backlog | Not yet started; R-003 still OPEN |
+| 5.6 Registration Open/Close Rules | **done** | PR #132 merged 2026-06-16; `CLOSE_REGISTRATION` pg-boss queue; `closeRegistrationHandler` with FOR UPDATE row lock + idempotency guard; `createBooking`/`updateBooking` schedules job; `closeRegistration` manual close action; `5.6-INT-001` + `5.6-INT-002` P0 ACTIVE (R-004 MITIGATED) |
+| 5.7 Catering Aggregation | **done** | PR #133 merged 2026-06-16; `getCateringCountsByBookingId` + `getCateringCountsByBookingIds` queries; counts `status='registered'` AND `meal_type IS NOT NULL`; single round-trip batch fetch (no N+1); `BookingCard.svelte` catering summary section; `5.7-INT-001` + `5.7-INT-002` P0 ACTIVE (R-006 MITIGATED) |
+| 5.8 Registrant List & Dashboard Headcount | **done** | PR #131 merged 2026-06-16; `getRegistrantsByBookingId` query; `registrantCount` subquery in `getUpcomingBookingsByOrganizer`; `/bookings/[id]/registrants` route with owner-or-admin guard; `BookingCard.svelte` live headcount; `5.8-INT-IDOR-001` + `5.8-INT-001` + `5.8-INT-002` P0 ACTIVE (R-007 MITIGATED) |
 
 Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registration_token` column and token generation (`createBooking`), `getBookingById`, the `r/[token]` route stub (token generation confirmed; page content is E5's job), pg-boss + nodemailer wired, IDOR template, dev bypass seam, Testcontainers fixture, CI pipeline.
 
@@ -100,12 +114,39 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 - `hooks.server.ts` `routeGuards` registry — `/r/[token]` already explicitly allow-listed as public
 - `src/lib/server/services/audit.ts` — `writeAuditLog()` for registration mutations
 
-**Risk Summary (v3 — 2026-06-16):**
+**Foundation deployed by 5.3 (now live in `main`):**
+- `src/lib/server/email/templates/registration-confirmation.ts` — email template (mirrors `booking-confirmation.ts`)
+- `register` action: captures `{ registrationId, cancelToken }` from `createRegistration`, builds cancel link, enqueues `SEND_EMAIL` job after transaction commit
+- `messages/en.json` + `messages/th.json` — 6 new `reg_email_*` i18n keys; Thai values `""`
+- `tests/integration/registrations.test.ts` — `5.3-INT-001+002` (P0 ACTIVE — raw SQL pg-boss job proof + cancel link payload shape); `5.3-INT-003` (P1 skip), `5.3-INT-004/005` (P2 skip)
+
+**Foundation deployed by 5.6 (now live in `main`):**
+- `src/lib/server/jobs/close-registration.ts` — `closeRegistrationHandler` with `FOR UPDATE` row lock + idempotency guard (`re-reads registrationEnabled inside transaction; returns no-op if already false`)
+- `createBooking`/`updateBooking` in `booking-service.ts` — schedule `CLOSE_REGISTRATION` job with `startAfter: registrationClosesAt`
+- `closeRegistration` server action on `/bookings/[id]/+page.server.ts` — manual close
+- `tests/integration/registrations.test.ts` — `5.6-INT-001` (P0 ACTIVE — auto-close time-travel); `5.6-INT-002` (P0 ACTIVE — idempotency mandatory PR gate); `5.6-INT-003/004` (P1 skip); `5.6-INT-005` (P2 skip)
+
+**Foundation deployed by 5.7 (now live in `main`):**
+- `src/lib/server/db/queries/registrations.ts` — `getCateringCountsByBookingId(bookingId)` + `getCateringCountsByBookingIds(bookingIds[])` (counts `status='registered'` AND `meal_type IS NOT NULL`; returns `{ normal, vegetarian, muslim, other }`)
+- Dashboard `+page.server.ts` — single batch call to `getCateringCountsByBookingIds` (no N+1)
+- `BookingCard.svelte` — catering summary section rendered when `cateringCounts` non-null
+- `tests/integration/registrations.test.ts` — `5.7-INT-001` (P0 ACTIVE — concurrent 5 inserts); `5.7-INT-002` (P0 ACTIVE — cancellation decrement); `5.7-INT-003` (P2 skip)
+
+**Foundation deployed by 5.8 (now live in `main`):**
+- `src/lib/server/db/queries/registrations.ts` — `getRegistrantsByBookingId(bookingId)` query
+- `getUpcomingBookingsByOrganizer` extended with `registrantCount` subquery (`(SELECT COUNT(*) FROM registrations WHERE booking_id = bookings.id AND status = 'registered')::int`)
+- `/bookings/[id]/registrants` route with owner-or-admin guard (`assertOwner` skipped for admin)
+- `BookingCard.svelte` — live `booking.registrantCount` replaces placeholder
+- `tests/integration/registrations.test.ts` — `5.8-INT-IDOR-001` (P0 ACTIVE — `testOwnershipEnforcement()` via `test.skipIf(!DEV_SERVER_URL)`, seeds two organizers with separate sessions via `seedUserWithSession()` + `buildSignedSessionCookie()`); `5.8-INT-001` (P0 ACTIVE — mixed status); `5.8-INT-002` (P0 ACTIVE — headcount excludes cancelled); `5.8-INT-003` (P2 skip)
+
+**Risk Summary (v4 — 2026-06-16):**
 
 - Total risks identified: 13
 - High-priority risks (score ≥ 6): 7
 - Score = 9 (BLOCK): 1 (R-001 — IDOR on public token route) → **CLOSED** by 5.1 (PR #128)
-- Score = 6 (MITIGATE): 6 → R-001 CLOSED, R-005 **MITIGATED** by 5.2 (PR #129), 4 open (R-002, R-003, R-004, R-006, R-007 — 5 remaining but R-005 now closed means 4 open mitigate risks excluding closed R-001)
+- Score = 6 (MITIGATE): 6 → R-001 CLOSED, R-005 MITIGATED by 5.2 (PR #129), R-004 **MITIGATED** by 5.6 (PR #132), R-006 **MITIGATED** by 5.7 (PR #133), R-007 **MITIGATED** by 5.8 (PR #131); R-002 and R-003 remain OPEN (awaiting Stories 5.4 and 5.5)
+- Score = 4 (MONITOR): R-009 partially addressed by 5.3 (pg-boss job proof); R-008 and R-010 remain open (scaffolded as `test.skip`)
+- Score ≤ 3 (DOCUMENT): R-011 documented by 5.6 (`close-registration.ts` uses relative imports only; lint boundary respected)
 
 ---
 
@@ -134,18 +175,18 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 | R-001 | SEC | Forged / replayed registration token reveals another event's data | 3 | 3 | **9** | **CLOSED** (5.1 done; `5.1-INT-IDOR-001` green) |
 | R-002 | SEC | Single-use cancel token is hashed but collision or replay enables double-cancel or impersonation | 2 | 3 | **6** | OPEN |
 | R-003 | SEC | Resend-link endpoint discloses whether an email is registered (enumeration) | 3 | 2 | **6** | OPEN |
-| R-004 | BUS | Auto-close pg-boss job double-fires after worker restart, closing already-open registrations | 2 | 3 | **6** | OPEN |
+| R-004 | BUS | Auto-close pg-boss job double-fires after worker restart, closing already-open registrations | 2 | 3 | **6** | **MITIGATED** ✅ (5.6 done PR #132; `5.6-INT-001` + `5.6-INT-002` P0 active; FOR UPDATE lock + idempotency guard) |
 | R-005 | BUS | Closed-state page still accepts form submissions via direct POST (bypass of closed-state UI) | 3 | 2 | **6** | **MITIGATED** (5.2 done; `5.2-INT-CLOSED-001` green; service-layer guard in `createRegistration`) |
-| R-006 | DATA | Catering aggregation counts diverge from actual registration records on concurrent submit + cancel | 2 | 3 | **6** | OPEN |
-| R-007 | BUS | Registrant list ownership: organizer A can query registrants for organizer B's event | 2 | 3 | **6** | OPEN |
+| R-006 | DATA | Catering aggregation counts diverge from actual registration records on concurrent submit + cancel | 2 | 3 | **6** | **MITIGATED** ✅ (5.7 done PR #133; `5.7-INT-001` concurrent 5-insert + `5.7-INT-002` cancellation decrement P0 active; live query, no cached counter) |
+| R-007 | BUS | Registrant list ownership: organizer A can query registrants for organizer B's event | 2 | 3 | **6** | **MITIGATED** ✅ (5.8 done PR #131; `5.8-INT-IDOR-001` P0 active via `testOwnershipEnforcement()`; runs in CI when `DEV_SERVER_URL` set) |
 | R-008 | PERF | NFR-004 mobile responsiveness — registration form unusable on small viewports (< 375px) | 2 | 2 | **4** | OPEN — `5.2-E2E-MOBILE-001/002` scaffolded (`test.skip`; activate in Story 5.2 E2E activation) |
-| R-009 | BUS | Confirmation email not sent (job dropped, DLQ silent) — registrant has no cancel link | 2 | 2 | **4** | OPEN |
+| R-009 | BUS | Confirmation email not sent (job dropped, DLQ silent) — registrant has no cancel link | 2 | 2 | **4** | PARTIALLY ADDRESSED — `5.3-INT-001+002` P0 active proves async pg-boss job enqueue and cancel link payload shape; full route-action proof and DLQ (`5.3-INT-005`) remain `test.skip` |
 | R-010 | DATA | Meal type "Other→text" field value stored/displayed as generic "Other" with no text | 2 | 2 | **4** | OPEN — `5.2-INT-002/004` scaffolded (`test.skip`; activate during E2E pass) |
-| R-011 | TECH | Auto-close job handler imports `$app/*` or `$env/dynamic` violating lint boundary (AR-06) | 1 | 3 | **3** | OPEN |
+| R-011 | TECH | Auto-close job handler imports `$app/*` or `$env/dynamic` violating lint boundary (AR-06) | 1 | 3 | **3** | DOCUMENTED ✅ — `close-registration.ts` uses only relative imports; lint boundary respected in implementation; `5.6-INT-005` (lint scan) remains `test.skip` |
 | R-012 | BUS | No-capacity rule (FR-032) is accidentally broken by a guard that caps registrations | 1 | 3 | **3** | OPEN — `5.2-INT-005` scaffolded (`test.skip`; activate during E2E pass) |
 | R-013 | OPS | Cancel token single-use state lost on DB failover / migration rollback | 1 | 2 | **2** | OPEN |
 
-**Total: 13 risks (1 BLOCK score=9 → CLOSED by 5.1, 6 MITIGATE score=6 → 4 OPEN / 2 CLOSED [R-001 + R-005], 3 MONITOR score=4, 3 DOCUMENT score ≤3)**
+**Total: 13 risks (1 BLOCK score=9 → CLOSED by 5.1, 6 MITIGATE score=6 → 5 MITIGATED/CLOSED [R-001 CLOSED + R-005/R-004/R-006/R-007 MITIGATED] + 2 OPEN [R-002, R-003], 3 MONITOR score=4 → R-009 partially addressed, 3 DOCUMENT score ≤3 → R-011 documented)**
 
 ---
 
@@ -169,11 +210,12 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 - **Timeline:** Story 5.5
 - **Verification:** `5.5-INT-001` (neutral disclosure assertion) passes
 
-**R-004 — Auto-close job double-fires (score=6)**
+**R-004 — Auto-close job double-fires (score=6) — MITIGATED ✅**
 - **Strategy:** (1) pg-boss job is idempotent: check `registration_enabled = true` before closing; no-op if already false. (2) Job uses a singleton key (booking ID) to prevent parallel workers from enqueuing duplicates. (3) Integration test: close a booking, re-trigger the job, assert registration_enabled remains false and no error is thrown. (4) Test worker restart mid-job (via Testcontainers stop/start).
-- **Owner:** Story 5.6 implementer
-- **Timeline:** Story 5.6
-- **Verification:** `5.6-INT-002` (idempotency) and `5.6-INT-003` (restart recovery) pass
+- **Owner:** Story 5.6 implementer ✅ done
+- **Timeline:** Story 5.6 ✅ done (PR #132 merged 2026-06-16)
+- **Implementation:** `closeRegistrationHandler` in `close-registration.ts` re-reads `registrationEnabled` inside a `FOR UPDATE` transaction; returns no-op if already false. `createBooking`/`updateBooking` schedule auto-close job with `startAfter: registrationClosesAt`.
+- **Verification:** `5.6-INT-001` (time-travel auto-close) and `5.6-INT-002` (idempotency — mandatory PR gate) P0 active and green in CI. `5.6-INT-003` (worker restart) P1 `test.skip`.
 
 **R-005 — Closed-state POST bypass (score=6) — MITIGATED ✅**
 - **Strategy:** (1) Server action checks `registration_enabled` before processing any form submission; returns `400` or redirects to closed-state page if closed. (2) Integration test: close registration, then send a raw POST to the registration action endpoint, assert 400/redirect. (3) UI-layer closed check is defence-in-depth only.
@@ -182,17 +224,19 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 - **Implementation:** `RegistrationClosedError` thrown from `createRegistration(bookingId, input)` service when `registrationEnabled=false`; caught in form action → `fail(400)`. Guard lives in the service layer (not UI), so direct POST bypass is also blocked.
 - **Verification:** `5.2-INT-CLOSED-001` green in CI gate; `createRegistration` throws `RegistrationClosedError` + no DB row inserted when `registrationEnabled=false`
 
-**R-006 — Catering aggregation concurrency (score=6)**
+**R-006 — Catering aggregation concurrency (score=6) — MITIGATED ✅**
 - **Strategy:** (1) Aggregation query reads from `registrations` table directly; no cached counter. (2) Integration test: insert 5 registrations concurrently (Promise.all), assert aggregate count = 5. (3) Cancel 2 registrations, assert count = 3. (4) If a cached counter column is used, it must be updated atomically with the registration mutation.
-- **Owner:** Story 5.7 implementer
-- **Timeline:** Story 5.7
-- **Verification:** `5.7-INT-001` (concurrent registration count) and `5.7-INT-002` (cancel decrement) pass
+- **Owner:** Story 5.7 implementer ✅ done
+- **Timeline:** Story 5.7 ✅ done (PR #133 merged 2026-06-16)
+- **Implementation:** `getCateringCountsByBookingId` / `getCateringCountsByBookingIds` live queries on `registrations` table (no cached counter); dashboard uses single batch call. Dashboard `+page.server.ts` collects `cateringEnabled` bookingIds and calls `getCateringCountsByBookingIds` (single round-trip).
+- **Verification:** `5.7-INT-001` (Promise.all 5 concurrent inserts; assert aggregate count=5) and `5.7-INT-002` (cancel 2; assert count=3 per type) P0 active and green in CI.
 
-**R-007 — Registrant list IDOR (score=6)**
+**R-007 — Registrant list IDOR (score=6) — MITIGATED ✅**
 - **Strategy:** (1) Registrant list route guards with `assertOwner` on the booking. (2) Integration test: organizer A owns event; organizer B (seeded separately) requests `/bookings/[A-id]/registrants`; assert 403/404. (3) Reuse `testOwnershipEnforcement()` from `idor-template.ts`.
-- **Owner:** Story 5.8 implementer
-- **Timeline:** Story 5.8
-- **Verification:** `5.8-INT-IDOR-001` passes using `idor-template.ts`
+- **Owner:** Story 5.8 implementer ✅ done
+- **Timeline:** Story 5.8 ✅ done (PR #131 merged 2026-06-16)
+- **Implementation:** `/bookings/[id]/registrants` route uses owner-or-admin guard; `assertOwner` skipped for admin role. `5.8-INT-IDOR-001` seeds two organizers via `seedUserWithSession()` + `buildSignedSessionCookie()`; uses `testOwnershipEnforcement()` from `idor-template.ts`.
+- **Verification:** `5.8-INT-IDOR-001` P0 active; runs in CI when `DEV_SERVER_URL` is set (`test.skipIf(!process.env['DEV_SERVER_URL'])`); skipped in plain integration run. Two-organizer seeding pattern confirmed in `registrations.test.ts`.
 
 ---
 
@@ -224,18 +268,18 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 | 5.1-INT-002 | 5.1 | Closed registration token shows closed-state response, not form | Integration | R-001, R-005 | `registration_enabled=false` fixture |
 | 5.2-INT-001 | 5.2 | Valid form submission (all fields) creates a registrant record | Integration | R-005 | **GREEN** — `createRegistration` service active; asserts all DB columns + audit log row |
 | 5.2-INT-CLOSED-001 | 5.2 | Direct POST to registration action when closed returns 400/redirect | Integration | R-005 (MITIGATE) | **GREEN** — `RegistrationClosedError` thrown; no row inserted asserted |
-| 5.3-INT-001 | 5.3 | Confirmation email enqueued (not synchronous); Mailpit receives Thai email | Integration | R-009 | pg-boss job asserted; Mailpit API checked |
-| 5.3-INT-002 | 5.3 | Confirmation email body contains a unique single-use cancel link | Integration | R-002 | Mailpit body parsed; link URL extracted |
+| 5.3-INT-001 | 5.3 | Confirmation email enqueued (not synchronous); Mailpit receives Thai email | Integration | R-009 | **ACTIVE** (combined with 5.3-INT-002 as `5.3-INT-001+002`); raw SQL pg-boss job proof — singletonKey `registration-confirm-${registrationId}` asserted |
+| 5.3-INT-002 | 5.3 | Confirmation email body contains a unique single-use cancel link | Integration | R-002 | **ACTIVE** (combined with 5.3-INT-001 as `5.3-INT-001+002`); payload textBody/htmlBody contain `'/r/${eventToken}/cancel?token='` |
 | 5.4-INT-001 | 5.4 | Self-cancel link cancels registration in one step; second use returns error | Integration | R-002 (MITIGATE) | Single-use assertion mandatory |
 | 5.4-INT-002 | 5.4 | Forged cancel token cannot cancel another's registration | Integration | R-002 | Two registrants; cross-token attempt |
 | 5.5-INT-001 | 5.5 | Resend endpoint returns identical response for registered email and unregistered email | Integration | R-003 (MITIGATE) | Both paths tested; body/status compared |
-| 5.6-INT-001 | 5.6 | Auto-close pg-boss job closes registration when closing date reached | Integration | R-004 | Time-travel via DB fixture; assert `registration_enabled=false` |
-| 5.6-INT-002 | 5.6 | Auto-close job is idempotent (re-trigger on already-closed booking → no-op, no error) | Integration | R-004 (MITIGATE) | Run job twice; assert stable state |
-| 5.7-INT-001 | 5.7 | Catering aggregation counts correct after concurrent registrations | Integration | R-006 (MITIGATE) | Promise.all(5 inserts); assert counts |
-| 5.7-INT-002 | 5.7 | Catering counts decrement correctly after cancellation | Integration | R-006 | Cancel 2 of 5; assert count = 3 per type |
-| 5.8-INT-IDOR-001 | 5.8 | Registrant list: non-owner organizer gets 403/404 | Integration | R-007 (MITIGATE) | `testOwnershipEnforcement()` reused |
-| 5.8-INT-001 | 5.8 | Registrant list shows correct status: Registered / Cancelled | Integration | R-007 | Seed registrations with mixed status |
-| 5.8-INT-002 | 5.8 | Dashboard headcount updates live after registration and cancellation | Integration | R-007 | Assert count column in bookings query |
+| 5.6-INT-001 | 5.6 | Auto-close pg-boss job closes registration when closing date reached | Integration | R-004 | **ACTIVE** — time-travel (`UPDATE bookings SET registration_closes_at = NOW() - interval '1 second'`); asserts `registration_enabled=false` |
+| 5.6-INT-002 | 5.6 | Auto-close job is idempotent (re-trigger on already-closed booking → no-op, no error) | Integration | R-004 (MITIGATE) | **ACTIVE** — mandatory PR gate; run job twice; asserts stable state + no error |
+| 5.7-INT-001 | 5.7 | Catering aggregation counts correct after concurrent registrations | Integration | R-006 (MITIGATE) | **ACTIVE** — Promise.all(5 inserts); asserts counts = 5; live query (no cached counter) |
+| 5.7-INT-002 | 5.7 | Catering counts decrement correctly after cancellation | Integration | R-006 | **ACTIVE** — cancel 2 of 5; asserts count = 3 per type |
+| 5.8-INT-IDOR-001 | 5.8 | Registrant list: non-owner organizer gets 403/404 | Integration | R-007 (MITIGATE) | **ACTIVE** — `test.skipIf(!DEV_SERVER_URL)`; `testOwnershipEnforcement()` reused; two organizers seeded via `seedUserWithSession()` + `buildSignedSessionCookie()` |
+| 5.8-INT-001 | 5.8 | Registrant list shows correct status: Registered / Cancelled | Integration | R-007 | **ACTIVE** — seeds mixed-status registrations; asserts all status values returned |
+| 5.8-INT-002 | 5.8 | Dashboard headcount updates live after registration and cancellation | Integration | R-007 | **ACTIVE** — asserts `registrantCount` subquery in `getUpcomingBookingsByOrganizer` excludes cancelled |
 
 **P0 total: 17 scenarios**
 
@@ -318,7 +362,7 @@ Epic 4 is done (PR #126 merged). The complete E4 platform is available: `registr
 | Nightly | Nightly CI run | P2 tests + P3 LOAD/timing tests (k6 `5.2-LOAD-001`, `5.8-PERF-001`, `5.2-E2E-005`) |
 | On-demand | Developer request | Visual snapshot (`5.1-E2E-003`); large-dataset integration tests |
 
-**Mandatory in every PR gate:** `5.1-INT-IDOR-001` (BLOCK risk), `5.2-INT-CLOSED-001`, `5.4-INT-001` (single-use cancel), `5.5-INT-001` (neutral disclosure), `5.6-INT-002` (idempotency), `5.7-INT-001` (concurrent catering count), `5.8-INT-IDOR-001`.
+**Mandatory in every PR gate:** `5.1-INT-IDOR-001` (BLOCK risk — R-001), `5.2-INT-CLOSED-001` (R-005 ✅), `5.6-INT-001` + `5.6-INT-002` (R-004 ✅), `5.7-INT-001` (R-006 ✅), `5.8-INT-IDOR-001` (R-007 ✅, requires `DEV_SERVER_URL`), `5.4-INT-001` (R-002 — pending Story 5.4), `5.5-INT-001` (R-003 — pending Story 5.5).
 
 ---
 
@@ -414,13 +458,13 @@ Estimates include test setup, fixture seeding, pg-boss job harness wiring, Mailp
 | R-001 | 9 (BLOCK) | **CLOSED** — 5.1 done (PR #128); `5.1-INT-IDOR-001` green in CI | `5.1-INT-IDOR-001` |
 | R-002 | 6 | OPEN | `5.4-INT-001` |
 | R-003 | 6 | OPEN | `5.5-INT-001` |
-| R-004 | 6 | OPEN | `5.6-INT-002` |
+| R-004 | 6 | **MITIGATED** ✅ — 5.6 done (PR #132); `FOR UPDATE` row lock + idempotency guard; `5.6-INT-001` + `5.6-INT-002` P0 active and green in CI | `5.6-INT-001`, `5.6-INT-002` |
 | R-005 | 6 | **MITIGATED** ✅ — 5.2 done (PR #129); `5.2-INT-CLOSED-001` green in CI; service-layer `RegistrationClosedError` guard active | `5.2-INT-CLOSED-001` |
-| R-006 | 6 | OPEN | `5.7-INT-001` |
-| R-007 | 6 | OPEN | `5.8-INT-IDOR-001` |
+| R-006 | 6 | **MITIGATED** ✅ — 5.7 done (PR #133); live query (no cached counter); `5.7-INT-001` + `5.7-INT-002` P0 active and green in CI | `5.7-INT-001`, `5.7-INT-002` |
+| R-007 | 6 | **MITIGATED** ✅ — 5.8 done (PR #131); owner-or-admin guard on `/bookings/[id]/registrants`; `5.8-INT-IDOR-001` P0 active (runs in CI via `DEV_SERVER_URL`) | `5.8-INT-IDOR-001` |
 | R-008 | 4 | OPEN — `5.2-E2E-MOBILE-001/002` scaffolded (`test.skip`; activate during E2E pass) | `5.2-E2E-MOBILE-001/002` |
-| R-009 | 4 | OPEN | `5.3-INT-001`, `5.3-INT-004/005` |
+| R-009 | 4 | PARTIALLY ADDRESSED — `5.3-INT-001+002` P0 active (pg-boss job proof + cancel link payload); full route-action proof + DLQ (`5.3-INT-005`) remain `test.skip` | `5.3-INT-001+002`, `5.3-INT-005` |
 | R-010 | 4 | OPEN — `5.2-INT-002/004` scaffolded (`test.skip`; activate during E2E pass) | `5.2-INT-002`, `5.2-INT-004` |
-| R-011 | 3 | OPEN | `5.6-INT-005` (lint) |
+| R-011 | 3 | DOCUMENTED ✅ — `close-registration.ts` uses relative imports only; lint boundary respected; `5.6-INT-005` (formal lint scan) remains `test.skip` | `5.6-INT-005` (lint, skip) |
 | R-012 | 3 | OPEN — `5.2-INT-005` scaffolded (`test.skip`; activate during E2E pass) | `5.2-INT-005` |
 | R-013 | 2 | OPEN | Accepted; documented only |
