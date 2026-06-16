@@ -5,6 +5,7 @@ import boss from './lib/server/jobs/boss.js';
 import { QUEUE } from './lib/server/jobs/queues.js';
 import { smokeEmailHandler } from './lib/server/jobs/handlers/smoke-email.js';
 import { sendEmailHandler } from './lib/server/jobs/handlers/send-email.js';
+import { closeRegistrationHandler } from './lib/server/jobs/handlers/close-registration.js';
 import pino from 'pino';
 
 const logger = pino({ level: 'info' });
@@ -17,6 +18,7 @@ async function main() {
 	// createQueue is idempotent — safe to call on every startup.
 	await boss.createQueue(QUEUE.SMOKE_EMAIL);
 	await boss.createQueue(QUEUE.SEND_EMAIL);
+	await boss.createQueue(QUEUE.CLOSE_REGISTRATION);
 	logger.info('pg-boss queues created');
 
 	// pg-boss v12 WorkHandler passes Job<T>[] which extends our JobLike interface
@@ -25,6 +27,8 @@ async function main() {
 	await boss.work(QUEUE.SMOKE_EMAIL, smokeEmailHandler as any);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	await boss.work(QUEUE.SEND_EMAIL, sendEmailHandler as any);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	await boss.work(QUEUE.CLOSE_REGISTRATION, closeRegistrationHandler as any);
 
 	logger.info('Worker ready, handlers registered');
 

@@ -58,9 +58,25 @@ beforeAll(async () => {
 	const client = await pool.connect();
 	await client.query('SELECT 1');
 	client.release();
+
+	// Story 5.6: createBooking now calls enqueueJob after the transaction commits,
+	// so pg-boss must be started before any test that calls createBooking with
+	// registrationClosesAt set (IT-001, IT-003, IT-004 all do this).
+	const { boss, QUEUE } = await import('../../src/lib/server/jobs/index.js');
+	await boss.start();
+	await boss.createQueue(QUEUE.CLOSE_REGISTRATION);
 });
 
 afterAll(async () => {
+	// Stop pg-boss before closing the pool — graceful=false avoids waiting for
+	// in-flight jobs to drain (safe in test teardown).
+	const { boss } = await import('../../src/lib/server/jobs/index.js');
+	try {
+		await boss.stop({ graceful: false });
+	} catch {
+		// Already stopped (e.g., by a parallel suite) — safe to ignore.
+	}
+
 	if (pool) {
 		await pool.end();
 	}

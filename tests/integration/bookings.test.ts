@@ -89,9 +89,25 @@ beforeAll(async () => {
 	const client = await pool.connect();
 	await client.query('SELECT 1');
 	client.release();
-});
+
+	// Story 5.6: Start pg-boss at the file level so createBooking() can call
+	// enqueueJob(CLOSE_REGISTRATION, ...) after committing the transaction.
+	// createBooking now schedules the auto-close job when registrationClosesAt is set,
+	// which requires the pgboss schema to exist. The 4.6 describe block's own
+	// beforeAll will call boss.start() again (idempotent) and boss.stop() in afterAll.
+	const { boss, QUEUE } = await import('../../src/lib/server/jobs/index.js');
+	await boss.start();
+	await boss.createQueue(QUEUE.CLOSE_REGISTRATION);
+}, 60_000);
 
 afterAll(async () => {
+	// Stop boss before closing the pool — order matters for clean shutdown.
+	const { boss } = await import('../../src/lib/server/jobs/index.js');
+	try {
+		await boss.stop({ graceful: false });
+	} catch {
+		// Already stopped by 4.6 describe's afterAll — safe to ignore
+	}
 	if (pool) {
 		await pool.end();
 	}

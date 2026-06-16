@@ -1,17 +1,22 @@
 /**
- * Booking detail/management page — Story 4.5 + Story 4.7
+ * Booking detail/management page — Story 4.5 + Story 4.7 + Story 5.6
  *
- * load:   Requires authenticated user. Fetches booking by [id].
- *         Asserts ownership (assertOwner). Returns booking data for display,
- *         including QR / registration URL (Story 4.5) and room/time info (Story 4.7).
+ * load:             Requires authenticated user. Fetches booking by [id].
+ *                   Asserts ownership (assertOwner). Returns booking data for display,
+ *                   including QR / registration URL (Story 4.5) and room/time info (Story 4.7).
  *
- * cancel: Calls cancelBooking(). Redirects back to /bookings/[id] on success.
- *         Non-owner → 403 (assertOwner guard).
+ * cancel:           Calls cancelBooking(). Redirects back to /bookings/[id] on success.
+ *                   Non-owner → 403 (assertOwner guard).
+ *
+ * closeRegistration: Sets registration_enabled=false immediately. Writes audit log.
+ *                   Idempotent: no-op if already closed. Non-owner → 403.
+ *                   (Story 5.6, AC-2, FR-034b)
  *
  * Auth:   requireUser (throws redirect 302 if unauthenticated)
  *         assertOwner (throws error 403 if wrong organizer)
  */
 import { error, redirect } from '@sveltejs/kit';
+import { eq, sql } from 'drizzle-orm';
 
 import { requireUser, assertOwner } from '$lib/server/auth/guards.js';
 import { getBookingById, cancelBooking } from '$lib/server/services/booking-service.js';
@@ -19,6 +24,9 @@ import { getRoomById } from '$lib/server/services/room-service.js';
 import { generateQrDataUrl } from '$lib/server/qr/qr.js';
 import { parseTstzrange } from '$lib/utils/tstzrange.js';
 import { formatDateBangkok } from '$lib/utils/date.js';
+import { db } from '$lib/server/db/index.js';
+import { bookings } from '$lib/server/db/schema/bookings.js';
+import { writeAuditLog } from '$lib/server/services/audit.js';
 
 import type { Actions, PageServerLoad } from './$types.js';
 
@@ -80,6 +88,39 @@ export const actions: Actions = {
 		assertOwner(event, booking.organizerId);
 
 		await cancelBooking(user.id, id);
+
+		redirect(303, `/bookings/${id}`);
+	},
+
+	closeRegistration: async (event) => {
+		const user = requireUser(event);
+		const { id } = event.params;
+
+		const booking = await getBookingById(id);
+		if (!booking) {
+			error(404, 'Booking not found');
+		}
+
+		assertOwner(event, booking.organizerId);
+
+		// Idempotent: no-op if already closed (AC-2, makes action double-submit safe)
+		if (!booking.registrationEnabled) {
+			redirect(303, `/bookings/${id}`);
+		}
+
+		await db.transaction(async (tx) => {
+			await tx
+				.update(bookings)
+				.set({ registrationEnabled: false, updatedAt: sql`now()` })
+				.where(eq(bookings.id, id));
+
+			await writeAuditLog(tx, {
+				actorId: user.id,
+				entity: 'booking',
+				action: 'close-registration',
+				diff: { bookingId: id }
+			});
+		});
 
 		redirect(303, `/bookings/${id}`);
 	}

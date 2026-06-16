@@ -208,5 +208,10 @@
 	"reg_email_event_label": "Event:",
 	"reg_email_cancel_link_label": "To cancel your registration, click:",
 	"reg_email_cancel_link_text": "Cancel Registration",
-	"reg_email_footer": "This email was sent automatically. Do not reply."
+	"reg_email_footer": "This email was sent automatically. Do not reply.",
+
+	"booking_close_registration_button": "Close registration",
+	"booking_close_registration_confirm_title": "Close registration?",
+	"booking_close_registration_confirm_body": "This will immediately prevent new attendees from registering. Already registered attendees are not affected.",
+	"booking_close_registration_confirm_action": "Yes, close registration"
 }
