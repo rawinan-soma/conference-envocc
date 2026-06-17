@@ -2,7 +2,10 @@ import { createHash, randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db/index.js';
 import { bookings } from '$lib/server/db/schema/bookings.js';
-import { createRegistrant } from '$lib/server/db/queries/registrations.js';
+import {
+	createRegistrant,
+	cancelRegistrantByCancelToken
+} from '$lib/server/db/queries/registrations.js';
 import { writeAuditLog } from '$lib/server/services/audit.js';
 import type { RegistrationInput } from '$lib/schemas/registration.js';
 
@@ -90,4 +93,37 @@ export async function createRegistration(
 		registrationId: result.id,
 		cancelToken: cancelTokenPlain
 	};
+}
+
+/**
+ * Cancels a registration by the plaintext cancel token from the cancel link.
+ *
+ * AC-2 (R-002 MITIGATE): Single-use token — after first success, cancel_token_hash is NULL.
+ * AC-3 (R-002 IDOR): No client-supplied registrationId — lookup is hash-only.
+ *
+ * @param cancelTokenPlain - 64-char hex plaintext from ?token= query parameter
+ * @returns { cancelled: true } on success; { cancelled: false } if token invalid or already used
+ */
+export async function cancelRegistration(
+	cancelTokenPlain: string
+): Promise<{ cancelled: boolean }> {
+	const result = await db.transaction(async (tx) => {
+		const cancelResult = await cancelRegistrantByCancelToken(tx, cancelTokenPlain);
+
+		if (cancelResult.cancelled) {
+			await writeAuditLog(tx, {
+				actorId: null, // unauthenticated external registrant (mirrors createRegistration)
+				entity: 'registration',
+				action: 'cancel',
+				diff: {
+					registrationId: cancelResult.registrationId,
+					bookingId: cancelResult.bookingId
+				}
+			});
+		}
+
+		return { cancelled: cancelResult.cancelled };
+	});
+
+	return result;
 }

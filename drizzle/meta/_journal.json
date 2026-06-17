@@ -78,6 +78,13 @@
       "when": 1781537234916,
       "tag": "0010_registrations",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781623634916,
+      "tag": "0011_cancel_token_hash_unique",
+      "breakpoints": true
     }
   ]
 }

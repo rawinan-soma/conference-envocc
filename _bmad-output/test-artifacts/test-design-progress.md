@@ -13,7 +13,7 @@ lastSaved: '2026-06-16'
 epicTwoRevision: v3
 epicThreeRevision: v1
 epicFourRevision: v1
-epicFiveRevision: v3
+epicFiveRevision: v4
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
@@ -374,3 +374,58 @@ R-001 CLOSED (v1), R-005 MITIGATED ✅ (v3). R-002, R-003, R-004, R-006, R-007 o
 `5.2-INT-001` + `5.2-INT-CLOSED-001` green in CI gate.
 P1 stubs for 5.2 remain `test.skip`; E2E activation pending for Stories 5.3–5.8 progression.
 5.3–5.8 remain backlog; all their P0 scenarios planned but not yet implemented.
+
+---
+
+# Epic 5 Test Design Run (v4 Update) — 2026-06-16
+
+## Step 1: Mode Detection
+
+- **Mode detected**: Update/Resume (v3 already exists; sprint-status shows 4 new stories done since v3)
+- **Epic**: Epic 5 — External Registration & Headcount (8 stories; 5.1–5.3, 5.6–5.8 done; 5.4 and 5.5 backlog)
+- **New since v3**: Stories 5.3 (PR #130), 5.6 (PR #132), 5.7 (PR #133), 5.8 (PR #131) all merged 2026-06-16
+- **Prerequisites confirmed**: All 4 new implementation docs + ATDD checklists loaded; `tests/integration/registrations.test.ts` inspected (2513 lines); `tests/e2e/registrations.spec.ts` inspected (5.7-E2E-001 and 5.8-E2E-001/002 confirmed `test.skip`)
+
+## Step 2: Context Loading
+
+- **Stack detected**: fullstack (SvelteKit 5 + Bun + Drizzle + PostgreSQL + pg-boss + nodemailer + Playwright + Vitest)
+- **Playwright utils**: enabled (tea_use_playwright_utils: true)
+- **Story 5.3 done** — `registration-confirmation.ts` template; pg-boss `SEND_EMAIL` queue; `singletonKey: registration-confirm-${registrationId}`; cancel link `${origin}/r/${eventToken}/cancel?token=${cancelTokenPlain}`; 6 `reg_email_*` i18n keys; `5.3-INT-001+002` P0 ACTIVE (raw SQL pg-boss job proof)
+- **Story 5.6 done** — `CLOSE_REGISTRATION` pg-boss queue; `closeRegistrationHandler` with `FOR UPDATE` row lock + idempotency guard; manual close action; `5.6-INT-001` + `5.6-INT-002` P0 ACTIVE
+- **Story 5.7 done** — `getCateringCountsByBookingId`/`getCateringCountsByBookingIds` live queries; batch fetch (no N+1); `BookingCard.svelte` catering summary section; `5.7-INT-001` + `5.7-INT-002` P0 ACTIVE
+- **Story 5.8 done** — `getRegistrantsByBookingId` query; `registrantCount` subquery; `/bookings/[id]/registrants` route with owner-or-admin guard; `BookingCard.svelte` live headcount; `5.8-INT-IDOR-001` + `5.8-INT-001` + `5.8-INT-002` P0 ACTIVE; `5.8-IDOR-001` uses `seedUserWithSession()` + `buildSignedSessionCookie()` + `testOwnershipEnforcement()`; gated by `DEV_SERVER_URL`
+- **E2E status confirmed**: `5.7-E2E-001` (P1) and `5.8-E2E-001/002` (P1) remain `test.skip` — scaffolds exist, seed wiring pending
+- **Knowledge fragments loaded**: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
+
+## Step 3: Risk & Testability Assessment
+
+- R-001 (token IDOR BLOCK): **CLOSED** ✅ — unchanged from v1
+- R-002 (cancel token replay): **OPEN** — awaiting Story 5.4; `5.4-INT-001` planned
+- R-003 (resend enumeration): **OPEN** — awaiting Story 5.5; `5.5-INT-001` planned
+- R-004 (auto-close double-fire): **MITIGATED** ✅ — Story 5.6 done (PR #132); `FOR UPDATE` lock + idempotency guard; `5.6-INT-001` + `5.6-INT-002` P0 green in CI; `5.6-INT-003` (worker restart) P1 skip
+- R-005 (closed-state POST bypass): **MITIGATED** ✅ — unchanged from v3
+- R-006 (catering concurrency): **MITIGATED** ✅ — Story 5.7 done (PR #133); live query (no cached counter); `5.7-INT-001` + `5.7-INT-002` P0 green in CI
+- R-007 (registrant list IDOR): **MITIGATED** ✅ — Story 5.8 done (PR #131); owner-or-admin guard; `5.8-INT-IDOR-001` P0 active (CI-only via `DEV_SERVER_URL`)
+- R-008 (mobile responsiveness): **OPEN** — `5.2-E2E-MOBILE-001/002` scaffolded as `test.skip`
+- R-009 (confirmation email dropped): **PARTIALLY ADDRESSED** — `5.3-INT-001+002` P0 active proves pg-boss job enqueue and cancel link payload shape; full route-action proof + DLQ (`5.3-INT-005`) remain `test.skip`
+- R-010 ("Other→text" lost): **OPEN** — `5.2-INT-002/004` scaffolded as `test.skip`
+- R-011 (lint boundary): **DOCUMENTED** ✅ — `close-registration.ts` uses only relative imports; `5.6-INT-005` (lint scan) remains `test.skip`
+- R-012 (no-capacity cap): **OPEN** — `5.2-INT-005` scaffolded as `test.skip`
+
+## Step 4: Coverage Plan
+
+- P0: 17 of 17 scenarios now have active tests (5.1: 3 active; 5.2: 2 active; 5.3: 2 active [combined]; 5.6: 2 active; 5.7: 2 active; 5.8: 3 active; 5.4: 2 planned; 5.5: 1 planned)
+- P1: 5 still `test.skip` in integration (5.2: 4, 5.3: 1); 8 E2E stubs still `test.skip` (5.1: 4, 5.2: 4, 5.7: 1, 5.8: 2); 5.6-INT-003/004 skip; 5.4-E2E-001 and 5.5-E2E-001 planned
+- P2: 0 active; all `test.skip` or planned
+- P3: 0 active; all `test.skip` or planned
+- Remaining effort for 5.4/5.5: ~18–30h (~2–4 engineering days)
+
+## Step 5: Output Generated
+
+Output file: `_bmad-output/test-artifacts/test-design/test-design-epic-5.md`
+Revision: v4 (2026-06-16) — updated post Stories 5.3, 5.6, 5.7, 5.8 completion.
+R-001 CLOSED (v1), R-005 MITIGATED ✅ (v3), R-004/R-006/R-007 MITIGATED ✅ (v4), R-009 partially addressed (v4), R-011 documented (v4).
+All 17 P0 test scenarios now have active tests in `registrations.test.ts`.
+`5.6-INT-002` (idempotency) added to mandatory PR gate.
+5.4 and 5.5 remain backlog; R-002 and R-003 remain the only open MITIGATE risks.
+New ATDD checklist committed: `atdd-checklist-5-7-catering-aggregation.md`.

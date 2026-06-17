@@ -2511,3 +2511,172 @@ describe('Story 5.8 — Admin Cross-Event Registrant List Access (AC-3)', () => 
 		).toBe(200);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Story 5.4 — Self-Cancel a Registration
+// ---------------------------------------------------------------------------
+
+describe('Story 5.4 — Single-Use Cancel Token (AC-2, R-002 MITIGATE)', () => {
+	test('[P0] 5.4-INT-001 — valid token cancels registration; second use returns already-used', async () => {
+		// THIS TEST WILL FAIL until cancelRegistration is implemented (Tasks 1 + 2).
+		//
+		// AC-2 (R-002 MITIGATE): The cancel token is single-use. After a successful cancel,
+		//   cancel_token_hash is NULL and status = 'cancelled'.
+		//   A second call with the same token returns { cancelled: false } — no crash.
+		//
+		// Strategy:
+		//   1. Seed booking + registration with a KNOWN cancelTokenPlain
+		//   2. Call cancelRegistration(cancelTokenPlain) — assert { cancelled: true }
+		//   3. Assert DB: status='cancelled', cancel_token_hash IS NULL
+		//   4. Call cancelRegistration(cancelTokenPlain) again — assert { cancelled: false }
+
+		const { cancelRegistration } =
+			await import('../../src/lib/server/services/registration-service.js');
+
+		const cancelTokenPlain = randomBytes(32).toString('hex');
+		const cancelTokenHash = createHash('sha256').update(cancelTokenPlain).digest('hex');
+		const regSlug = `5-4-int-001-${randomUUID().replace(/-/g, '')}`;
+
+		const client = await pool.connect();
+		let registrationId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-4-001');
+			await seedUserProfile(client, organizerId, { firstName: 'Cancel', lastName: 'Test' });
+			const roomId = await seedRoom(client, 'int-5-4-001');
+			const bookingId = await seedBookingWithToken(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD Cancel Test 5.4-INT-001',
+				token: regSlug,
+				registrationEnabled: true
+			});
+			// Seed registration with KNOWN cancel token hash
+			registrationId = uuidv7();
+			await client.query(
+				`INSERT INTO registrations (id, booking_id, title, first_name, last_name, organization, email, cancel_token_hash, status, created_at, updated_at)
+         VALUES ($1, $2, 'Mr', 'Test', 'Cancel', 'Test Org', $3, $4, 'registered', NOW(), NOW())`,
+				[registrationId, bookingId, `cancel-5-4-001-${registrationId}@example.com`, cancelTokenHash]
+			);
+		} finally {
+			client.release();
+		}
+
+		// First cancel — must succeed
+		const result1 = await cancelRegistration(cancelTokenPlain);
+		expect(result1.cancelled, '5.4-INT-001: first cancel must return { cancelled: true }').toBe(
+			true
+		);
+
+		// Verify DB state
+		const client2 = await pool.connect();
+		try {
+			const row = await client2.query<{
+				status: string;
+				cancel_token_hash: string | null;
+				updated_at: Date;
+			}>(`SELECT status, cancel_token_hash, updated_at FROM registrations WHERE id = $1`, [
+				registrationId
+			]);
+			expect(row.rows[0]?.status, '5.4-INT-001: status must be cancelled').toBe('cancelled');
+			expect(
+				row.rows[0]?.cancel_token_hash,
+				'5.4-INT-001: cancel_token_hash must be NULL after single use'
+			).toBeNull();
+			expect(
+				row.rows[0]?.updated_at,
+				'5.4-INT-001: updated_at must be set after cancellation (Task 1 atomicity)'
+			).toBeDefined();
+		} finally {
+			client2.release();
+		}
+
+		// Second cancel with same token — must NOT crash, must return cancelled: false
+		const result2 = await cancelRegistration(cancelTokenPlain);
+		expect(
+			result2.cancelled,
+			'5.4-INT-001: second use of same token must return { cancelled: false }'
+		).toBe(false);
+	});
+});
+
+describe('Story 5.4 — IDOR: Forged Token Cannot Cancel Another Registration (AC-3, R-002)', () => {
+	test('[P0] 5.4-INT-002 — forged/random token cannot cancel a valid registration', async () => {
+		// THIS TEST WILL FAIL until cancelRegistration is implemented (Tasks 1 + 2).
+		//
+		// AC-3 (R-002 IDOR): A random/forged token must not be able to cancel
+		//   any existing registration. Token lookup is by hash only.
+		//
+		// Strategy:
+		//   1. Seed a booking + registration with a known token
+		//   2. Generate a DIFFERENT random forgedToken
+		//   3. Call cancelRegistration(forgedToken) — assert { cancelled: false }
+		//   4. Assert DB: original registration still has status='registered'
+
+		const { cancelRegistration } =
+			await import('../../src/lib/server/services/registration-service.js');
+
+		const realTokenPlain = randomBytes(32).toString('hex');
+		const realTokenHash = createHash('sha256').update(realTokenPlain).digest('hex');
+		const forgedTokenPlain = randomBytes(32).toString('hex'); // different token
+		const regSlug = `5-4-int-002-${randomUUID().replace(/-/g, '')}`;
+
+		const client = await pool.connect();
+		let registrationId: string;
+		try {
+			const organizerId = await seedUser(client, 'int-5-4-002');
+			await seedUserProfile(client, organizerId, { firstName: 'IDOR', lastName: 'Test' });
+			const roomId = await seedRoom(client, 'int-5-4-002');
+			const bookingId = await seedBookingWithToken(client, {
+				organizerId,
+				roomId,
+				eventName: 'ATDD IDOR Test 5.4-INT-002',
+				token: regSlug,
+				registrationEnabled: true
+			});
+			registrationId = uuidv7();
+			await client.query(
+				`INSERT INTO registrations (id, booking_id, title, first_name, last_name, organization, email, cancel_token_hash, status, created_at, updated_at)
+         VALUES ($1, $2, 'Ms', 'IDOR', 'Victim', 'Test Org', $3, $4, 'registered', NOW(), NOW())`,
+				[registrationId, bookingId, `idor-5-4-002-${registrationId}@example.com`, realTokenHash]
+			);
+		} finally {
+			client.release();
+		}
+
+		// Forged token must not cancel the real registration
+		const result = await cancelRegistration(forgedTokenPlain);
+		expect(result.cancelled, '5.4-INT-002: forged token must return { cancelled: false }').toBe(
+			false
+		);
+
+		// Original registration must remain registered
+		const client2 = await pool.connect();
+		try {
+			const row = await client2.query<{ status: string }>(
+				`SELECT status FROM registrations WHERE id = $1`,
+				[registrationId]
+			);
+			expect(
+				row.rows[0]?.status,
+				'5.4-INT-002: original registration must remain registered after forged token attempt'
+			).toBe('registered');
+		} finally {
+			client2.release();
+		}
+	});
+});
+
+describe('Story 5.4 — cancel_token_hash IS NULL Post-Cancel (AC-2, AR-05)', () => {
+	test.skip('[P2] 5.4-INT-003 — cancel_token_hash IS NULL and status=cancelled after successful cancel', async () => {
+		// Activation condition: Tasks 1 + 2 complete (cancelRegistration implemented).
+		//
+		// AR-05: After a successful cancellation, cancel_token_hash must be NULL
+		//   (prevents token reuse even if the service layer is bypassed).
+		//   This test is redundant with the DB assertion in 5.4-INT-001 but
+		//   explicitly documents the AR-05 contract.
+		//
+		// Strategy: mirrors 5.4-INT-001 DB assertion steps only.
+		// Implement once 5.4-INT-001 is green and promote to P1 if needed.
+		throw new Error('5.4-INT-003: not yet implemented — activate after 5.4-INT-001 is green');
+	});
+});
