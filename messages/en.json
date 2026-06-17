@@ -199,6 +199,15 @@
 	"reg_email_cancel_link_text": "Cancel Registration",
 	"reg_email_footer": "This email was sent automatically. Do not reply.",
 
+	"reg_cancel_page_title": "Cancel Registration",
+	"reg_cancel_confirm_heading": "Cancel your registration?",
+	"reg_cancel_confirm_body": "This will remove you from the attendee list. This action cannot be undone.",
+	"reg_cancel_confirm_button": "Yes, cancel my registration",
+	"reg_cancel_success_title": "Registration Cancelled",
+	"reg_cancel_success_message": "Your registration has been successfully cancelled.",
+	"reg_cancel_error_title": "Link Expired or Already Used",
+	"reg_cancel_error_message": "This cancel link is no longer valid. Your registration may already be cancelled.",
+
 	"booking_close_registration_button": "Close registration",
 	"booking_close_registration_confirm_title": "Close registration?",
 	"booking_close_registration_confirm_body": "This will immediately prevent new attendees from registering. Already registered attendees are not affected.",

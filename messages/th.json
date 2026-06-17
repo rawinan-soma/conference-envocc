@@ -199,6 +199,15 @@
 	"reg_email_cancel_link_text": "",
 	"reg_email_footer": "",
 
+	"reg_cancel_page_title": "",
+	"reg_cancel_confirm_heading": "",
+	"reg_cancel_confirm_body": "",
+	"reg_cancel_confirm_button": "",
+	"reg_cancel_success_title": "",
+	"reg_cancel_success_message": "",
+	"reg_cancel_error_title": "",
+	"reg_cancel_error_message": "",
+
 	"booking_close_registration_button": "",
 	"booking_close_registration_confirm_title": "",
 	"booking_close_registration_confirm_body": "",
