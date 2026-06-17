@@ -228,5 +228,16 @@
 	"registrant_list_status_cancelled": "",
 	"registrant_list_empty_state": "",
 	"registrant_list_view_link": "",
-	"registrant_list_back_link": ""
+	"registrant_list_back_link": "",
+
+	"resend_page_title": "",
+	"resend_form_heading": "",
+	"resend_form_description": "",
+	"resend_form_email_label": "",
+	"resend_form_submit_button": "",
+	"resend_form_submitting_button": "",
+	"resend_form_acknowledged_title": "",
+	"resend_form_acknowledged_message": "",
+
+	"reg_page_resend_link": ""
 }

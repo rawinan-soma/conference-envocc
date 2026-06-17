@@ -228,5 +228,16 @@
 	"registrant_list_status_cancelled": "Cancelled",
 	"registrant_list_empty_state": "No registrants yet.",
 	"registrant_list_view_link": "View Registrants",
-	"registrant_list_back_link": "Back to Booking"
+	"registrant_list_back_link": "Back to Booking",
+
+	"resend_page_title": "Resend Confirmation Link",
+	"resend_form_heading": "Resend your confirmation link",
+	"resend_form_description": "Enter your email address and we will resend your confirmation link if a registration exists.",
+	"resend_form_email_label": "Email address",
+	"resend_form_submit_button": "Resend link",
+	"resend_form_submitting_button": "Sending...",
+	"resend_form_acknowledged_title": "Request received",
+	"resend_form_acknowledged_message": "If a registration exists for this email, your confirmation link has been resent.",
+
+	"reg_page_resend_link": "Lost your confirmation link? Resend it."
 }

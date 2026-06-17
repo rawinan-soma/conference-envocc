@@ -844,6 +844,123 @@ test.describe('Story 5.8 — Dashboard Live Headcount (AC-5, FR-052)', () => {
 	});
 });
 
+// ===========================================================================
+// ATDD Red-Phase E2E Scaffolds — Story 5.5: Resend a Lost Link
+//
+// STATUS: All tests skipped (TDD red-phase scaffold — activate after implementation).
+//
+// Playwright E2E tests — requires dev server running and seeded test data.
+//
+// Activation guide:
+//   1. Remove `test.skip(` → `test(` for the current task's test.
+//   2. Ensure dev server is running: `bun run dev`
+//   3. Ensure RESEND_BOOKING_TOKEN is set to a real booking token (registrationEnabled=true).
+//   4. Run: `bun run test:e2e -- --grep "5.5-E2E-001"` — verify it FAILS first (red).
+//   5. Implement the feature (Tasks 1–5 in story 5.5).
+//   6. Run again — verify it PASSES (green).
+//   7. Commit passing tests.
+//
+// AC Coverage:
+//   - AC-2 (form renders + superform wired): Email input form renders on /r/[token]/resend
+//   - AC-3 (R-003 MITIGATE): Same acknowledgement message shown for registered + unregistered email
+//   - AC-7 (NFR-006): All UI strings via Paraglide — English keys visible in browser
+//
+// Scenario IDs (from story 5.5 Task 7 + test-design-epic-5.md):
+//   P1 (skipped — activate during implementation):
+//   - 5.5-E2E-001: Resend form shows neutral acknowledgement for both registered and unregistered email
+//
+// Note: No Thai text hardcoded — per project rule: Rawinan handles all Thai translations.
+//   All string assertions use English mock data. Paraglide keys tested by name only.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 5.5 booking token constant — replace with real booking token once seed wiring is complete
+// ---------------------------------------------------------------------------
+
+/**
+ * Registration token for a booking with registrationEnabled=true.
+ * Must be seeded in the DB before these tests run.
+ * Replace with a real token from a seeded booking.
+ */
+const RESEND_BOOKING_TOKEN_5_5 = 'placeholder-5-5-booking-token-replace-me';
+
+// ---------------------------------------------------------------------------
+// 5.5-E2E-001 — Resend form shows neutral acknowledgement [P1] SKIP
+// AC-2: Form renders with email input; AC-3: Same ack message shown regardless of match
+// ---------------------------------------------------------------------------
+
+test.describe('Story 5.5 — Resend Form Neutral Acknowledgement (AC-2, AC-3, R-003)', () => {
+	test.skip('[P1] 5.5-E2E-001 — resend form shows neutral acknowledgement for both registered and unregistered email', async ({
+		page
+	}) => {
+		// Activation condition: Tasks 1–5 complete (route + form + i18n keys + acknowledgement state).
+		// Prerequisite seed: booking with RESEND_BOOKING_TOKEN_5_5 must exist with registrationEnabled=true.
+		//   At least one 'registered' registrant must be seeded with a known email.
+		//
+		// AC-2: /r/[token]/resend page renders a single email input field.
+		//   Paraglide keys visible: resend_form_heading, resend_form_email_label, resend_form_submit_button.
+		//
+		// AC-3 (R-003 MITIGATE): Submitting a registered email and an unregistered email both show
+		//   the same acknowledgement UI — resend_form_acknowledged_title + resend_form_acknowledged_message.
+		//   The form is hidden after submission. No indication of whether a match was found.
+		//
+		// AC-7 (NFR-006): All UI text comes from Paraglide m.* keys (English values rendered).
+
+		// Step 1: Navigate to the resend page
+		await page.goto(`/r/${RESEND_BOOKING_TOKEN_5_5}/resend`, { waitUntil: 'networkidle' });
+
+		// Page must load without redirect to /login — route is public (no requireUser)
+		expect(page.url()).not.toContain('/login');
+		expect(page.url()).toContain('/resend');
+
+		// AC-2: Email input form must be visible
+		// Paraglide key: resend_form_heading ("Resend your confirmation link")
+		await expect(page.getByRole('heading')).toBeVisible();
+
+		// AC-2: Email input field must be visible
+		// Paraglide key: resend_form_email_label ("Email address")
+		const emailInput = page.getByRole('textbox', { name: /email/i });
+		await expect(emailInput).toBeVisible();
+
+		// AC-2: Submit button must be visible
+		// Paraglide key: resend_form_submit_button ("Resend link")
+		const submitButton = page.getByRole('button', { name: /resend/i });
+		await expect(submitButton).toBeVisible();
+
+		// Step 2: Submit with an unregistered email (not-found case)
+		const unregisteredEmail = `not-registered-e2e-5-5@example.com`;
+		await emailInput.fill(unregisteredEmail);
+		await submitButton.click();
+
+		// AC-3: Acknowledgement title must appear (same for found and not-found)
+		// Paraglide key: resend_form_acknowledged_title ("Request received")
+		await expect(page.getByText('Request received')).toBeVisible({ timeout: 5000 });
+
+		// AC-3: Acknowledgement message must appear
+		// Paraglide key: resend_form_acknowledged_message
+		// ("If a registration exists for this email, your confirmation link has been resent.")
+		await expect(page.getByText(/if a registration exists for this email/i)).toBeVisible();
+
+		// AC-3: The form must be hidden after acknowledgement (no email input visible)
+		await expect(emailInput).not.toBeVisible();
+
+		// Step 3: Reload and submit with a registered email — same acknowledgement shown
+		// (This proves the UI does not differentiate between found and not-found)
+		await page.goto(`/r/${RESEND_BOOKING_TOKEN_5_5}/resend`, { waitUntil: 'networkidle' });
+		const emailInputReload = page.getByRole('textbox', { name: /email/i });
+		const submitButtonReload = page.getByRole('button', { name: /resend/i });
+
+		// Seed a known registered email or use a placeholder — replace with seeded email
+		const registeredEmail = `resend-e2e-001-registered@example.com`;
+		await emailInputReload.fill(registeredEmail);
+		await submitButtonReload.click();
+
+		// AC-3 (R-003 MITIGATE): Same acknowledgement for registered email — no difference in UI
+		await expect(page.getByText('Request received')).toBeVisible({ timeout: 5000 });
+		await expect(page.getByText(/if a registration exists for this email/i)).toBeVisible();
+	});
+});
+
 // ---------------------------------------------------------------------------
 // Story 5.4 — Self-Cancel a Registration (E2E)
 // ---------------------------------------------------------------------------

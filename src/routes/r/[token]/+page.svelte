@@ -27,12 +27,18 @@
 	 * Svelte 5 — uses $props() rune and $state/$derived patterns only (no Svelte 4 reactivity).
 	 */
 	import { superForm } from 'sveltekit-superforms';
+	import { resolve } from '$app/paths';
+	import type { Pathname } from '$app/types';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { PageData } from './$types.js';
 
 	const { data }: { data: PageData } = $props();
 
 	let successState = $state(false);
+
+	// Derive resolved href for the resend link — required by svelte/no-navigation-without-resolve rule.
+	// data.token is the public registration token (already in the URL, safe to expose in href).
+	const resendHref = $derived(resolve(`/r/${data.token}/resend` as Pathname));
 
 	// svelte-ignore state_referenced_locally
 	const { form, errors, enhance, submitting } = superForm(data.form, {
@@ -327,6 +333,16 @@
 							</button>
 						</div>
 					</form>
+
+					<!-- Resend link (Story 5.5 AC-1): attendee can recover lost confirmation email -->
+					<div class="mt-4 text-center">
+						<a
+							href={resendHref}
+							class="text-muted-foreground hover:text-foreground text-sm underline"
+						>
+							{m.reg_page_resend_link()}
+						</a>
+					</div>
 				{/if}
 			</div>
 		</div>
