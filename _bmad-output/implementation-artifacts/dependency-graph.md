@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-16T22:30:00+07:00 (phase 0 reconcile: PRs #130 (5.3), #132 (5.6), #133 (5.7), #131 (5.8) all CONFIRMED MERGED — 5.3/5.6/5.7/5.8 → done; 5.4/5.5 now Ready to Work)_
+_Last updated: 2026-06-17T09:00:00+07:00 (phase 0 reconcile: PRs #134 (5.4) and #135 (5.5) CONFIRMED MERGED — 5.4 → done 2026-06-17T02:13:24Z; 5.5 → done 2026-06-17T02:20:56Z; epic-5 COMPLETE; epic-6 stories 6.1–6.4 now Ready to Work)_
 
 ## Stories
 
@@ -36,17 +36,17 @@ _Last updated: 2026-06-16T22:30:00+07:00 (phase 0 reconcile: PRs #130 (5.3), #13
 | 5.1 | 5 | Branded public registration page | done | #29 | #128 | merged | epic 4 complete | ✅ Yes (done) |
 | 5.2 | 5 | Submit a registration | done | #30 | #129 | merged | 5.1 | ✅ Yes (done) |
 | 5.3 | 5 | Confirmation email with self-cancel link | done | #31 | #130 | merged | 5.2 | ✅ Yes (done) |
-| 5.4 | 5 | Self-cancel a registration | backlog | #32 | — | — | 5.3 | ✅ Yes |
-| 5.5 | 5 | Resend a lost link | backlog | #33 | — | — | 5.3 | ✅ Yes |
+| 5.4 | 5 | Self-cancel a registration | done | #32 | #134 | merged | 5.3 | ✅ Yes (done) |
+| 5.5 | 5 | Resend a lost link | done | #33 | #135 | merged | 5.3 | ✅ Yes (done) |
 | 5.6 | 5 | Registration open/close rules | done | #34 | #132 | merged | 5.2 | ✅ Yes (done) |
 | 5.7 | 5 | Catering aggregation | done | #35 | #133 | merged | 5.2 | ✅ Yes (done) |
 | 5.8 | 5 | Registrant list & dashboard headcount | done | #36 | #131 | merged | 5.2 | ✅ Yes (done) |
-| 6.1 | 6 | Sign-in sheet PDF | backlog | #37 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
-| 6.2 | 6 | One-day reminder sweeper | backlog | #38 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
-| 6.3 | 6 | Cancellation notifies attendees | backlog | #39 | — | — | epic 5 complete | ❌ No (epic 5 not complete) |
-| 6.4 | 6 | Event Detail & Register to attend (internal) | backlog | #40 | — | — | epic 5 complete, 2.3 | ❌ No (epic 5 not complete) |
-| 6.5 | 6 | Internal registrant counted & confirmed in-app | backlog | #41 | — | — | 6.4 | ❌ No (epic 5 not complete) |
-| 6.6 | 6 | Internal self-cancel & close rules | backlog | #42 | — | — | 6.4 | ❌ No (epic 5 not complete) |
+| 6.1 | 6 | Sign-in sheet PDF | backlog | #37 | — | — | epic 5 complete | ✅ Yes |
+| 6.2 | 6 | One-day reminder sweeper | backlog | #38 | — | — | epic 5 complete | ✅ Yes |
+| 6.3 | 6 | Cancellation notifies attendees | backlog | #39 | — | — | epic 5 complete | ✅ Yes |
+| 6.4 | 6 | Event Detail & Register to attend (internal) | backlog | #40 | — | — | epic 5 complete, 2.3 | ✅ Yes |
+| 6.5 | 6 | Internal registrant counted & confirmed in-app | backlog | #41 | — | — | 6.4 | ❌ No (6.4 not merged) |
+| 6.6 | 6 | Internal self-cancel & close rules | backlog | #42 | — | — | 6.4 | ❌ No (6.4 not merged) |
 | 7.1 | 7 | Room deactivation cascade | backlog | #43 | — | — | epic 6 complete, 3.3 | ❌ No (epic 6 not complete) |
 | 7.2 | 7 | Utilization heatmap | backlog | #44 | — | — | epic 6 complete | ❌ No (epic 6 not complete) |
 | 7.3 | 7 | Bulk calendar | backlog | #45 | — | — | epic 6 complete | ❌ No (epic 6 not complete) |
@@ -91,12 +91,12 @@ _Last updated: 2026-06-16T22:30:00+07:00 (phase 0 reconcile: PRs #130 (5.3), #13
 - **4.7** depends on: 4.4 ✅ **DONE (PR #125 merged)**
 - **4.8** depends on: 4.4, 4.5 ✅ **DONE (PR #126 merged)**
 
-### Epic 5 (requires epic 4 complete)
+### Epic 5 (COMPLETE — all PRs merged)
 - **5.1** depends on: epic 4 complete ✅ **DONE (PR #128 merged 2026-06-15T14:38:49Z)**
 - **5.2** depends on: 5.1 ✅ **DONE (PR #129 merged 2026-06-16T02:44:27Z)**
 - **5.3** depends on: 5.2 ✅ **DONE (PR #130 merged 2026-06-16T14:34:45Z)**
-- **5.4** depends on: 5.3
-- **5.5** depends on: 5.3
+- **5.4** depends on: 5.3 ✅ **DONE (PR #134 merged 2026-06-17T02:13:24Z)**
+- **5.5** depends on: 5.3 ✅ **DONE (PR #135 merged 2026-06-17T02:20:56Z)**
 - **5.6** depends on: 5.2 ✅ **DONE (PR #132 merged 2026-06-16T14:54:53Z)**
 - **5.7** depends on: 5.2 ✅ **DONE (PR #133 merged 2026-06-16T15:01:05Z)**
 - **5.8** depends on: 5.2 ✅ **DONE (PR #131 merged 2026-06-16T15:16:14Z)**
@@ -129,14 +129,14 @@ _Last updated: 2026-06-16T22:30:00+07:00 (phase 0 reconcile: PRs #130 (5.3), #13
 
 - **Epic 4:** COMPLETE. Strict chain: 4.1 → 4.2 → 4.3 → 4.4, then 4.5, 4.6, 4.7 in parallel after 4.4, then 4.8 last. All 8 stories **DONE** (PRs #118, #119, #121, #122, #123, #124, #125, #126 all merged).
 
-- **Epic 5:** After 5.1 merges, story 5.2 unblocks 5.3/5.6/5.7/5.8 in parallel. Stories 5.4 and 5.5 require 5.3. Stories 5.3/5.6/5.7/5.8 all now DONE; 5.4 and 5.5 are the final remaining stories for epic 5.
+- **Epic 5:** COMPLETE. All 8 stories merged to main. PRs #128 (5.1), #129 (5.2), #130 (5.3), #134 (5.4), #135 (5.5), #132 (5.6), #133 (5.7), #131 (5.8) all merged.
 
-- **Epic 6:** Stories 6.1, 6.2, 6.3, 6.4 can all start in parallel once epic 5 is complete. Stories 6.5 and 6.6 require 6.4.
+- **Epic 6:** Stories 6.1, 6.2, 6.3, 6.4 can all start in parallel — epic 5 is now complete. Stories 6.5 and 6.6 require 6.4.
 
 - **Epic 7:** Stories 7.2, 7.3, 7.4 can start in parallel. Story 7.1 requires 3.3 (done PR #116). Story 7.5 requires 2.7 (done). Story 7.6 requires 2.4 (done).
 
-**Current state:** Epics 1, 2, 3, and 4 are fully complete (all PRs merged). Epic 5 is active — 6 of 8 stories done. PRs merged since last graph: #130 (5.3), #132 (5.6), #133 (5.7), #131 (5.8). No open PRs. No active worktrees.
+**Current state:** Epics 1, 2, 3, 4, and 5 are fully complete (all PRs merged). Epic 6 is the current active epic — all 4 initial stories (6.1, 6.2, 6.3, 6.4) are now Ready to Work (epic 5 gate cleared). No open PRs. Worktrees story-5.4-self-cancel-a-registration and story-5.5-resend-a-lost-link removed.
 
-**Currently unblocked (Ready to Work):** Stories 5.4 and 5.5 are now unblocked (5.3 merged PR #130) and can be worked in parallel.
+**Currently unblocked (Ready to Work):** Stories 6.1, 6.2, 6.3, and 6.4 are all ready (epic 5 complete). Stories 6.5 and 6.6 depend on 6.4.
 
 **Epic gate rule:** No epic may begin until all stories of the preceding epic have merged PRs into main.
