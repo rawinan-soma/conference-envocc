@@ -1,5 +1,5 @@
 # Story Dependency Graph
-_Last updated: 2026-06-17T10:00:00+07:00 (phase 0 reconcile: no changes — all epic 1–5 stories done; epic-5 retrospective done; epic-6 stories 6.1–6.4 Ready to Work; no open PRs; no stale worktrees)_
+_Last updated: 2026-06-18T00:00:00+07:00 (phase 0 reconcile: no changes — all epic 1–5 stories done; epic-5 retrospective done; epic-6 stories 6.1–6.4 Ready to Work; no open PRs; no stale worktrees)_
 
 ## Stories
 
